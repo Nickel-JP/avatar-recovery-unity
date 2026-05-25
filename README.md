@@ -6,7 +6,7 @@ VPM repository for `com.nickel-jp.avatar-recovery`.
 
 Click the button below to add this repository to VRChat Creator Companion:
 
-[![Add to VCC](https://img.shields.io/badge/VCC-Add%20Repository-2563eb?style=for-the-badge&logo=unity&logoColor=white)](vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%2Findex.json)
+[![Add to VCC](https://img.shields.io/badge/VCC-Add%20Repository-2563eb?style=for-the-badge&logo=unity&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/)
 
 Manual repository URL:
 
