@@ -1,8 +1,8 @@
 ﻿{
     "name":  "Avatar Recovery Unity",
     "id":  "com.nogut.repos.avatar-recovery",
-    "url":  "https://nogut.github.io/avatar-recovery-unity/index.json",
-    "author":  "nogut@example.invalid",
+    "url":  "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
+    "author":  "Nickel-JP",
     "packages":  {
                      "com.nogut.avatar-recovery":  {
                                                        "versions":  {
@@ -22,8 +22,8 @@
                                                                                                        "editor"
                                                                                                    ],
                                                                                       "author":  {
-                                                                                                     "name":  "nogut",
-                                                                                                     "email":  "nogut@example.invalid"
+                                                                                                     "name":  "Nickel-JP",
+                                                                                                     "url":  "https://github.com/Nickel-JP"
                                                                                                  },
                                                                                       "vpmDependencies":  {
                                                                                                               "com.vrchat.base":  "\u003e=3.10.0 \u003c3.11.0",
@@ -32,9 +32,9 @@
                                                                                       "legacyFolders":  {
                                                                                                             "Assets\\Editor\\AvatarRecovery":  ""
                                                                                                         },
-                                                                                      "url":  "https://nogut.github.io/avatar-recovery-unity/packages/com.nogut.avatar-recovery-1.0.0.zip",
-                                                                                      "repo":  "https://nogut.github.io/avatar-recovery-unity/index.json",
-                                                                                      "zipSHA256":  "1f7ca237564175626227f28da9f0eee98f55f1c887ec8c7e0a8898eecb56462b"
+                                                                                      "url":  "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nogut.avatar-recovery-1.0.0.zip",
+                                                                                      "repo":  "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
+                                                                                      "zipSHA256":  "1be0f33963451f3b91674a6a242554bb6852e684e9533009f601d3e75a5ed5c9"
                                                                                   }
                                                                     }
                                                    }

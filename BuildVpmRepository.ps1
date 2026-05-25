@@ -101,7 +101,7 @@ try {
         name = "Avatar Recovery Unity"
         id = "com.nogut.repos.avatar-recovery"
         url = $repoUrl
-        author = "nogut@example.invalid"
+        author = "Nickel-JP"
         packages = $packages
     }
 

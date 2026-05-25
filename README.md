@@ -7,13 +7,13 @@ VPM repository for `com.nogut.avatar-recovery`.
 Add this repository URL to VRChat Creator Companion:
 
 ```text
-https://nogut.github.io/avatar-recovery-unity/index.json
+https://nickel-jp.github.io/avatar-recovery-unity/index.json
 ```
 
 One-click VCC URL:
 
 ```text
-vcc://vpm/addRepo?url=https%3A%2F%2Fnogut.github.io%2Favatar-recovery-unity%2Findex.json
+vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%2Findex.json
 ```
 
 After adding the repository, install `Avatar Recovery` from the VCC package list.
@@ -21,7 +21,7 @@ After adding the repository, install `Avatar Recovery` from the VCC package list
 ## Rebuild
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\BuildVpmRepository.ps1 -ProjectRoot "C:\VRChatProjects\tttt" -BaseUrl "https://nogut.github.io/avatar-recovery-unity"
+powershell -ExecutionPolicy Bypass -File .\BuildVpmRepository.ps1 -ProjectRoot "C:\VRChatProjects\tttt" -BaseUrl "https://nickel-jp.github.io/avatar-recovery-unity"
 ```
 
 If the GitHub Pages URL changes, rebuild with the new `-BaseUrl` before publishing.
