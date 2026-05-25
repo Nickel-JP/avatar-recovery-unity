@@ -1,72 +1,72 @@
-﻿{
-    "name":  "Avatar Recovery Unity",
-    "id":  "com.nickel-jp.repos.avatar-recovery",
-    "url":  "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
-    "author":  "Nickel-JP",
-    "packages":  {
-                     "com.nickel-jp.avatar-recovery":  {
-                                                           "versions":  {
-                                                                            "1.0.1":  {
-                                                                                          "name":  "com.nickel-jp.avatar-recovery",
-                                                                                          "displayName":  "Avatar Recovery",
-                                                                                          "version":  "1.0.1",
-                                                                                          "unity":  "2022.3",
-                                                                                          "description":  "Unity Editor tools for recovering VRChat avatar assets from VRCA files.",
-                                                                                          "type":  "tool",
-                                                                                          "license":  "MIT",
-                                                                                          "keywords":  [
-                                                                                                           "vrchat",
-                                                                                                           "avatar",
-                                                                                                           "recovery",
-                                                                                                           "vrca",
-                                                                                                           "editor"
-                                                                                                       ],
-                                                                                          "author":  {
-                                                                                                         "name":  "Nickel-JP",
-                                                                                                         "url":  "https://github.com/Nickel-JP"
-                                                                                                     },
-                                                                                          "vpmDependencies":  {
-                                                                                                                  "com.vrchat.base":  "\u003e=3.10.0 \u003c3.11.0",
-                                                                                                                  "com.vrchat.avatars":  "\u003e=3.10.0 \u003c3.11.0"
-                                                                                                              },
-                                                                                          "legacyFolders":  {
-                                                                                                                "Assets\\Editor\\AvatarRecovery":  ""
-                                                                                                            },
-                                                                                          "url":  "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.0.1.zip",
-                                                                                          "repo":  "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
-                                                                                          "zipSHA256":  "4fa50a6e20d60b772adc9a5558718eaa4ada5007bba1c9ee3aeb4bd30a48c29e"
-                                                                                      },
-                                                                            "1.0.0":  {
-                                                                                          "name":  "com.nickel-jp.avatar-recovery",
-                                                                                          "displayName":  "Avatar Recovery",
-                                                                                          "version":  "1.0.0",
-                                                                                          "unity":  "2022.3",
-                                                                                          "description":  "Unity Editor tools for recovering VRChat avatar assets from VRCA files.",
-                                                                                          "type":  "tool",
-                                                                                          "license":  "MIT",
-                                                                                          "keywords":  [
-                                                                                                           "vrchat",
-                                                                                                           "avatar",
-                                                                                                           "recovery",
-                                                                                                           "vrca",
-                                                                                                           "editor"
-                                                                                                       ],
-                                                                                          "author":  {
-                                                                                                         "name":  "Nickel-JP",
-                                                                                                         "url":  "https://github.com/Nickel-JP"
-                                                                                                     },
-                                                                                          "vpmDependencies":  {
-                                                                                                                  "com.vrchat.base":  "\u003e=3.10.0 \u003c3.11.0",
-                                                                                                                  "com.vrchat.avatars":  "\u003e=3.10.0 \u003c3.11.0"
-                                                                                                              },
-                                                                                          "legacyFolders":  {
-                                                                                                                "Assets\\Editor\\AvatarRecovery":  ""
-                                                                                                            },
-                                                                                          "url":  "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.0.0.zip",
-                                                                                          "repo":  "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
-                                                                                          "zipSHA256":  "185e8ef733419e42bd1dc499e3f973291ed1203098752271bc274f1fdc34bf67"
-                                                                                      }
-                                                                        }
-                                                       }
-                 }
+{
+  "name": "Avatar Recovery Unity",
+  "id": "com.nickel-jp.repos.avatar-recovery",
+  "url": "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
+  "author": "Nickel-JP",
+  "packages": {
+    "com.nickel-jp.avatar-recovery": {
+      "versions": {
+        "1.0.1": {
+          "name": "com.nickel-jp.avatar-recovery",
+          "displayName": "Avatar Recovery",
+          "version": "1.0.1",
+          "unity": "2022.3",
+          "description": "Unity Editor tools for recovering VRChat avatar assets from VRCA files.",
+          "type": "tool",
+          "license": "MIT",
+          "keywords": [
+            "vrchat",
+            "avatar",
+            "recovery",
+            "vrca",
+            "editor"
+          ],
+          "author": {
+            "name": "Nickel-JP",
+            "url": "https://github.com/Nickel-JP"
+          },
+          "vpmDependencies": {
+            "com.vrchat.base": ">=3.10.0 <3.11.0",
+            "com.vrchat.avatars": ">=3.10.0 <3.11.0"
+          },
+          "legacyFolders": {
+            "Assets\\Editor\\AvatarRecovery": ""
+          },
+          "url": "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.0.1.zip",
+          "repo": "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
+          "zipSHA256": "68bbcd5e796fce9209e51107c6d20d7f9be544712f129cc9ad0c2391ef72bb92"
+        },
+        "1.0.0": {
+          "name": "com.nickel-jp.avatar-recovery",
+          "displayName": "Avatar Recovery",
+          "version": "1.0.0",
+          "unity": "2022.3",
+          "description": "Unity Editor tools for recovering VRChat avatar assets from VRCA files.",
+          "type": "tool",
+          "license": "MIT",
+          "keywords": [
+            "vrchat",
+            "avatar",
+            "recovery",
+            "vrca",
+            "editor"
+          ],
+          "author": {
+            "name": "Nickel-JP",
+            "url": "https://github.com/Nickel-JP"
+          },
+          "vpmDependencies": {
+            "com.vrchat.base": ">=3.10.0 <3.11.0",
+            "com.vrchat.avatars": ">=3.10.0 <3.11.0"
+          },
+          "legacyFolders": {
+            "Assets\\Editor\\AvatarRecovery": ""
+          },
+          "url": "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.0.0.zip",
+          "repo": "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
+          "zipSHA256": "185e8ef733419e42bd1dc499e3f973291ed1203098752271bc274f1fdc34bf67"
+        }
+      }
+    }
+  }
 }
