@@ -22,8 +22,12 @@ Package license: MIT. See the `LICENSE` file included in the package zip.
 
 ## Rebuild
 
+Maintainer-only command example. The package was rebuilt and verified in a developer environment using PowerShell 7.6.0.
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\BuildVpmRepository.ps1 -ProjectRoot "C:\VRChatProjects\tttt" -BaseUrl "https://nickel-jp.github.io/avatar-recovery-unity"
+powershell -ExecutionPolicy Bypass -File .\BuildVpmRepository.ps1 `
+  -ProjectRoot "C:\path\to\UnityProject" `
+  -BaseUrl "https://nickel-jp.github.io/avatar-recovery-unity"
 ```
 
 If the GitHub Pages URL changes, rebuild with the new `-BaseUrl` before publishing.
