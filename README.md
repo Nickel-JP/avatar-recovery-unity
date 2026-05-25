@@ -18,6 +18,8 @@ vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%
 
 After adding the repository, install `Avatar Recovery` from the VCC package list.
 
+Package license: MIT. See the `LICENSE` file included in the package zip.
+
 ## Rebuild
 
 ```powershell
