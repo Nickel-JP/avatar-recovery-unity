@@ -1,0 +1,42 @@
+﻿{
+    "name":  "Avatar Recovery Unity",
+    "id":  "com.nogut.repos.avatar-recovery",
+    "url":  "https://nogut.github.io/avatar-recovery-unity/index.json",
+    "author":  "nogut@example.invalid",
+    "packages":  {
+                     "com.nogut.avatar-recovery":  {
+                                                       "versions":  {
+                                                                        "1.0.0":  {
+                                                                                      "name":  "com.nogut.avatar-recovery",
+                                                                                      "displayName":  "Avatar Recovery",
+                                                                                      "version":  "1.0.0",
+                                                                                      "unity":  "2022.3",
+                                                                                      "description":  "Unity Editor tools for recovering VRChat avatar assets from VRCA files.",
+                                                                                      "type":  "tool",
+                                                                                      "license":  "UNLICENSED",
+                                                                                      "keywords":  [
+                                                                                                       "vrchat",
+                                                                                                       "avatar",
+                                                                                                       "recovery",
+                                                                                                       "vrca",
+                                                                                                       "editor"
+                                                                                                   ],
+                                                                                      "author":  {
+                                                                                                     "name":  "nogut",
+                                                                                                     "email":  "nogut@example.invalid"
+                                                                                                 },
+                                                                                      "vpmDependencies":  {
+                                                                                                              "com.vrchat.base":  "\u003e=3.10.0 \u003c3.11.0",
+                                                                                                              "com.vrchat.avatars":  "\u003e=3.10.0 \u003c3.11.0"
+                                                                                                          },
+                                                                                      "legacyFolders":  {
+                                                                                                            "Assets\\Editor\\AvatarRecovery":  ""
+                                                                                                        },
+                                                                                      "url":  "https://nogut.github.io/avatar-recovery-unity/packages/com.nogut.avatar-recovery-1.0.0.zip",
+                                                                                      "repo":  "https://nogut.github.io/avatar-recovery-unity/index.json",
+                                                                                      "zipSHA256":  "1f7ca237564175626227f28da9f0eee98f55f1c887ec8c7e0a8898eecb56462b"
+                                                                                  }
+                                                                    }
+                                                   }
+                 }
+}
