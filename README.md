@@ -1,6 +1,6 @@
 # Avatar Recovery Unity
 
-VPM repository for `com.nogut.avatar-recovery`.
+VPM repository for `com.nickel-jp.avatar-recovery`.
 
 ## Install
 

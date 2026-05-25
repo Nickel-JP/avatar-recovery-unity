@@ -1,6 +1,6 @@
 param(
     [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
-    [string]$PackageId = "com.nogut.avatar-recovery",
+    [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$OutputRoot = $PSScriptRoot,
     [string]$BaseUrl = ""
 )
@@ -99,7 +99,7 @@ try {
 
     $repo = [ordered]@{
         name = "Avatar Recovery Unity"
-        id = "com.nogut.repos.avatar-recovery"
+        id = "com.nickel-jp.repos.avatar-recovery"
         url = $repoUrl
         author = "Nickel-JP"
         packages = $packages
