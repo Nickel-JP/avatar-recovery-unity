@@ -17,12 +17,14 @@ vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%
 ```
 
 After adding the repository, install `Avatar Recovery` from the VCC package list.
+VCC can choose any version listed in this repository, including older published versions.
 
 Package license: MIT. See the `LICENSE` file included in the package zip.
 
 ## Rebuild
 
 Maintainer-only command example. The package was rebuilt and verified in a developer environment using PowerShell 7.6.0.
+The rebuild script keeps every package zip under `packages/` in `index.json`, so do not delete older zip files unless that version should disappear from VCC.
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\BuildVpmRepository.ps1 `
