@@ -2,41 +2,48 @@
 
 VPM repository for `com.nickel-jp.avatar-recovery`.
 
-## ツール概要
+## Overview
 
-Avatar Recovery Unity は、VRChat の `.vrca` ファイルからアバター関連データを Unity プロジェクトへ復元するための Unity Editor 拡張です。
-自分が所有しているアバター、バックアップ、または明確な許可を得たデータの復旧・検証・移行作業を支援する目的で作成されています。
+Avatar Recovery Unity is a Unity Editor extension for recovering VRChat avatar data from `.vrca` files into a Unity project.
+It is intended for technical recovery, inspection, and migration work on avatar data that you own or are explicitly authorized to handle.
 
-Missing Script 参照、シェーダー/マテリアル復旧、Prefab再構築、直接インポート時に崩壊しやすいアバターへの安全なPose Reset判定など、VRCA復元時に起きやすい問題の切り分けと補助を行います。
+The tool assists with common recovery problems such as missing script references, shader/material restoration, prefab reconstruction, and safer pose-reset handling for avatars that may break when imported directly.
 
-## 技術仕様
+## Technical Specifications
 
-| 項目 | 内容 |
+| Item | Details |
 |---|---|
 | Unity | 2022.3.x |
 | VRChat SDK | Base and Avatars `>=3.10.0 <3.11.0` |
 | Package ID | `com.nickel-jp.avatar-recovery` |
-| 配布形式 | VRChat Creator Companion向けVPMリポジトリ |
-| 対象環境 | Windows上のUnity Editor |
-| 主な処理 | AssetRipper抽出 + Avatar Recovery独自の後処理 |
-| ライセンス | MIT |
+| Distribution | VPM repository for VRChat Creator Companion |
+| Target environment | Unity Editor on Windows |
+| Main pipeline | AssetRipper extraction plus Avatar Recovery post-processing |
+| License | MIT |
 
-## AssetRipper / AssetsDataBaseRipperの利用について
+## AssetRipper / AssetsDataBaseRipper Usage
 
-このツールは、AssetBundle抽出のために外部実行ファイルとして AssetRipper.exe を利用します。
-質問や環境によって AssetsDataBaseRipper と表記される場合がありますが、このVPMパッケージ内で扱う外部抽出ツールは AssetRipper.exe です。
+This tool uses AssetRipper.exe as an external executable for AssetBundle extraction.
+Some users may refer to similar workflows as AssetsDataBaseRipper, but this VPM package is designed to call AssetRipper.exe as the external extraction tool.
 
-AssetRipper本体はこのVPMパッケージには同梱していません。利用者が別途入手し、ツール設定でパスを指定するか、自動検出対象のフォルダーへ配置してください。
+AssetRipper itself is not bundled in this VPM package. Users must download and install it separately, then configure the path in the tool settings or place it in one of the supported auto-detection folders.
 
-AssetRipperは別プロジェクトであり独自のライセンスを持つため、このリポジトリでは Avatar Recovery Unity 本体コード、VPMメタデータ、配布用zipのみを公開しています。
+Because AssetRipper is a separate project with its own license, this repository only distributes Avatar Recovery Unity code, VPM metadata, and the package zip files.
 
-## 使用時の倫理観
+## Implementation and Rights Notes
 
-このツールは、自分が権利を持つファイル、バックアップ、または管理・復旧の許可を得たデータに対してのみ使用してください。
+Avatar Recovery Unity's post-processing pipeline is written as original C# code.
+It references established Unity and VRChat asset-recovery techniques and workflows, but it does not copy proprietary third-party source code and does not bundle AssetRipper or other external recovery executables.
 
-他のクリエイターのアバターや素材を盗用、複製、再配布、販売、なりすましに利用することを目的としていません。復元されたデータには、著作権のある素材、有料モデル、ライセンス付きシェーダー、個人的な改変内容が含まれる可能性があります。
+The package is structured this way to keep the distributed code and metadata clear: Avatar Recovery Unity is distributed under the MIT license, while external tools and recovered assets remain subject to their own licenses and rights.
 
-利用時は、元クリエイターの利用規約、VRChatのルール、各種ライセンス、適用される法律を尊重してください。このツールは復旧・保守・検証のためのものであり、クリエイターの意図や権利を回避するためのものではありません。
+## Ethical Use
+
+Use this tool only for files you have the right to inspect or recover, such as your own avatars, your own backups, or assets you have explicit permission to maintain.
+
+Do not use this tool to steal, clone, redistribute, resell, or impersonate another creator's work. Recovered data may still contain copyrighted assets, paid models, licensed shaders, or private modifications.
+
+Respect the original creator's terms, VRChat rules, third-party licenses, and applicable laws. This tool is provided for recovery, maintenance, and verification workflows, not for bypassing creator intent or ownership rights.
 
 ## Install
 
