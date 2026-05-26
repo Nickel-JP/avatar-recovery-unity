@@ -13,7 +13,7 @@ The tool calls AssetRipper.exe as an external process, then applies Avatar Recov
 
 | Item | Details |
 |---|---|
-| Unity | 2022.3.x. Verified with Unity 2022.3.22f1. VCC is recommended. |
+| Unity | Unity 2022.3.22f1 is required. VCC is recommended. |
 | VRChat SDK | Base and Avatars `>=3.10.0 <3.11.0`, installed through VCC. |
 | Package ID | `com.nickel-jp.avatar-recovery` |
 | Distribution | VPM repository for VRChat Creator Companion |
@@ -22,6 +22,12 @@ The tool calls AssetRipper.exe as an external process, then applies Avatar Recov
 | External extractor | AssetRipper.exe, downloaded separately from https://assetripper.github.io/ |
 | Recommended shaders | Poiyomi Toon Shader or lilToon for closer material restoration |
 | License | MIT |
+
+## Environment Notes
+
+Unity 2022.3.22f1 is the required Unity version for this package and for VRChat avatar upload workflows targeted by this tool. Do not upgrade the project to a newer Unity version unless VRChat officially changes its supported Unity version.
+
+As of 2026, the minimum VRChat Avatar SDK version for uploading avatars is 3.9.0 or later. New avatar uploads may be restricted on SDK versions older than 3.9.0. This VPM package declares `com.vrchat.base` and `com.vrchat.avatars` dependencies in the `>=3.10.0 <3.11.0` range, so VCC-managed installs should satisfy the upload requirement.
 
 ## AssetRipper / AssetsDataBaseRipper Usage
 
