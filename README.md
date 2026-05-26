@@ -38,6 +38,7 @@ Validated test environment:
 | VRChat SDK - Base | 3.10.3 |
 | VRChat SDK - Avatars | 3.10.3 |
 | Avatar Recovery | 1.0.1 |
+| PowerShell for batchmode test | 7.6.0 |
 | Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
 
 Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
