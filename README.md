@@ -29,6 +29,19 @@ Unity 2022.3.22f1 is the required Unity version for this package and for VRChat 
 
 As of 2026, the minimum VRChat Avatar SDK version for uploading avatars is 3.9.0 or later. New avatar uploads may be restricted on SDK versions older than 3.9.0. This VPM package declares `com.vrchat.base` and `com.vrchat.avatars` dependencies in the `>=3.10.0 <3.11.0` range, so VCC-managed installs should satisfy the upload requirement.
 
+Validated test environment:
+
+| Item | Tested version / environment |
+|---|---|
+| OS | Windows 11 |
+| Unity | Unity 2022.3.22f1 |
+| VRChat SDK - Base | 3.10.3 |
+| VRChat SDK - Avatars | 3.10.3 |
+| Avatar Recovery | 1.0.1 |
+| Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
+
+Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
+
 ## AssetRipper / AssetsDataBaseRipper Usage
 
 This tool uses AssetRipper.exe as an external executable for AssetBundle extraction.
