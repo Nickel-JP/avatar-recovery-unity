@@ -19,7 +19,7 @@ The tool calls AssetRipper.exe as an external process, then applies Avatar Recov
 | Distribution | VPM repository for VRChat Creator Companion |
 | Target environment | Unity Editor on Windows 10 / 11 |
 | Main pipeline | AssetRipper extraction plus Avatar Recovery post-processing |
-| External extractor | AssetRipper.exe, downloaded separately from https://assetripper.github.io/ |
+| External extractor | AssetRipper.exe from `Release.zip`, downloaded separately from [Dean2k/SARS](https://github.com/Dean2k/SARS) |
 | Recommended shaders | Poiyomi Toon Shader or lilToon for closer material restoration |
 | License | MIT |
 
@@ -48,7 +48,7 @@ Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validate
 This tool uses AssetRipper.exe as an external executable for AssetBundle extraction.
 Some users may refer to similar workflows as AssetsDataBaseRipper, but in this package the supported external extraction workflow is AssetRipper.exe.
 
-AssetRipper itself is not bundled in this VPM package. Users must download and install it separately, then configure the path in the tool settings or place it in one of the supported auto-detection folders.
+AssetRipper itself is not bundled in this VPM package. Users should download `Release.zip` separately from [Dean2k/SARS](https://github.com/Dean2k/SARS), extract it, then configure the included `AssetRipper.exe` path in the tool settings or place it in one of the supported auto-detection folders.
 
 AssetRipper is used only as an external process. It is not bundled, linked, embedded, or redistributed inside Avatar Recovery Unity.
 Because AssetRipper is a separate project with its own license, this repository only distributes Avatar Recovery Unity code, VPM metadata, and the package zip files.
