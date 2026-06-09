@@ -14,7 +14,7 @@ The tool calls AssetRipper.exe as an external process, then applies Avatar Recov
 | Item | Details |
 |---|---|
 | Unity | Unity 2022.3.22f1 is required. VCC is recommended. |
-| VRChat SDK | Base `>=3.10.0 <3.11.0` is required. Avatars SDK is used for avatar projects, and Worlds SDK is supported for world projects. |
+| VRChat SDK | Base `>=3.7.0 <3.11.0` is required for install compatibility. Avatars SDK is used for avatar projects, and Worlds SDK is supported for world projects. |
 | Package ID | `com.nickel-jp.avatar-recovery` |
 | Distribution | VPM repository for VRChat Creator Companion |
 | Target environment | Unity Editor on Windows 10 / 11 |
@@ -27,7 +27,9 @@ The tool calls AssetRipper.exe as an external process, then applies Avatar Recov
 
 Unity 2022.3.22f1 is the required Unity version for this package and for VRChat avatar upload workflows targeted by this tool. Do not upgrade the project to a newer Unity version unless VRChat officially changes its supported Unity version.
 
-As of 2026, the minimum VRChat Avatar SDK version for uploading avatars is 3.9.0 or later. New avatar uploads may be restricted on SDK versions older than 3.9.0. This VPM package declares only the shared `com.vrchat.base` dependency in the `>=3.10.0 <3.11.0` range so it can be installed into both avatar and world projects. Install `VRChat SDK - Avatars` for avatar recovery/upload workflows, or `VRChat SDK - Worlds` for world recovery workflows.
+As of 2026, the minimum VRChat Avatar SDK version for uploading avatars is 3.9.0 or later. New avatar uploads may be restricted on SDK versions older than 3.9.0. This VPM package declares only the shared `com.vrchat.base` dependency in the `>=3.7.0 <3.11.0` range so it can be installed into both avatar and world projects without forcing only Base to a newer SDK line. Install `VRChat SDK - Avatars` for avatar recovery/upload workflows, or `VRChat SDK - Worlds` for world recovery workflows.
+
+Keep the installed VRChat SDK packages on the same version line. For example, avoid `VRChat SDK - Worlds 3.7.6` with `VRChat SDK - Base 3.10.3`; VCC should resolve them to matching versions such as Worlds/Base 3.10.3 or Worlds/Base 3.7.6.
 
 Validated test environment:
 
@@ -38,7 +40,7 @@ Validated test environment:
 | VRChat SDK - Base | 3.10.3 |
 | VRChat SDK - Avatars | 3.10.3 |
 | VRChat SDK - Worlds | 3.10.3 |
-| Avatar Recovery | 1.0.2 |
+| Avatar Recovery | 1.0.3 |
 | PowerShell for batchmode test | 7.6.0 |
 | Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
 
