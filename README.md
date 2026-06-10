@@ -46,6 +46,41 @@ Validated test environment:
 
 Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
 
+## Update History
+
+### Version 1.0.3 — SDK Compatibility Stabilization
+
+This update prevents Avatar Recovery Unity from causing a Base-only VRChat SDK upgrade in existing projects.
+
+- Changed the VPM dependency for `com.vrchat.base` from `>=3.10.0 <3.11.0` to `>=3.7.0 <3.11.0`.
+- This avoids the broken mix of `VRChat SDK - Worlds 3.7.6` with `VRChat SDK - Base 3.10.3` that can trigger `VRCWorldBuilder` initialization errors.
+- Added a Unity Console warning when `VRChat SDK - Base` and `VRChat SDK - Avatars` / `VRChat SDK - Worlds` are installed on different version lines.
+- Kept all previously published VCC versions available in `index.json`.
+
+Debug and verification performed:
+
+- Reproduced the risky dependency state as a VCC/VPM resolution issue, not an Avatar Recovery C# compile error.
+- Verified that installing `Avatar Recovery 1.0.3` into a new World project using `VRChat SDK - Worlds 3.7.6` keeps `VRChat SDK - Base 3.7.6`.
+- Verified Unity 2022.3.22f1 batchmode compilation with the World 3.7.6 / Base 3.7.6 project.
+- Verified public GitHub Pages `index.json`, package URL, and zip SHA256.
+
+### Version 1.0.2 — World Project Install Support
+
+This update made the package installable in VRChat World projects while preserving Avatar project behavior.
+
+- Removed the mandatory `com.vrchat.avatars` VPM dependency.
+- Updated the editor assembly definition so it no longer directly references `VRC.SDK3A` / `VRC.SDK3A.Editor`.
+- Reworked `VRCAvatarDescriptor` usage through reflection / serialized access where needed.
+- Allowed World projects to skip Avatar-only environment checks instead of logging a hard Avatar SDK error.
+- Updated package metadata and documentation to describe both `.vrca` and `.vrcw` recovery use cases.
+
+Debug and verification performed:
+
+- Verified VCC installation into new Avatar and World projects.
+- Verified SDK 3.10.3 Avatar and World project compilation in Unity 2022.3.22f1 batchmode.
+- Verified `index.json` includes version `1.0.2` while preserving `1.0.1` and `1.0.0`.
+- Verified public package URL and zip SHA256 after GitHub Pages deployment.
+
 ## AssetRipper / AssetsDataBaseRipper Usage
 
 This tool uses AssetRipper.exe as an external executable for AssetBundle extraction.
