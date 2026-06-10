@@ -81,6 +81,30 @@ Debug and verification performed:
 - Verified `index.json` includes version `1.0.2` while preserving `1.0.1` and `1.0.0`.
 - Verified public package URL and zip SHA256 after GitHub Pages deployment.
 
+### Before VPM Version 1.0.0 — Important Pre-Release Stabilization
+
+These fixes were completed before the public VPM `1.0.0` package line. They are included in every published VCC version from `1.0.0` onward.
+
+- Added the AssetRipper-based recovery pipeline and Avatar Recovery Unity's original C# post-processing flow.
+- Added script GUID recovery for SDK components such as avatar descriptors and pipeline-related scripts.
+- Added shader GUID recovery, shader detection, and `List of Shaders/Shaders.txt` output for manual material repair.
+- Added the `Auto-Reassign Shaders` option so users can choose between preserving original shader references for manual reassignment or automatically rewriting material shader references.
+- Added Missing Script cleanup and a dedicated Missing Script search/removal workflow.
+- Added safer prefab selection so the tool does not blindly use the first prefab exported by AssetRipper.
+- Added prefab renaming so restored prefabs are named after the original `.vrca` / `.vrcw` file when possible.
+- Added pose-reset safety handling to prevent risky `PoseResetter` results from being applied unconditionally to the final production prefab.
+- Added raw pose backup / pose reset candidate storage so pose-reset decisions can be inspected without losing the original imported pose data.
+- Added cleanup for stale prefab artifacts before copying newly extracted assets, reducing leftover raw prefab confusion between repeated restores.
+- Added long path, UTF-8, atomic file replacement, temporary directory retry cleanup, and resource leak fixes from production-debug review.
+- Added batch extraction, cache scanning, cancelable progress, preview tooling, diagnostics, and more detailed Console summaries.
+
+Debug and verification performed before VPM publication:
+
+- Investigated broken-looking restored avatars caused by unsafe pose resetting and moved the workflow toward candidate/backup-based safety checks.
+- Verified that shader list output is generated during the AssetRipper recovery path even when automatic shader reassignment is disabled.
+- Reviewed and fixed high-risk Unity Editor issues such as path handling, file replacement, RenderTexture cleanup, missing null checks, and scan-state cleanup.
+- Verified the package in Unity 2022.3.22f1 with manual Editor operation and batchmode-oriented checks before publishing the VPM repository.
+
 ## AssetRipper / AssetsDataBaseRipper Usage
 
 This tool uses AssetRipper.exe as an external executable for AssetBundle extraction.
