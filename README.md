@@ -52,6 +52,10 @@ Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validate
 
 This update adds a material-to-original-shader report for restored materials, plus explicit warnings for restored avatar prefabs whose `Expressions > Menu` reference could not be resolved.
 
+- Added the `AvatarRecovery → Shader一覧を開く` viewer for opening generated `List of Shaders` reports inside Unity.
+- The shader list viewer now uses a Unity-standard foldout/ObjectField style list for drag-and-drop source management.
+- Multiple `List of Shaders` folders can be added to the viewer, and the visible report can be switched with per-list checkboxes.
+- Material names in the viewer can ping the corresponding restored `.mat` asset in the Unity Project window.
 - Added `List of Shaders/MaterialShaderMap.txt` and `List of Shaders/MaterialShaderMap.csv`.
 - The material shader map records each material name, material path, original shader full name, shader fileID, shader GUID, and resolution status.
 - The map is collected before any optional shader auto-reassignment, so it records the original restored `.mat` shader reference even when auto-reassignment is enabled.
@@ -62,6 +66,8 @@ This update adds a material-to-original-shader report for restored materials, pl
 - Added an automatic Unity Console warning after AssetRipper/SARS extraction when the final prefab still points to a missing Expression Menu GUID such as a `deadbeef` placeholder.
 - The warning explains that this usually means AssetRipper/SARS could not restore the `VRCExpressionsMenu` asset body from the extracted data, and that Avatar Recovery cannot perfectly reconstruct the original menu hierarchy, labels, icons, or ordering without the original menu asset.
 - Recommended recovery path: reassign the menu from the original UnityPackage/project/backup, or create an empty `VRCExpressionsMenu` only to clear the Missing field.
+- Fixed a VRCA Preview issue where invalid `Renderer.bounds` values from broken or unusual bundles could send `{ NaN, NaN, NaN }` to Unity's internal `Preview Scene Camera`.
+- The preview camera now skips non-finite renderer bounds and sanitizes camera angle, target, and distance before rendering.
 
 Debug and verification performed:
 
