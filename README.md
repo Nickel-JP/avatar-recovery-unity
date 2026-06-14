@@ -48,10 +48,16 @@ Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validate
 
 ## Update History
 
-### Version 1.0.4 — Missing Expression Menu Warning
+### Version 1.0.4 — Material Shader Map and Missing Expression Menu Warning
 
-This update adds explicit warnings for restored avatar prefabs whose `Expressions > Menu` reference could not be resolved.
+This update adds a material-to-original-shader report for restored materials, plus explicit warnings for restored avatar prefabs whose `Expressions > Menu` reference could not be resolved.
 
+- Added `List of Shaders/MaterialShaderMap.txt` and `List of Shaders/MaterialShaderMap.csv`.
+- The material shader map records each material name, material path, original shader full name, shader fileID, shader GUID, and resolution status.
+- The map is collected before any optional shader auto-reassignment, so it records the original restored `.mat` shader reference even when auto-reassignment is enabled.
+- Shader names are resolved by matching `.mat` `m_Shader` GUIDs against AssetRipper-exported `.shader.meta` stub GUIDs.
+- Unity built-in shader references such as `guid: 0000000000000000f000000000000000` are resolved from fileID where possible, for example `Legacy Shaders/Particles/Additive`.
+- `Auto-Reassign Shaders (SARS)` remains default OFF.
 - Added a diagnostics check for unresolved `VRCExpressionsMenu` references in restored prefabs.
 - Added an automatic Unity Console warning after AssetRipper/SARS extraction when the final prefab still points to a missing Expression Menu GUID such as a `deadbeef` placeholder.
 - The warning explains that this usually means AssetRipper/SARS could not restore the `VRCExpressionsMenu` asset body from the extracted data, and that Avatar Recovery cannot perfectly reconstruct the original menu hierarchy, labels, icons, or ordering without the original menu asset.
@@ -62,6 +68,7 @@ Debug and verification performed:
 - Reproduced the issue on a restored prefab where `expressionParameters` resolved correctly but `expressionsMenu` pointed to `0000000deadbeef15deadf00d0000000`.
 - Verified the same unresolved GUID existed in the raw pose backup before Avatar Recovery pose-reset or rename post-processing.
 - Added detection by reading the prefab YAML reference directly, so the warning works even when Unity displays the field as `Missing`.
+- Verified the material shader map against an AssetRipper export containing 69 materials and 38 shader stubs; all 69 material shader references resolved, including Unity built-in particle shaders.
 
 ### Version 1.0.3 — SDK Compatibility Stabilization
 
