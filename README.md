@@ -56,7 +56,9 @@ This update adds a material-to-original-shader report for restored materials, pl
 - The shader list viewer now uses a Unity-standard foldout/ObjectField style list for drag-and-drop source management.
 - Multiple `List of Shaders` folders can be added to the viewer, and the visible report can be switched with per-list checkboxes.
 - Material names in the viewer can ping the corresponding restored `.mat` asset in the Unity Project window.
-- Added `List of Shaders/MaterialShaderMap.txt` and `List of Shaders/MaterialShaderMap.csv`.
+- Changed newly generated shader report folders from the shared `List of Shaders` name to `RestoredName of Shaders`, for example `mameron of Shaders`.
+- Existing `List of Shaders` folders remain readable by the shader list viewer for backward compatibility.
+- Added `RestoredName of Shaders/MaterialShaderMap.txt` and `RestoredName of Shaders/MaterialShaderMap.csv`.
 - The material shader map records each material name, material path, original shader full name, shader fileID, shader GUID, and resolution status.
 - The map is collected before any optional shader auto-reassignment, so it records the original restored `.mat` shader reference even when auto-reassignment is enabled.
 - Shader names are resolved by matching `.mat` `m_Shader` GUIDs against AssetRipper-exported `.shader.meta` stub GUIDs.
