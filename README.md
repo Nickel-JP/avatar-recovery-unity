@@ -58,6 +58,7 @@ This update adds `.vrcp` as a formal third recovery type while preserving the ex
 - Skipped avatar-only PoseResetter and Gesture Layer Mask fixing for Prop restores.
 - Disabled only the AvatarDescriptor-required diagnostic check for Prop auto-diagnostics while keeping material and Missing Script diagnostics active.
 - Kept Script GUID fixing, Shader GUID fixing, Missing Script policy, prefab selection/renaming, and shader reports active for Prop restores.
+- Added Material-row checkboxes and a `Material → Shader` viewer action that reassigns selected materials only when `Shader.Find(originalShaderName)` returns a shader whose `name` exactly matches the original shader name.
 - Verified package metadata and VPM repository rebuild target for `1.0.6`.
 
 ### Version 1.0.5 — Short Restored Names and Long-Path-Safe Shader Reports
