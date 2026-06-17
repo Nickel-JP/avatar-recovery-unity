@@ -40,13 +40,33 @@ Validated test environment:
 | VRChat SDK - Base | 3.10.3 |
 | VRChat SDK - Avatars | 3.10.3 |
 | VRChat SDK - Worlds | 3.10.3 |
-| Avatar Recovery | 1.0.4 |
+| Avatar Recovery | 1.0.5 |
 | PowerShell for batchmode test | 7.6.0 |
 | Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
 
 Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
 
 ## Update History
+
+### Version 1.0.5 — Short Restored Names and Long-Path-Safe Shader Reports
+
+This update fixes a Windows path-length failure where `Shaders.txt` could be generated but `MaterialShaderMap.txt` / `.csv` failed with `DirectoryNotFoundException` in long VCC project paths.
+
+- Changed restored folder and prefab names to a shorter, identifiable format such as `Drakepq [avtr_0cb6582b]`.
+- Meaningful source names keep the avatar name and author when available; weak placeholder names such as `___`, `__data`, or `Unknown` are omitted.
+- Added warnings when a restored name exceeds 80 characters or when a generated report path exceeds 240 characters. The restore continues after warning.
+- Changed newly generated shader report folders to fixed `_ShaderReport` folders to avoid duplicated long names like `RestoredName of Shaders`.
+- Kept existing `RestoredName of Shaders` and `List of Shaders` report folders readable for backward compatibility.
+- Changed `Shaders.txt`, `MaterialShaderMap.txt`, and `MaterialShaderMap.csv` writes to the same long-path-safe writer path.
+- Updated shader list viewer and diagnostics text to point users to `_ShaderReport`.
+- Fixed VRCA Preview material errors when shader auto-reassignment is disabled by forcing preview-only material copies to use a fallback shader in `lilToon > Poiyomi > Standard` order.
+
+Debug and verification performed:
+
+- Reproduced the reported path-length pattern where `Shaders.txt` stayed below the classic Windows path limit while `MaterialShaderMap.txt` exceeded it.
+- Confirmed the attached style filename `___ by Drakepq avtr_0cb6582b-a677-42c7-adec-2ffac02a1961.vrca` resolves to `Drakepq [avtr_0cb6582b]`.
+- Verified the preview shader fallback path is separate from extraction, so extraction still respects the user's shader replacement settings.
+- Verified the package metadata and VPM repository index were rebuilt for `1.0.5`.
 
 ### Version 1.0.4 — Material Shader Map and Missing Expression Menu Warning
 
