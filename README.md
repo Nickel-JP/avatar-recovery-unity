@@ -40,13 +40,22 @@ Validated test environment:
 | VRChat SDK - Base | 3.10.3 |
 | VRChat SDK - Avatars | 3.10.3 |
 | VRChat SDK - Worlds | 3.10.3 |
-| Avatar Recovery | 1.0.6 |
+| Avatar Recovery | 1.0.7 |
 | PowerShell for batchmode test | 7.6.0 |
 | Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
 
 Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
 
 ## Update History
+
+### Version 1.0.7 — Material Shader Reassignment from Shader Lists
+
+This update publishes the Material-row shader reassignment workflow as a new VPM version so VCC and Unity Package Manager can detect it without relying on same-version cache invalidation.
+
+- Added Material-row checkboxes in the `Material → Shader` viewer.
+- Added the `選択したマテリアルにシェーダーを再割り当て` action directly below the search field.
+- Reassigns only when `Shader.Find(originalShaderName)` returns a shader whose `name` exactly matches the original shader name.
+- Skips missing shaders, mismatched shader names, and missing materials without throwing.
 
 ### Version 1.0.6 — Prop Recovery as a Third File Type
 
@@ -58,7 +67,6 @@ This update adds `.vrcp` as a formal third recovery type while preserving the ex
 - Skipped avatar-only PoseResetter and Gesture Layer Mask fixing for Prop restores.
 - Disabled only the AvatarDescriptor-required diagnostic check for Prop auto-diagnostics while keeping material and Missing Script diagnostics active.
 - Kept Script GUID fixing, Shader GUID fixing, Missing Script policy, prefab selection/renaming, and shader reports active for Prop restores.
-- Added Material-row checkboxes and a `Material → Shader` viewer action that reassigns selected materials only when `Shader.Find(originalShaderName)` returns a shader whose `name` exactly matches the original shader name.
 - Verified package metadata and VPM repository rebuild target for `1.0.6`.
 
 ### Version 1.0.5 — Short Restored Names and Long-Path-Safe Shader Reports
