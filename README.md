@@ -40,13 +40,23 @@ Validated test environment:
 | VRChat SDK - Base | 3.10.3 |
 | VRChat SDK - Avatars | 3.10.3 |
 | VRChat SDK - Worlds | 3.10.3 |
-| Avatar Recovery | 1.0.9 |
+| Avatar Recovery | 1.0.10 |
 | PowerShell for batchmode test | 7.6.0 |
 | Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
 
 Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
 
 ## Update History
+
+### Version 1.0.10 — File Select Add Field and Type Foldouts
+
+This update reorganizes the File Select tab without changing the recovery pipeline.
+
+- Replaced the large file drop box with a Shader Lists-style `Add` object field row.
+- Kept drag-and-drop support for `.vrca`, `.vrcw`, `.vrcp`, and folders containing those files on the `Add` row.
+- Split the selected file list into `Avatar (.vrca)`, `World (.vrcw)`, and `Prop (.vrcp)` foldout groups.
+- Keeps all three foldouts closed by default.
+- Preserved the existing batch extraction, preview, removal, and restore routing behavior.
 
 ### Version 1.0.9 — Safer Scene Missing Prefab Cleanup
 
