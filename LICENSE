@@ -1,21 +1,60 @@
-MIT License
+AvatarRecovery Custom License
+Version 1.1.0
 
 Copyright (c) 2026 Nickel-JP
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This license applies to AvatarRecovery version 1.1.0 and later distributions
+that include this LICENSE file.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Earlier AvatarRecovery versions that were already published with the MIT
+License remain governed by the license terms attached to those earlier
+published versions. This license does not retroactively change those earlier
+license grants.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+1. Permission
+
+You may install and use AvatarRecovery for personal, private, or internal
+project use, including recovery work on assets that you own or are otherwise
+legally permitted to recover.
+
+You may make local modifications for your own personal, private, or internal
+use, provided that you do not redistribute the modified files, modified DLLs,
+or modified source code.
+
+2. Restrictions
+
+You may not:
+
+- redistribute, sublicense, sell, rent, or publish AvatarRecovery source code;
+- redistribute modified versions of AvatarRecovery, whether as source code,
+  DLLs, Unity packages, VPM packages, or other bundled forms, without written
+  permission from the copyright holder;
+- integrate AvatarRecovery into another public tool, paid product, hosted
+  service, marketplace asset, or automated recovery service without written
+  permission from the copyright holder;
+- remove or obscure copyright, license, or attribution notices;
+- use AvatarRecovery to infringe third-party copyrights, violate VRChat's
+  Terms of Service, bypass access controls, or recover assets that you are not
+  legally permitted to recover;
+- reverse engineer, decompile, or disassemble distributed AvatarRecovery DLLs
+  except where such restriction is prohibited by applicable law.
+
+3. Third-party components
+
+AvatarRecovery does not include AssetRipper binaries and does not include SARS
+source code. AvatarRecovery may call AssetRipper as an external process when
+the user has separately obtained and configured AssetRipper.
+
+AssetRipper and SARS are separate projects governed by their own licenses.
+You are responsible for complying with those licenses when obtaining or using
+those projects.
+
+4. No warranty
+
+AvatarRecovery is provided "as is", without warranty of any kind, express or
+implied, including but not limited to warranties of merchantability, fitness
+for a particular purpose, and non-infringement.
+
+In no event shall the copyright holder be liable for any claim, damages, or
+other liability arising from, out of, or in connection with AvatarRecovery or
+the use of AvatarRecovery.
