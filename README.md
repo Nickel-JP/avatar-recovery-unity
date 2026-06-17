@@ -40,13 +40,22 @@ Validated test environment:
 | VRChat SDK - Base | 3.10.3 |
 | VRChat SDK - Avatars | 3.10.3 |
 | VRChat SDK - Worlds | 3.10.3 |
-| Avatar Recovery | 1.0.7 |
+| Avatar Recovery | 1.0.8 |
 | PowerShell for batchmode test | 7.6.0 |
 | Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
 
 Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
 
 ## Update History
+
+### Version 1.0.8 — Color-Coded Original Shader Match Status
+
+This update adds a color-coded match indicator to the `Material → Shader` viewer.
+
+- Added a `Match` column beside the original shader name.
+- Shows a green check mark when `Shader.Find(originalShaderName)` returns a shader whose `name` exactly matches the original shader name.
+- Shows a red check mark when the shader is missing or the found shader name is not an exact match.
+- Added tooltips to explain each match or mismatch result.
 
 ### Version 1.0.7 — Material Shader Reassignment from Shader Lists
 
