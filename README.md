@@ -4,8 +4,8 @@ VPM repository for `com.nickel-jp.avatar-recovery`.
 
 ## Overview
 
-Avatar Recovery Unity is a Unity Editor extension for restoring VRChat `.vrca` / `.vrcw` AssetBundles into a Unity project.
-It is intended for technical recovery, inspection, diagnostics, and migration work on avatars/worlds that you created, legitimately purchased, or are explicitly authorized to handle.
+Avatar Recovery Unity is a Unity Editor extension for restoring VRChat `.vrca` / `.vrcw` / `.vrcp` AssetBundles into a Unity project.
+It is intended for technical recovery, inspection, diagnostics, and migration work on avatars/worlds/props that you created, legitimately purchased, or are explicitly authorized to handle.
 
 The tool calls AssetRipper.exe as an external process, then applies Avatar Recovery Unity's own C# post-processing pipeline to help recover script references, shader references, prefab selection, diagnostics, and safer pose-reset handling for avatars that may break when imported directly.
 
@@ -40,13 +40,25 @@ Validated test environment:
 | VRChat SDK - Base | 3.10.3 |
 | VRChat SDK - Avatars | 3.10.3 |
 | VRChat SDK - Worlds | 3.10.3 |
-| Avatar Recovery | 1.0.5 |
+| Avatar Recovery | 1.0.6 |
 | PowerShell for batchmode test | 7.6.0 |
 | Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
 
 Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
 
 ## Update History
+
+### Version 1.0.6 — Prop Recovery as a Third File Type
+
+This update adds `.vrcp` as a formal third recovery type while preserving the existing `.vrca` avatar and `.vrcw` world paths.
+
+- Added `.vrcp` file selection, folder-add, drag-and-drop, preview, and batch extraction support.
+- Added a separate default output folder: `Assets/AvatarRecovery/Restored Prop data`.
+- Recognized `prop_` blueprint IDs and shortened prop restore names, for example `Campfire by VRChat [prop_49fec698]`.
+- Skipped avatar-only PoseResetter and Gesture Layer Mask fixing for Prop restores.
+- Disabled only the AvatarDescriptor-required diagnostic check for Prop auto-diagnostics while keeping material and Missing Script diagnostics active.
+- Kept Script GUID fixing, Shader GUID fixing, Missing Script policy, prefab selection/renaming, and shader reports active for Prop restores.
+- Verified package metadata and VPM repository rebuild target for `1.0.6`.
 
 ### Version 1.0.5 — Short Restored Names and Long-Path-Safe Shader Reports
 
@@ -175,7 +187,7 @@ The package is structured this way to keep the distributed code and metadata cle
 
 ## Ethical Use
 
-Use this tool only for files you have the right to inspect or recover, such as avatars/worlds you created, legitimately purchased, your own local test bundles, your own backups, or assets you have explicit permission to maintain.
+Use this tool only for files you have the right to inspect or recover, such as avatars/worlds/props you created, legitimately purchased, your own local test bundles, your own backups, or assets you have explicit permission to maintain.
 
 Do not use this tool to steal, clone, extract, modify, redistribute, resell, re-upload, or impersonate another creator's work. Recovered data may still contain copyrighted assets, paid models, licensed shaders, or private modifications.
 
