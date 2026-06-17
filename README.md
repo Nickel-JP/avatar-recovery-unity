@@ -31,7 +31,9 @@ https://nickel-jp.github.io/avatar-recovery-unity/add/
 
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
-## Version 1.1.0
+## Update History
+
+### Version 1.1.0 — DLL Package and v1.1.0 UI Cleanup
 
 - UI names were organized around `AvatarRecovery`, `View Assets Info`, and `Run`.
 - File Select now opens Avatar / World / Prop groups by default.
@@ -44,6 +46,27 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - First-use consent was added. Choosing not to agree disables the tool UI but does not delete files.
 - MissingScriptSearch drag-and-drop now adds targets instead of replacing the previous target.
 - The package license changed to AvatarRecovery Custom License for v1.1.0 and later.
+
+### Version 1.0.11 — Removed the File Select Add Row
+
+This update keeps the 1.0.10 file grouping UI and removes the low-visibility `Add` object field row.
+
+- Removed the `Add` row from the File Select tab.
+- Kept file addition through `Browse File...` and `Add from Folder...`.
+- Preserved the `Avatar (.vrca)`, `World (.vrcw)`, and `Prop (.vrcp)` foldout groups.
+- Preserved the existing batch extraction, preview, removal, and restore routing behavior.
+
+### Version 1.0.10 — File Select Add Field and Type Foldouts
+
+This update reorganizes the File Select tab without changing the recovery pipeline.
+
+- Replaced the large file drop box with a Shader Lists-style `Add` object field row.
+- Kept drag-and-drop support for `.vrca`, `.vrcw`, `.vrcp`, and folders containing those files on the `Add` row.
+- Split the selected file list into `Avatar (.vrca)`, `World (.vrcw)`, and `Prop (.vrcp)` foldout groups.
+- Keeps all three foldouts closed by default.
+- Preserved the existing batch extraction, preview, removal, and restore routing behavior.
+
+Older release notes are available in [UPDATE_HISTORY.md](UPDATE_HISTORY.md).
 
 ## License
 
