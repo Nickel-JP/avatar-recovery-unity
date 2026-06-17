@@ -40,13 +40,23 @@ Validated test environment:
 | VRChat SDK - Base | 3.10.3 |
 | VRChat SDK - Avatars | 3.10.3 |
 | VRChat SDK - Worlds | 3.10.3 |
-| Avatar Recovery | 1.0.8 |
+| Avatar Recovery | 1.0.9 |
 | PowerShell for batchmode test | 7.6.0 |
 | Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
 
 Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
 
 ## Update History
+
+### Version 1.0.9 — Safer Scene Missing Prefab Cleanup
+
+This update improves cleanup for stale Scene objects that Unity reports as missing prefab instances after restoration.
+
+- Recognizes Unity's `Missing Prefab with guid: ...` suffix when matching old restored Scene placements.
+- Matches strong VRChat blueprint fragments such as `avtr_`, `wrld_`, and `prop_` in legacy Scene object names.
+- Automatically saves cleaned Scenes only when they had no unsaved changes before cleanup.
+- Warns users to save manually when a cleaned Scene was already dirty or has no saved path.
+- Added `AvatarRecovery → 現在のSceneのMissing Prefab配置を削除` for confirmed cleanup of stale objects already left in open Scenes.
 
 ### Version 1.0.8 — Color-Coded Original Shader Match Status
 
