@@ -40,13 +40,22 @@ Validated test environment:
 | VRChat SDK - Base | 3.10.3 |
 | VRChat SDK - Avatars | 3.10.3 |
 | VRChat SDK - Worlds | 3.10.3 |
-| Avatar Recovery | 1.0.10 |
+| Avatar Recovery | 1.0.11 |
 | PowerShell for batchmode test | 7.6.0 |
 | Test coverage | Manual Unity Editor operation and Unity batchmode restore test |
 
 Mac, Linux, Unity 2019, Unity 6, and other Unity versions have not been validated.
 
 ## Update History
+
+### Version 1.0.11 — Removed the File Select Add Row
+
+This update keeps the 1.0.10 file grouping UI and removes the low-visibility `Add` object field row.
+
+- Removed the `Add` row from the File Select tab.
+- Kept file addition through `Browse File...` and `Add from Folder...`.
+- Preserved the `Avatar (.vrca)`, `World (.vrcw)`, and `Prop (.vrcp)` foldout groups.
+- Preserved the existing batch extraction, preview, removal, and restore routing behavior.
 
 ### Version 1.0.10 — File Select Add Field and Type Foldouts
 
