@@ -45,6 +45,10 @@ $PrivateBackupRoot = Join-Path $BackupRoot "$Version-protection-private"
 $LocalPrivateBackupRoot = Join-Path $WorkRoot "Backups\$Version-protection-private"
 $AssemblyName = "EditorTools.AvatarRecovery.Editor"
 $AssemblyFileName = "$AssemblyName.dll"
+$PublicApiAllowlistPath = Join-Path $RepoRoot "Build\PublicApiAllowlist.txt"
+$ReflectionSerializationAllowlistPath = Join-Path $RepoRoot "Build\ReflectionSerializationAllowlist.txt"
+$BinaryLeakAllowlistPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
+$StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
 $SelfSignedCertificateSubject = "CN=Nickel-JP AvatarRecovery Self-Signed Code Signing"
 $UnityMagicMethods = @(
     "OnGUI",
@@ -70,10 +74,30 @@ $ReflectionPatterns = @(
     "\.GetMethod\s*\(",
     "\.GetProperty\s*\(",
     "\.GetField\s*\(",
+    "\.GetEvent\s*\(",
+    "\.GetMember\s*\(",
     "\.Invoke\s*\(",
     "Activator\.CreateInstance\s*\(",
     "Assembly\.GetTypes\s*\(",
-    "TypeCache\."
+    "TypeCache\.",
+    "FindProperty\s*\(",
+    "FindPropertyRelative\s*\(",
+    "nameof\s*\(",
+    "JsonUtility",
+    "XmlSerializer",
+    "SerializeField",
+    "SerializeReference",
+    "FormerlySerializedAs"
+)
+$AttributeContractPatterns = @(
+    "MenuItem",
+    "InitializeOnLoad",
+    "InitializeOnLoadMethod",
+    "CustomEditor",
+    "CustomPropertyDrawer",
+    "DidReloadScripts",
+    "OnOpenAsset",
+    "SettingsProvider"
 )
 $script:CodeSigningMode = "Configured"
 
@@ -705,11 +729,109 @@ function Get-XmlEscaped {
     return [System.Security.SecurityElement]::Escape($Value)
 }
 
+function Get-RelativePathForReport {
+    param(
+        [Parameter(Mandatory = $true)][string]$RootPath,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    $root = (ConvertTo-FullPath $RootPath).TrimEnd('\') + '\'
+    $rootUri = [Uri]$root
+    $pathUri = [Uri](ConvertTo-FullPath $Path)
+    return [Uri]::UnescapeDataString($rootUri.MakeRelativeUri($pathUri).ToString()).Replace('/', '\')
+}
+
+function New-SourceScanHit {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourceRoot,
+        [Parameter(Mandatory = $true)][string]$File,
+        [Parameter(Mandatory = $true)][int]$Line,
+        [Parameter(Mandatory = $true)][string]$Category,
+        [Parameter(Mandatory = $true)][string]$Pattern,
+        [Parameter(Mandatory = $true)][string]$Text,
+        [AllowNull()][string]$Type = "",
+        [AllowNull()][string]$Method = ""
+    )
+
+    $relativePath = Get-RelativePathForReport -RootPath $SourceRoot -Path $File
+    $normalizedText = ($Text -replace '\s+', ' ').Trim()
+    $key = "$relativePath|$Category|$Pattern|$normalizedText"
+    return [PSCustomObject]@{
+        File = $File
+        RelativePath = $relativePath
+        Line = $Line
+        Category = $Category
+        Pattern = $Pattern
+        Text = $normalizedText
+        Type = $Type
+        Method = $Method
+        Key = $key
+    }
+}
+
+function Get-AllowlistSet {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Allowlist file was not found: $Path"
+    }
+
+    $set = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    Get-Content -LiteralPath $Path |
+        ForEach-Object {
+            $line = $_.Trim()
+            if ($line.Length -gt 0 -and -not $line.StartsWith("#")) {
+                [void]$set.Add($line)
+            }
+        }
+
+    return $set
+}
+
+function Assert-SourceScanAllowlist {
+    param(
+        [Parameter(Mandatory = $true)][object]$Scan,
+        [Parameter(Mandatory = $true)][string]$AllowlistPath
+    )
+
+    $allowed = Get-AllowlistSet -Path $AllowlistPath
+    $hits = @(
+        @($Scan.AttributeUsages) +
+        @($Scan.ReflectionHits) +
+        @($Scan.EditorPrefsHits) +
+        @($Scan.SerializedObjectHits) +
+        @($Scan.EnumToStringHits) +
+        @($Scan.UiToolkitNameHits)
+    )
+
+    $unhandled = @($hits | Where-Object {
+        $key = $_.Key
+        $matched = $allowed.Contains($key)
+        if (-not $matched) {
+            foreach ($entry in $allowed) {
+                if ($entry.Contains("*") -and $key -like $entry) {
+                    $matched = $true
+                    break
+                }
+            }
+        }
+        -not $matched
+    })
+    if ($unhandled.Count -gt 0) {
+        $message = ($unhandled |
+            Select-Object -First 25 |
+            ForEach-Object { $_.Key }) -join [Environment]::NewLine
+        throw "Reflection/Serialization allowlist に未登録の検出結果があります。Build\ReflectionSerializationAllowlist.txt に理由付きで登録してください。$([Environment]::NewLine)$message"
+    }
+}
+
 function Get-SourceScan {
     param([Parameter(Mandatory = $true)][string]$SourceRoot)
 
     $sourceFiles = Get-ChildItem -LiteralPath $SourceRoot -Recurse -Filter "*.cs" -File
+    $uiToolkitFiles = @(Get-ChildItem -LiteralPath $SourceRoot -Recurse -File -Include "*.uxml", "*.uss" -ErrorAction SilentlyContinue)
     $attributeMethods = New-Object System.Collections.Generic.List[object]
+    $attributeUsages = New-Object System.Collections.Generic.List[object]
     $vrcSdkCallbackTypes = New-Object System.Collections.Generic.List[string]
     $editorWindowTypes = New-Object System.Collections.Generic.List[string]
     $enumTypes = New-Object System.Collections.Generic.List[string]
@@ -764,6 +886,7 @@ function Get-SourceScan {
                 if ($UnityMagicMethods -contains $methodName) {
                     [void]$unityMessageHits.Add([PSCustomObject]@{
                         File = $file.FullName
+                        RelativePath = Get-RelativePathForReport -RootPath $SourceRoot -Path $file.FullName
                         Line = $lineNumber
                         Type = $currentType
                         Method = $methodName
@@ -773,6 +896,7 @@ function Get-SourceScan {
                 if ($pendingAttributes.Count -gt 0 -and $currentType) {
                     [void]$attributeMethods.Add([PSCustomObject]@{
                         File = $file.FullName
+                        RelativePath = Get-RelativePathForReport -RootPath $SourceRoot -Path $file.FullName
                         Line = $lineNumber
                         Type = $currentType
                         Method = $methodName
@@ -781,44 +905,96 @@ function Get-SourceScan {
                 }
             }
 
+            foreach ($pattern in $AttributeContractPatterns) {
+                if ($line -match "^\s*\[\s*$pattern\b") {
+                    [void]$attributeUsages.Add((New-SourceScanHit `
+                        -SourceRoot $SourceRoot `
+                        -File $file.FullName `
+                        -Line $lineNumber `
+                        -Category "AttributeContract" `
+                        -Pattern $pattern `
+                        -Text $line `
+                        -Type $currentType `
+                        -Method ""))
+                    break
+                }
+            }
+
             foreach ($pattern in $ReflectionPatterns) {
                 if ($line -match $pattern) {
-                    [void]$reflectionHits.Add([PSCustomObject]@{
-                        File = $file.FullName
-                        Line = $lineNumber
-                        Pattern = $pattern
-                        Text = $line.Trim()
-                    })
+                    [void]$reflectionHits.Add((New-SourceScanHit `
+                        -SourceRoot $SourceRoot `
+                        -File $file.FullName `
+                        -Line $lineNumber `
+                        -Category "Reflection" `
+                        -Pattern $pattern `
+                        -Text $line `
+                        -Type $currentType `
+                        -Method ""))
                     break
                 }
             }
 
             if ($line -match '\bEditorPrefs\b|EditorPrefsHelper') {
-                [void]$editorPrefsHits.Add([PSCustomObject]@{
-                    File = $file.FullName
-                    Line = $lineNumber
-                    Text = $line.Trim()
-                })
+                [void]$editorPrefsHits.Add((New-SourceScanHit `
+                    -SourceRoot $SourceRoot `
+                    -File $file.FullName `
+                    -Line $lineNumber `
+                    -Category "EditorPrefs" `
+                    -Pattern "EditorPrefs" `
+                    -Text $line `
+                    -Type $currentType `
+                    -Method ""))
             }
 
-            if ($line -match '\bSerializedObject\b|\bScriptableObject\b|\bSerializedProperty\b') {
-                [void]$serializedObjectHits.Add([PSCustomObject]@{
-                    File = $file.FullName
-                    Line = $lineNumber
-                    Text = $line.Trim()
-                })
+            if ($line -match '\bSerializedObject\b|\bScriptableObject\b|\bSerializedProperty\b|\bFindProperty\s*\(|\bFindPropertyRelative\s*\(|SerializeField|SerializeReference|FormerlySerializedAs') {
+                [void]$serializedObjectHits.Add((New-SourceScanHit `
+                    -SourceRoot $SourceRoot `
+                    -File $file.FullName `
+                    -Line $lineNumber `
+                    -Category "Serialization" `
+                    -Pattern "SerializedContract" `
+                    -Text $line `
+                    -Type $currentType `
+                    -Method ""))
             }
 
-            if ($line -match '\.ToString\s*\(') {
-                [void]$enumToStringHits.Add([PSCustomObject]@{
-                    File = $file.FullName
-                    Line = $lineNumber
-                    Text = $line.Trim()
-                })
+            if ($line -match '\b(Enum|Policy|Mode|Type|Platform|Version)\b.*\.ToString\s*\(\s*\)') {
+                [void]$enumToStringHits.Add((New-SourceScanHit `
+                    -SourceRoot $SourceRoot `
+                    -File $file.FullName `
+                    -Line $lineNumber `
+                    -Category "EnumToString" `
+                    -Pattern ".ToString" `
+                    -Text $line `
+                    -Type $currentType `
+                    -Method ""))
             }
 
             if ($line.Trim().Length -gt 0 -and -not ($line -match '^\s*\[[^\]]+\]')) {
                 $pendingAttributes.Clear()
+            }
+        }
+    }
+
+    $uiToolkitNameHits = New-Object System.Collections.Generic.List[object]
+    foreach ($file in $uiToolkitFiles) {
+        $lines = Get-Content -LiteralPath $file.FullName
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            $line = $lines[$i]
+            foreach ($pattern in @("binding-path=", "name=", "type=")) {
+                if ($line -match $pattern) {
+                    [void]$uiToolkitNameHits.Add((New-SourceScanHit `
+                        -SourceRoot $SourceRoot `
+                        -File $file.FullName `
+                        -Line ($i + 1) `
+                        -Category "UiToolkitNameReference" `
+                        -Pattern $pattern `
+                        -Text $line `
+                        -Type "" `
+                        -Method ""))
+                    break
+                }
             }
         }
     }
@@ -828,6 +1004,7 @@ function Get-SourceScan {
         SourceRoot = (ConvertTo-FullPath $SourceRoot)
         UnityMagicMethods = @($unityMessageHits.ToArray())
         AttributeMethods = @($attributeMethods.ToArray())
+        AttributeUsages = @($attributeUsages.ToArray())
         VrcSdkCallbackTypes = @($vrcSdkCallbackTypes | Sort-Object -Unique)
         EditorWindowTypes = @($editorWindowTypes | Sort-Object -Unique)
         EnumTypes = @($enumTypes | Sort-Object -Unique)
@@ -835,6 +1012,7 @@ function Get-SourceScan {
         EditorPrefsHits = @($editorPrefsHits.ToArray())
         SerializedObjectHits = @($serializedObjectHits.ToArray())
         EnumToStringHits = @($enumToStringHits.ToArray())
+        UiToolkitNameHits = @($uiToolkitNameHits.ToArray())
     }
 }
 
@@ -866,6 +1044,158 @@ function Get-AssemblySearchPaths {
     return @($paths | Sort-Object -Unique)
 }
 
+function Test-PublicApiAllowlist {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)][string]$AllowlistPath,
+        [Parameter(Mandatory = $true)][string[]]$AssemblySearchPaths
+    )
+
+    $allowed = @(Get-AllowlistSet -Path $AllowlistPath | Sort-Object)
+
+    $cecilPath = Get-ChildItem -LiteralPath (Join-Path $WorkRoot "tools\obfuscar") -Recurse -Filter "Mono.Cecil.dll" |
+        Where-Object { $_.FullName -match '\\net8\.0\\' } |
+        Select-Object -First 1 -ExpandProperty FullName
+    if ([string]::IsNullOrWhiteSpace($cecilPath)) {
+        $cecilPath = Get-ChildItem -LiteralPath (Join-Path $WorkRoot "tools\obfuscar") -Recurse -Filter "Mono.Cecil.dll" |
+            Select-Object -First 1 -ExpandProperty FullName
+    }
+    if ([string]::IsNullOrWhiteSpace($cecilPath)) {
+        throw "Mono.Cecil.dll was not found under Obfuscar tool directory."
+    }
+    if ($null -eq ("Mono.Cecil.AssemblyDefinition" -as [type])) {
+        Add-Type -Path $cecilPath
+    }
+
+    $readerParameters = [Mono.Cecil.ReaderParameters]::new()
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $DllPath), $readerParameters)
+    try {
+        $allTypes = New-Object System.Collections.Generic.List[object]
+        function Add-CecilType {
+            param([Parameter(Mandatory = $true)][object]$TypeDefinition)
+            [void]$allTypes.Add($TypeDefinition)
+            foreach ($nestedType in $TypeDefinition.NestedTypes) {
+                Add-CecilType -TypeDefinition $nestedType
+            }
+        }
+
+        foreach ($type in $assembly.MainModule.Types) {
+            Add-CecilType -TypeDefinition $type
+        }
+
+        $exportedTypes = @($allTypes |
+            Where-Object { $_.IsPublic -and $_.FullName -ne "<Module>" } |
+            ForEach-Object { $_.FullName -replace '/', '+' } |
+            Sort-Object -Unique)
+
+        $comparison = @(Compare-Object -ReferenceObject $allowed -DifferenceObject $exportedTypes)
+        if ($comparison.Count -gt 0) {
+            $details = ($comparison |
+                ForEach-Object { "$($_.SideIndicator) $($_.InputObject)" }) -join [Environment]::NewLine
+            throw "公開APIが許可リストと一致しません。Build\PublicApiAllowlist.txt を確認してください。$([Environment]::NewLine)$details"
+        }
+
+        $publicMethodCount = 0
+        foreach ($type in $allTypes | Where-Object { $_.IsPublic }) {
+            $publicMethodCount += @($type.Methods | Where-Object { $_.IsPublic }).Count
+        }
+
+        return [PSCustomObject]@{
+            PublicTypes = $exportedTypes
+            PublicTypeCount = $exportedTypes.Count
+            PublicMethodCount = $publicMethodCount
+            NonPublicTypeCount = @($allTypes | Where-Object { -not $_.IsPublic -and -not $_.IsNestedPublic }).Count
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+}
+
+function Get-MonoCecilPath {
+    $cecilPath = Get-ChildItem -LiteralPath (Join-Path $WorkRoot "tools\obfuscar") -Recurse -Filter "Mono.Cecil.dll" |
+        Where-Object { $_.FullName -match '\\net8\.0\\' } |
+        Select-Object -First 1 -ExpandProperty FullName
+    if ([string]::IsNullOrWhiteSpace($cecilPath)) {
+        $cecilPath = Get-ChildItem -LiteralPath (Join-Path $WorkRoot "tools\obfuscar") -Recurse -Filter "Mono.Cecil.dll" |
+            Select-Object -First 1 -ExpandProperty FullName
+    }
+    if ([string]::IsNullOrWhiteSpace($cecilPath)) {
+        throw "Mono.Cecil.dll was not found under Obfuscar tool directory."
+    }
+    return $cecilPath
+}
+
+function Ensure-MonoCecilLoaded {
+    if ($null -eq ("Mono.Cecil.AssemblyDefinition" -as [type])) {
+        Add-Type -Path (Get-MonoCecilPath)
+    }
+}
+
+function Repair-SystemPrivateCoreLibReference {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    Ensure-MonoCecilLoaded
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $changed = $false
+    $tempPath = "$Path.tmp"
+    $privateCoreLibReferenceCount = 0
+    try {
+        $module = $assembly.MainModule
+        $mscorlibReference = $module.AssemblyReferences |
+            Where-Object { $_.Name -eq "mscorlib" } |
+            Select-Object -First 1
+        if ($null -eq $mscorlibReference) {
+            throw "mscorlib reference was not found in: $Path"
+        }
+
+        foreach ($typeReference in $module.GetTypeReferences()) {
+            if ($typeReference.Scope -ne $null -and $typeReference.Scope.Name -eq "System.Private.CoreLib") {
+                $typeReference.Scope = $mscorlibReference
+                $changed = $true
+            }
+        }
+
+        $privateCoreLibReferences = @($module.AssemblyReferences |
+            Where-Object { $_.Name -eq "System.Private.CoreLib" })
+        $privateCoreLibReferenceCount = $privateCoreLibReferences.Count
+        foreach ($reference in $privateCoreLibReferences) {
+            [void]$module.AssemblyReferences.Remove($reference)
+            $changed = $true
+        }
+
+        if ($changed) {
+            $assembly.Write((ConvertTo-FullPath $tempPath))
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($changed) {
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    }
+
+    return $privateCoreLibReferenceCount
+}
+
+function Test-ForbiddenAssemblyReferences {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    Ensure-MonoCecilLoaded
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    try {
+        $blocked = @($assembly.MainModule.AssemblyReferences |
+            Where-Object { $_.Name -eq "System.Private.CoreLib" })
+        if ($blocked.Count -gt 0) {
+            throw "Unity 2022 で解決できない参照が残っています: System.Private.CoreLib"
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+}
+
 function New-ObfuscarConfig {
     param(
         [Parameter(Mandatory = $true)][string]$InputDll,
@@ -882,7 +1212,7 @@ function New-ObfuscarConfig {
     [void]$lines.Add("  <Var name=""OutPath"" value=""$(Get-XmlEscaped $OutputDir)"" />")
     [void]$lines.Add('  <Var name="KeepPublicApi" value="true" />')
     [void]$lines.Add('  <Var name="HidePrivateApi" value="true" />')
-    [void]$lines.Add('  <Var name="HideStrings" value="false" />')
+    [void]$lines.Add('  <Var name="HideStrings" value="true" />')
     [void]$lines.Add('  <Var name="RenameProperties" value="false" />')
     [void]$lines.Add('  <Var name="RenameEvents" value="false" />')
     [void]$lines.Add('  <Var name="ReuseNames" value="true" />')
@@ -934,13 +1264,55 @@ function Test-BinaryLeak {
 
     $problems = New-Object System.Collections.Generic.List[string]
     $userName = [Environment]::UserName
-    $checks = @(
-        @{ Name = "current user name"; Pattern = $userName },
-        @{ Name = "repo source path"; Pattern = "\Packages\com.nickel-jp.avatar-recovery\Editor\" },
-        @{ Name = "VrcaExtractor.cs"; Pattern = "VrcaExtractor.cs" }
+    $tempPath = [System.IO.Path]::GetTempPath()
+    $configuredCertificatePath = if ([string]::IsNullOrWhiteSpace($CodeSigningCertificatePath)) { "" } else { ConvertTo-FullPath $CodeSigningCertificatePath }
+    $allowlist = Get-AllowlistSet -Path $BinaryLeakAllowlistPath
+    $literalChecks = @(
+        @{ Name = "current user name"; Pattern = $userName; AllowKey = "" },
+        @{ Name = "repo absolute path"; Pattern = (ConvertTo-FullPath $RepoRoot); AllowKey = "" },
+        @{ Name = "CI workspace path"; Pattern = $env:GITHUB_WORKSPACE; AllowKey = "" },
+        @{ Name = "PFX/certificate private path"; Pattern = $configuredCertificatePath; AllowKey = "" },
+        @{ Name = "temporary directory path"; Pattern = $tempPath; AllowKey = "" },
+        @{ Name = "repo source path"; Pattern = "\Packages\com.nickel-jp.avatar-recovery\Editor\"; AllowKey = "" },
+        @{ Name = "C drive user path"; Pattern = "C:\Users\"; AllowKey = "" },
+        @{ Name = "macOS user path"; Pattern = "/Users/"; AllowKey = "" },
+        @{ Name = "VS Code workspace marker"; Pattern = ".vscode"; AllowKey = "" },
+        @{ Name = "IDEA workspace marker"; Pattern = ".idea"; AllowKey = "" },
+        @{ Name = "object build folder"; Pattern = "obj\"; AllowKey = "" },
+        @{ Name = "binary build folder"; Pattern = "bin\"; AllowKey = "" },
+        @{ Name = "PDB extension"; Pattern = ".pdb"; AllowKey = "" },
+        @{ Name = "MDB extension"; Pattern = ".mdb"; AllowKey = "" },
+        @{ Name = "PFX extension"; Pattern = ".pfx"; AllowKey = "" },
+        @{ Name = "P12 extension"; Pattern = ".p12"; AllowKey = "" },
+        @{ Name = "private key marker"; Pattern = "PRIVATE KEY"; AllowKey = "" },
+        @{ Name = "RSA private key marker"; Pattern = "BEGIN RSA PRIVATE KEY"; AllowKey = "" },
+        @{ Name = "generic private key marker"; Pattern = "BEGIN PRIVATE KEY"; AllowKey = "" },
+        @{ Name = "password marker"; Pattern = "Password="; AllowKey = "" },
+        @{ Name = "token marker"; Pattern = "Token="; AllowKey = "" },
+        @{ Name = "api key marker"; Pattern = "ApiKey="; AllowKey = "" },
+        @{ Name = "secret marker"; Pattern = "Secret="; AllowKey = "" },
+        @{ Name = "Unity-incompatible core library reference"; Pattern = "System.Private.CoreLib"; AllowKey = "" },
+        @{ Name = "local HTTP URL"; Pattern = "http://localhost"; AllowKey = "" },
+        @{ Name = "local HTTPS URL"; Pattern = "https://localhost"; AllowKey = "" },
+        @{ Name = "loopback URL"; Pattern = "127.0.0.1"; AllowKey = "" },
+        @{ Name = "Unity Assets path"; Pattern = "Assets/"; AllowKey = "Literal:Assets/" },
+        @{ Name = "Unity Assets path"; Pattern = "Assets\"; AllowKey = "Literal:Assets\" },
+        @{ Name = "Unity Packages path"; Pattern = "Packages/"; AllowKey = "Literal:Packages/" },
+        @{ Name = "Unity Packages path"; Pattern = "Packages\"; AllowKey = "Literal:Packages\" },
+        @{ Name = "VRCA extension"; Pattern = ".vrca"; AllowKey = "Literal:.vrca" },
+        @{ Name = "VRCW extension"; Pattern = ".vrcw"; AllowKey = "Literal:.vrcw" },
+        @{ Name = "VRCP extension"; Pattern = ".vrcp"; AllowKey = "Literal:.vrcp" }
     )
 
-    foreach ($check in $checks) {
+    foreach ($check in $literalChecks) {
+        if ([string]::IsNullOrWhiteSpace($check.Pattern)) {
+            continue
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($check.AllowKey) -and $allowlist.Contains($check.AllowKey)) {
+            continue
+        }
+
         if ($ascii.Contains($check.Pattern) -or $unicode.Contains($check.Pattern)) {
             [void]$problems.Add($check.Name)
         }
@@ -953,8 +1325,31 @@ function Test-BinaryLeak {
         }
     }
 
+    if ($ascii -match '[A-Za-z0-9_./\\-]+\.cs(\x00|\s|$)' -or
+        $unicode -match '[A-Za-z0-9_./\\-]+\.cs(\x00|\s|$)') {
+        [void]$problems.Add("source file name")
+    }
+
+    $codeSigningPassword = Get-CodeSigningPassword
+    if (-not [string]::IsNullOrEmpty($codeSigningPassword)) {
+        if ($ascii.Contains($codeSigningPassword) -or $unicode.Contains($codeSigningPassword)) {
+            [void]$problems.Add("code signing password value")
+        }
+    }
+
     if ($problems.Count -gt 0) {
         throw "DLL leak check failed for ${Path}: $($problems -join ', ')"
+    }
+}
+
+function Test-StringHidingProbeAbsent {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    if ($ascii.Contains($StringHidingProbe) -or $unicode.Contains($StringHidingProbe)) {
+        throw "Obfuscar HideStrings が有効に機能していません。平文マーカーが残っています: $StringHidingProbe"
     }
 }
 
@@ -970,6 +1365,18 @@ function ConvertTo-SafeDocumentName {
     if ($name.Length -gt $Length) {
         $name = "AvatarRecoverySource/source.src"
     }
+    while ($name.Length -lt $Length) {
+        $name += "_"
+    }
+    return $name.Substring(0, $Length)
+}
+
+function ConvertTo-SafeDebugSymbolName {
+    param(
+        [Parameter(Mandatory = $true)][int]$Length
+    )
+
+    $name = "AvatarRecoveryBuild/symbols.bin"
     while ($name.Length -lt $Length) {
         $name += "_"
     }
@@ -998,6 +1405,28 @@ function Clear-SourceDocumentPaths {
     return $matches.Count
 }
 
+function Clear-DebugSymbolPaths {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+    $matches = [regex]::Matches(
+        $ascii,
+        '[A-Za-z0-9_.:\\/\-]+\.pdb')
+
+    foreach ($match in $matches) {
+        $replacement = ConvertTo-SafeDebugSymbolName -Length $match.Value.Length
+        $replacementBytes = [System.Text.Encoding]::ASCII.GetBytes($replacement)
+        [Array]::Copy($replacementBytes, 0, $bytes, $match.Index, $replacementBytes.Length)
+    }
+
+    if ($matches.Count -gt 0) {
+        [System.IO.File]::WriteAllBytes($Path, $bytes)
+    }
+
+    return $matches.Count
+}
+
 function Test-PackageZip {
     param([Parameter(Mandatory = $true)][string]$ZipPath)
 
@@ -1006,10 +1435,10 @@ function Test-PackageZip {
     try {
         $blocked = $archive.Entries |
             Where-Object {
-                $_.FullName -match '\.(cs|pdb|mdb)$' -or
-                $_.FullName -match '\.(pfx|p12|pvk|key)$' -or
-                $_.FullName -match '(Mapping|rename|report)' -or
-                $_.FullName -match 'obfuscar'
+                $_.FullName -match '(?i)\.(cs|pdb|mdb)$' -or
+                $_.FullName -match '(?i)\.(pfx|p12|pvk|key|snk|pem|map)$' -or
+                $_.FullName -match '(?i)(mapping|rename|report)' -or
+                $_.FullName -match '(?i)obfuscar'
             }
 
         if ($blocked) {
@@ -1051,7 +1480,7 @@ function Test-PublicFileForSecrets {
     )
 
     $fileName = [System.IO.Path]::GetFileName($Path)
-    if ($fileName -match '\.(pfx|p12|pvk|key)$') {
+    if ($fileName -match '(?i)\.(pfx|p12|pvk|key|snk)$') {
         throw "公開禁止の秘密鍵/証明書秘密情報ファイルです: $Path"
     }
 
@@ -1096,6 +1525,98 @@ function Test-PublicReleaseSecrets {
     foreach ($path in $paths) {
         Test-PublicFileForSecrets -Path $path -SecretValue $codeSigningPassword
     }
+}
+
+function Write-ProtectionBuildReport {
+    param(
+        [Parameter(Mandatory = $true)][object]$Scan,
+        [Parameter(Mandatory = $true)][object]$PublicApiReport,
+        [Parameter(Mandatory = $true)][string]$InputDll,
+        [Parameter(Mandatory = $true)][string]$ObfuscatedDll,
+        [Parameter(Mandatory = $true)][string]$SignedDll,
+        [Parameter(Mandatory = $true)][string]$ZipPath,
+        [Parameter(Mandatory = $true)][string]$ChecksumPath,
+        [Parameter(Mandatory = $true)][string]$ObfuscarConfigPath,
+        [Parameter(Mandatory = $true)][object]$CodeSigningContext
+    )
+
+    $zipHash = (Get-FileHash -LiteralPath $ZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $checksumText = Get-Content -LiteralPath $ChecksumPath -Raw
+    $index = Get-Content -LiteralPath (Join-Path $RepoRoot "index.json") -Raw | ConvertFrom-Json
+    $packageEntry = $index.packages.PSObject.Properties[$PackageId].Value
+    $indexZipHash = $packageEntry.versions.PSObject.Properties[$Version].Value.zipSHA256
+    $signature = Get-AuthenticodeSignature -LiteralPath $SignedDll
+    $skipRuleCount = @(Select-String -LiteralPath $ObfuscarConfigPath -Pattern '<Skip' -ErrorAction SilentlyContinue).Count
+
+    $report = [PSCustomObject]@{
+        Version = $Version
+        GeneratedAt = (Get-Date).ToString("o")
+        Pipeline = @(
+            "UnityCompile",
+            "PublicApiAllowlist",
+            "Obfuscar",
+            "CoreLibReferenceRepair",
+            "LeakCheck",
+            "AuthenticodeSign",
+            "SignatureVerify",
+            "Zip",
+            "ZipContentCheck",
+            "Checksum",
+            "VpmIndex",
+            "DetachedSignatures",
+            "PublicSecretScan"
+        )
+        Obfuscar = [PSCustomObject]@{
+            KeepPublicApi = $true
+            HidePrivateApi = $true
+            HideStrings = $true
+            RenameProperties = $false
+            RenameEvents = $false
+            UseUnicodeNames = $false
+            SuppressIldasm = $true
+            ExclusionRuleCount = $skipRuleCount
+        }
+        Metrics = [PSCustomObject]@{
+            InputDllSize = (Get-Item -LiteralPath $InputDll).Length
+            ObfuscatedDllSize = (Get-Item -LiteralPath $ObfuscatedDll).Length
+            SignedDllSize = (Get-Item -LiteralPath $SignedDll).Length
+            PublicTypeCount = $PublicApiReport.PublicTypeCount
+            PublicMethodCount = $PublicApiReport.PublicMethodCount
+            NonPublicTypeCount = $PublicApiReport.NonPublicTypeCount
+            AttributeUsageCount = @($Scan.AttributeUsages).Count
+            ReflectionUsageCount = @($Scan.ReflectionHits).Count
+            EditorPrefsUsageCount = @($Scan.EditorPrefsHits).Count
+            SerializationUsageCount = @($Scan.SerializedObjectHits).Count
+            EnumToStringUsageCount = @($Scan.EnumToStringHits).Count
+            UiToolkitNameReferenceCount = @($Scan.UiToolkitNameHits).Count
+        }
+        PublicApi = $PublicApiReport.PublicTypes
+        Integrity = [PSCustomObject]@{
+            ZipSHA256 = $zipHash
+            ChecksumContainsZipSHA256 = $checksumText.Contains($zipHash)
+            IndexZipSHA256 = $indexZipHash
+            IndexMatchesZipSHA256 = ($indexZipHash -eq $zipHash)
+            ChecksumSignature = "Created"
+            ZipSignature = "Created"
+            IndexSignature = "Created"
+        }
+        Authenticode = [PSCustomObject]@{
+            Status = [string]$signature.Status
+            SignerSubject = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { "" }
+            SignerThumbprint = if ($signature.SignerCertificate) { ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant() } else { "" }
+            ExpectedThumbprint = $CodeSigningContext.Thumbprint
+        }
+        LeakChecks = [PSCustomObject]@{
+            StringHidingProbePlaintextAbsent = $true
+            PfxOrP12PublicFileScan = "Passed"
+            PrivateKeyPublicFileScan = "Passed"
+            CodeSigningPasswordPublicFileScan = "Passed"
+        }
+    }
+
+    $reportPath = Join-Path $PrivateBackupRoot "protection-build-report-$Version.json"
+    $report | ConvertTo-Json -Depth 30 | Set-Content -LiteralPath $reportPath -Encoding UTF8
+    Copy-Item -LiteralPath $reportPath -Destination $LocalPrivateBackupRoot -Force
 }
 
 function Invoke-UnityCompile {
@@ -1180,6 +1701,7 @@ $scan = Get-SourceScan -SourceRoot (Join-Path $SourcePackageRoot "Editor")
 $scanPath = Join-Path $PrivateBackupRoot "static-scan-$Version.json"
 $scan | ConvertTo-Json -Depth 80 | Set-Content -LiteralPath $scanPath -Encoding UTF8
 Copy-Item -LiteralPath $scanPath -Destination $LocalPrivateBackupRoot -Force
+Assert-SourceScanAllowlist -Scan $scan -AllowlistPath $ReflectionSerializationAllowlistPath
 
 Initialize-CompileProject
 if (-not $SkipUnityCompile) {
@@ -1205,9 +1727,15 @@ Copy-Item -LiteralPath $compiledDll -Destination $protectedInputDll -Force
 
 $patchedCount = Clear-SourceDocumentPaths -Path $protectedInputDll
 Write-Host "Source document paths sanitized before Obfuscar: $patchedCount"
+$patchedDebugSymbols = Clear-DebugSymbolPaths -Path $protectedInputDll
+Write-Host "Debug symbol paths sanitized before Obfuscar: $patchedDebugSymbols"
 Test-BinaryLeak -Path $protectedInputDll
 
 $assemblySearchPaths = Get-AssemblySearchPaths -UnityProjectRoot $CompileProjectRoot
+$publicApiReport = Test-PublicApiAllowlist `
+    -DllPath $protectedInputDll `
+    -AllowlistPath $PublicApiAllowlistPath `
+    -AssemblySearchPaths $assemblySearchPaths
 $configPath = Join-Path $PrivateBackupRoot "obfuscar-$Version.xml"
 New-ObfuscarConfig -InputDll $protectedInputDll -OutputDir $outputDir -Scan $scan -AssemblySearchPaths $assemblySearchPaths -ConfigPath $configPath
 Copy-Item -LiteralPath $configPath -Destination $LocalPrivateBackupRoot -Force
@@ -1222,13 +1750,20 @@ if (-not (Test-Path $obfuscatedDll)) {
     throw "Obfuscated DLL was not found: $obfuscatedDll"
 }
 
+$repairedCoreLibReferences = Repair-SystemPrivateCoreLibReference -Path $obfuscatedDll
+Write-Host "System.Private.CoreLib references repaired after Obfuscar: $repairedCoreLibReferences"
+Test-ForbiddenAssemblyReferences -Path $obfuscatedDll
 $patchedAfterObfuscar = Clear-SourceDocumentPaths -Path $obfuscatedDll
 Write-Host "Source document paths sanitized after Obfuscar: $patchedAfterObfuscar"
+$patchedDebugSymbolsAfterObfuscar = Clear-DebugSymbolPaths -Path $obfuscatedDll
+Write-Host "Debug symbol paths sanitized after Obfuscar: $patchedDebugSymbolsAfterObfuscar"
 Test-BinaryLeak -Path $obfuscatedDll
+Test-StringHidingProbeAbsent -Path $obfuscatedDll
 Invoke-CodeSign -Path $obfuscatedDll -Context $codeSigningContext
 Test-CodeSignature -Path $obfuscatedDll -Context $codeSigningContext
 Save-CodeSignatureReport -Path $obfuscatedDll -ReportName "signature-obfuscated-$Version.json" -Context $codeSigningContext
 Test-BinaryLeak -Path $obfuscatedDll
+Test-StringHidingProbeAbsent -Path $obfuscatedDll
 
 Get-ChildItem -LiteralPath $outputDir -Force |
     Where-Object { $_.Name -match 'Mapping|rename|report|obfuscar' } |
@@ -1241,6 +1776,7 @@ Initialize-ProjectPackage
 $packagedDll = Join-Path $ProjectPackageRoot "Editor\$AssemblyFileName"
 Copy-Item -LiteralPath $obfuscatedDll -Destination $packagedDll -Force
 Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
+Test-ForbiddenAssemblyReferences -Path $packagedDll
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") -ProjectRoot $ProjectRoot -BaseUrl $BaseUrl
 if ($LASTEXITCODE -ne 0) {
@@ -1252,6 +1788,7 @@ Test-PackageZip -ZipPath $zipPath
 Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Save-CodeSignatureReport -Path $packagedDll -ReportName "signature-packaged-$Version.json" -Context $codeSigningContext
 Test-BinaryLeak -Path $packagedDll
+Test-StringHidingProbeAbsent -Path $packagedDll
 Write-PublicChecksumManifest -ZipPath $zipPath -DllPath $packagedDll -Context $codeSigningContext
 Write-PublicDetachedSignatures `
     -ZipPath $zipPath `
@@ -1259,6 +1796,16 @@ Write-PublicDetachedSignatures `
     -IndexPath (Join-Path $RepoRoot "index.json") `
     -Context $codeSigningContext
 Test-PublicReleaseSecrets
+Write-ProtectionBuildReport `
+    -Scan $scan `
+    -PublicApiReport $publicApiReport `
+    -InputDll $protectedInputDll `
+    -ObfuscatedDll $obfuscatedDll `
+    -SignedDll $packagedDll `
+    -ZipPath $zipPath `
+    -ChecksumPath (Join-Path $RepoRoot "checksums\$PackageId-$Version.sha256.txt") `
+    -ObfuscarConfigPath $configPath `
+    -CodeSigningContext $codeSigningContext
 
 Write-Host "Protected package created: $zipPath"
 Write-Host "Private backup root: $PrivateBackupRoot"

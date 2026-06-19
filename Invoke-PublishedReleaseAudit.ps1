@@ -18,6 +18,7 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 $AssemblyFileName = "EditorTools.AvatarRecovery.Editor.dll"
 $CertificateFileName = "avatar-recovery-self-signed-code-signing.cer"
 $CertificatePemFileName = "avatar-recovery-self-signed-code-signing.cer.pem"
+$StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -154,7 +155,7 @@ function Test-ForbiddenPublishedFile {
     )
 
     $fileName = [System.IO.Path]::GetFileName($Path)
-    if ($fileName -match '\.(pfx|p12|pvk|key)$') {
+    if ($fileName -match '(?i)\.(pfx|p12|pvk|key|snk)$') {
         throw "公開禁止の秘密鍵/証明書秘密情報ファイルです: $Path"
     }
 
@@ -193,13 +194,25 @@ function Test-BinaryLeak {
         @{ Name = "current user name"; Pattern = $userName },
         @{ Name = "repo source path"; Pattern = "\Packages\com.nickel-jp.avatar-recovery\Editor\" },
         @{ Name = "VrcaExtractor.cs"; Pattern = "VrcaExtractor.cs" },
-        @{ Name = "local user path"; Pattern = "C:\Users\" }
+        @{ Name = "local user path"; Pattern = "C:\Users\" },
+        @{ Name = "private key marker"; Pattern = "PRIVATE KEY" },
+        @{ Name = "password marker"; Pattern = "Password=" },
+        @{ Name = "token marker"; Pattern = "Token=" },
+        @{ Name = "api key marker"; Pattern = "ApiKey=" },
+        @{ Name = "secret marker"; Pattern = "Secret=" },
+        @{ Name = "Unity-incompatible core library reference"; Pattern = "System.Private.CoreLib" },
+        @{ Name = "local HTTP URL"; Pattern = "http://localhost" },
+        @{ Name = "loopback URL"; Pattern = "127.0.0.1" }
     )
 
     foreach ($check in $checks) {
         if ($ascii.Contains($check.Pattern) -or $unicode.Contains($check.Pattern)) {
             throw "Binary leak check failed for ${Path}: $($check.Name)"
         }
+    }
+
+    if ($ascii.Contains($StringHidingProbe) -or $unicode.Contains($StringHidingProbe)) {
+        throw "String hiding marker is visible in the published DLL."
     }
 }
 
@@ -213,10 +226,10 @@ function Test-ZipPackage {
     $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
     try {
         $blocked = @($archive.Entries | Where-Object {
-            $_.FullName -match '\.(cs|pdb|mdb)$' -or
-            $_.FullName -match '\.(pfx|p12|pvk|key)$' -or
-            $_.FullName -match '(Mapping|rename|report)' -or
-            $_.FullName -match 'obfuscar'
+            $_.FullName -match '(?i)\.(cs|pdb|mdb)$' -or
+            $_.FullName -match '(?i)\.(pfx|p12|pvk|key|snk|pem|map)$' -or
+            $_.FullName -match '(?i)(mapping|rename|report)' -or
+            $_.FullName -match '(?i)obfuscar'
         })
         if ($blocked.Count -gt 0) {
             throw "配布 zip に含めてはいけないファイルがあります: $($blocked.FullName -join ', ')"
@@ -376,6 +389,49 @@ function Test-DllTamperDetection {
     }
 }
 
+function Test-ZipTamperDetection {
+    param(
+        [Parameter(Mandatory = $true)][string]$ZipPath,
+        [Parameter(Mandatory = $true)][string]$TamperedPath,
+        [Parameter(Mandatory = $true)][string]$ExpectedSha256,
+        [Parameter(Mandatory = $true)][string]$ZipSignaturePath,
+        [Parameter(Mandatory = $true)][string]$CertificatePath
+    )
+
+    Copy-Item -LiteralPath $ZipPath -Destination $TamperedPath -Force
+    $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TamperedPath))
+    if ($bytes.Length -lt 4) {
+        throw "ZIP is too small for tamper test: $ZipPath"
+    }
+
+    $offset = [Math]::Floor($bytes.Length / 2)
+    $bytes[$offset] = $bytes[$offset] -bxor 0x01
+    [System.IO.File]::WriteAllBytes((ConvertTo-FullPath $TamperedPath), $bytes)
+
+    $tamperedHash = (Get-FileHash -LiteralPath $TamperedPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($tamperedHash -eq $ExpectedSha256) {
+        throw "Tampered ZIP unexpectedly kept the same SHA-256."
+    }
+
+    $signatureFailed = $false
+    try {
+        Test-DetachedSignatureFile -TargetPath $TamperedPath -SignaturePath $ZipSignaturePath -CertificatePath $CertificatePath
+    }
+    catch {
+        $signatureFailed = $true
+    }
+
+    if (-not $signatureFailed) {
+        throw "Tampered ZIP detached signature unexpectedly stayed valid."
+    }
+
+    return [PSCustomObject]@{
+        Status = "HashMismatchAndSignatureRejected"
+        ModifiedOffset = $offset
+        TamperedSHA256 = $tamperedHash
+    }
+}
+
 function Invoke-AuditOnce {
     $normalizedBaseUrl = $BaseUrl.TrimEnd("/")
     Remove-SafeAuditDirectory -Path $OutputRoot
@@ -458,6 +514,12 @@ function Invoke-AuditOnce {
     $tamperResult = Test-DllTamperDetection `
         -DllPath $dllPath `
         -TamperedPath (Join-Path $OutputRoot "tampered-$AssemblyFileName")
+    $zipTamperResult = Test-ZipTamperDetection `
+        -ZipPath $zipPath `
+        -TamperedPath (Join-Path $OutputRoot "tampered-$PackageId-$Version.zip") `
+        -ExpectedSha256 $zipHash `
+        -ZipSignaturePath $zipSignaturePath `
+        -CertificatePath $certificatePath
 
     $ilspyResult = Test-IlSpyOutput -DllPath $dllPath -OutputPath (Join-Path $OutputRoot "ilspy")
 
@@ -471,6 +533,7 @@ function Invoke-AuditOnce {
         DllAuthenticodeTrustMode = if ($TrustPublishedCertificateForAuthenticode) { "TrustedStoreRequired" } else { "ThumbprintOnlyAcceptedWhenUntrusted" }
         DllSignerThumbprint = $signerThumbprint
         TamperedDllAuthenticode = $tamperResult
+        TamperedZip = $zipTamperResult
         IlSpy = $ilspyResult
         ReportPath = Join-Path $OutputRoot "published-audit-$Version.json"
     }

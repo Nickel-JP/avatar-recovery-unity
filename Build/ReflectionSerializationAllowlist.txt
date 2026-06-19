@@ -1,0 +1,82 @@
+# AvatarRecovery 1.1.5 reflection / serialization / EditorPrefs allowlist
+# Format:
+# RelativePath|Category|Pattern|Normalized source text
+# Wildcards are allowed only where the whole file intentionally owns that contract.
+
+# AssetRipper path setting and imported descriptor metadata rely on EditorPrefs and SerializedObject names.
+Core\AssetRipperBridge.cs|EditorPrefs|EditorPrefs|*
+Core\AssetRipperBridge.cs|Reflection|\.GetType\s*\(|*
+Core\AssetRipperBridge.cs|Reflection|FindProperty\s*\(|*
+Core\AssetRipperBridge.cs|Serialization|SerializedContract|*
+
+# Operation log auto-export setting is persisted through existing EditorPrefs keys.
+Core\AvatarRecoveryLogManager.cs|EditorPrefs|EditorPrefs|*
+
+# MenuItem and SerializedObject checks are Unity editor entry/serialized-field contracts.
+Core\AvatarRecoveryValidators.cs|AttributeContract|MenuItem|*
+Core\AvatarRecoveryValidators.cs|Reflection|\.GetType\s*\(|*
+Core\AvatarRecoveryValidators.cs|Reflection|FindProperty\s*\(|*
+Core\AvatarRecoveryValidators.cs|Serialization|SerializedContract|*
+
+# Component restoration uses RequireComponent metadata and Unity TypeCache.
+Core\ComponentDependencyResolver.cs|Reflection|TypeCache\.|*
+Core\ComponentDependencyResolver.cs|Reflection|typeof\s*\(|*
+
+# VRCAvatarDescriptor animation layer fields are Unity/VRC serialized property paths.
+Core\GestureLayerMaskFixer.cs|Reflection|\.GetType\s*\(|*
+Core\GestureLayerMaskFixer.cs|Reflection|FindProperty\s*\(|*
+Core\GestureLayerMaskFixer.cs|Reflection|FindPropertyRelative\s*\(|*
+Core\GestureLayerMaskFixer.cs|Serialization|SerializedContract|*
+
+# Script GUID repair discovers Unity script types through TypeCache and ScriptableObject checks.
+Core\ScriptGuidFixer.cs|Reflection|TypeCache\.|*
+Core\ScriptGuidFixer.cs|Reflection|typeof\s*\(|*
+Core\ScriptGuidFixer.cs|Serialization|SerializedContract|*
+
+# Shader GUID repair uses UnityEditor.ShaderUtil reflection for built-in shader metadata.
+Core\ShaderGuidFixer.cs|Reflection|\.GetField\s*\(|*
+Core\ShaderGuidFixer.cs|Reflection|\.GetMethod\s*\(|*
+Core\ShaderGuidFixer.cs|Reflection|\.GetProperty\s*\(|*
+Core\ShaderGuidFixer.cs|Reflection|\.GetType\s*\(|*
+Core\ShaderGuidFixer.cs|Reflection|\.Invoke\s*\(|*
+Core\ShaderGuidFixer.cs|Reflection|typeof\s*\(|*
+
+# Scene cleanup menu and m_Script redirects depend on Unity MenuItem/SerializedObject names.
+Core\VrcaExtractor.cs|AttributeContract|MenuItem|*
+Core\VrcaExtractor.cs|Reflection|\.GetType\s*\(|*
+Core\VrcaExtractor.cs|Reflection|FindProperty\s*\(|*
+Core\VrcaExtractor.cs|Reflection|typeof\s*\(|*
+Core\VrcaExtractor.cs|Serialization|SerializedContract|*
+
+# Main window menu entries and persisted UI/settings state are intentional Unity/EditorPrefs contracts.
+UI\AvatarRecoveryWindow.cs|AttributeContract|MenuItem|*
+UI\AvatarRecoveryWindow.cs|EditorPrefs|EditorPrefs|*
+
+# Localization language selection persists through EditorPrefs.
+UI\Localization.cs|EditorPrefs|EditorPrefs|*
+
+# Log tab settings persist through EditorPrefs.
+UI\LogManagementPanel.cs|EditorPrefs|EditorPrefs|*
+
+# Object picker type filters use typeof for Unity Editor UI.
+UI\MissingScriptSearchPanel.cs|Reflection|typeof\s*\(|*
+UI\ShaderListViewerWindow.cs|AttributeContract|MenuItem|*
+UI\ShaderListViewerWindow.cs|Reflection|typeof\s*\(|*
+UI\ViewAssetsInfoWindow.cs|EditorPrefs|EditorPrefs|*
+UI\ViewAssetsInfoWindow.cs|Reflection|typeof\s*\(|*
+
+# Consent and backup tabs persist state through existing EditorPrefs keys.
+UI\TermsConsentPanel.cs|EditorPrefs|EditorPrefs|*
+UI\VrcaBackupPanel.cs|EditorPrefs|EditorPrefs|*
+
+# Unity initialize hook and VRC SDK reflection type discovery.
+Utils\AvatarRecoveryConsoleLogColorizer.cs|AttributeContract|InitializeOnLoad|*
+Utils\AvatarRecoveryEnvChecker.cs|Reflection|\.GetType\s*\(|*
+
+# Central settings helper owns all existing EditorPrefs key compatibility.
+Utils\EditorPrefsHelper.cs|EditorPrefs|EditorPrefs|*
+Utils\EditorPrefsHelper.cs|Reflection|typeof\s*\(|*
+
+# VRC SDK build callbacks read backup settings and inspect avatar descriptor component types.
+Utils\VrcaAutoBackup.cs|EditorPrefs|EditorPrefs|*
+Utils\VrcaAutoBackup.cs|Reflection|\.GetType\s*\(|*

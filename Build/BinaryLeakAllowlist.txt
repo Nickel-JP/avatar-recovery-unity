@@ -1,0 +1,8 @@
+# Legitimate Unity/VPM runtime strings. These are not local paths or secrets.
+Literal:Assets/
+Literal:Assets\
+Literal:Packages/
+Literal:Packages\
+Literal:.vrca
+Literal:.vrcw
+Literal:.vrcp
