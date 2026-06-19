@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.1.4",
-    [string]$PreviousVersion = "1.1.3",
+    [string]$Version = "1.1.5",
+    [string]$PreviousVersion = "1.1.4",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -15,6 +15,7 @@
     [string]$CodeSigningCertificateStoreLocation = "CurrentUser",
     [string]$CodeSigningCertificateStoreName = "My",
     [string]$TimestampUrl = "http://timestamp.digicert.com",
+    [switch]$DisableSelfSignedCertificate,
     [switch]$SkipUnityCompile,
     [switch]$AllowUnsignedPackage
 )
@@ -44,6 +45,7 @@ $PrivateBackupRoot = Join-Path $BackupRoot "$Version-protection-private"
 $LocalPrivateBackupRoot = Join-Path $WorkRoot "Backups\$Version-protection-private"
 $AssemblyName = "EditorTools.AvatarRecovery.Editor"
 $AssemblyFileName = "$AssemblyName.dll"
+$SelfSignedCertificateSubject = "CN=Nickel-JP AvatarRecovery Self-Signed Code Signing"
 $UnityMagicMethods = @(
     "OnGUI",
     "OnEnable",
@@ -73,6 +75,7 @@ $ReflectionPatterns = @(
     "Assembly\.GetTypes\s*\(",
     "TypeCache\."
 )
+$script:CodeSigningMode = "Configured"
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -108,6 +111,16 @@ function Ensure-Directory {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     New-Item -ItemType Directory -Force -Path $Path | Out-Null
+}
+
+function Write-TextUtf8NoBom {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Value
+    )
+
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($Path, $Value, $utf8NoBom)
 }
 
 function Install-ObfuscarIfNeeded {
@@ -203,8 +216,77 @@ function Test-CertificateHasCodeSigningUsage {
     return $true
 }
 
+function Get-PublicCertificatePath {
+    $certificateDir = Join-Path $RepoRoot "certificates"
+    Ensure-Directory $certificateDir
+    return (Join-Path $certificateDir "avatar-recovery-self-signed-code-signing.cer")
+}
+
+function Get-ExistingSelfSignedCodeSigningCertificate {
+    $minimumExpiry = (Get-Date).AddMonths(3)
+    Get-ChildItem -Path "Cert:\CurrentUser\My" -ErrorAction SilentlyContinue |
+        Where-Object {
+            $_.Subject -eq $SelfSignedCertificateSubject -and
+            $_.HasPrivateKey -and
+            $_.NotAfter -gt $minimumExpiry -and
+            (Test-CertificateHasCodeSigningUsage -Certificate $_)
+        } |
+        Sort-Object NotAfter -Descending |
+        Select-Object -First 1
+}
+
+function Import-PublicCertificateIfMissing {
+    param(
+        [Parameter(Mandatory = $true)][string]$CertificatePath,
+        [Parameter(Mandatory = $true)][string]$StoreName,
+        [Parameter(Mandatory = $true)][string]$Thumbprint
+    )
+
+    $storePath = "Cert:\CurrentUser\$StoreName"
+    $existing = Get-ChildItem -Path $storePath -ErrorAction SilentlyContinue |
+        Where-Object { ($_.Thumbprint -replace '\s', '').ToUpperInvariant() -eq $Thumbprint } |
+        Select-Object -First 1
+    if ($null -ne $existing) {
+        return
+    }
+
+    Import-Certificate -FilePath $CertificatePath -CertStoreLocation $storePath | Out-Null
+}
+
+function Ensure-SelfSignedCodeSigningCertificate {
+    $certificate = Get-ExistingSelfSignedCodeSigningCertificate
+    if ($null -eq $certificate) {
+        Write-Host "Creating AvatarRecovery self-signed code signing certificate."
+        $certificate = New-SelfSignedCertificate `
+            -Type CodeSigningCert `
+            -Subject $SelfSignedCertificateSubject `
+            -CertStoreLocation "Cert:\CurrentUser\My" `
+            -KeyAlgorithm RSA `
+            -KeyLength 3072 `
+            -HashAlgorithm SHA256 `
+            -KeyExportPolicy NonExportable `
+            -NotAfter (Get-Date).AddYears(5)
+    }
+
+    if ($null -eq $certificate -or -not $certificate.HasPrivateKey) {
+        throw "Self-signed code signing certificate could not be created."
+    }
+
+    $thumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+    $publicCertificatePath = Get-PublicCertificatePath
+    Export-Certificate -Cert $certificate -FilePath $publicCertificatePath -Force | Out-Null
+
+    # CurrentUser のみへ登録し、ビルド時の Authenticode 検証を Valid にする。
+    Import-PublicCertificateIfMissing -CertificatePath $publicCertificatePath -StoreName "Root" -Thumbprint $thumbprint
+    Import-PublicCertificateIfMissing -CertificatePath $publicCertificatePath -StoreName "TrustedPublisher" -Thumbprint $thumbprint
+
+    $script:CodeSigningMode = "SelfSigned"
+    return $thumbprint
+}
+
 function Get-ConfiguredCertificateThumbprint {
     if (-not [string]::IsNullOrWhiteSpace($CodeSigningCertificatePath)) {
+        $script:CodeSigningMode = "CertificateFile"
         if (-not (Test-Path $CodeSigningCertificatePath)) {
             throw "Code signing certificate file was not found: $CodeSigningCertificatePath"
         }
@@ -231,9 +313,14 @@ function Get-ConfiguredCertificateThumbprint {
     }
 
     if ([string]::IsNullOrWhiteSpace($CodeSigningCertificateThumbprint)) {
+        if (-not $DisableSelfSignedCertificate) {
+            return (Ensure-SelfSignedCodeSigningCertificate)
+        }
+
         throw "Code signing is required. Set -CodeSigningCertificateThumbprint or -CodeSigningCertificatePath, or set AVATAR_RECOVERY_CODE_SIGNING_THUMBPRINT / AVATAR_RECOVERY_CODE_SIGNING_CERT_PATH."
     }
 
+    $script:CodeSigningMode = "CertificateStore"
     $thumbprint = ($CodeSigningCertificateThumbprint -replace '\s', '').ToUpperInvariant()
     $certPath = "Cert:\$CodeSigningCertificateStoreLocation\$CodeSigningCertificateStoreName\$thumbprint"
     $cert = Get-Item -LiteralPath $certPath -ErrorAction SilentlyContinue
@@ -257,13 +344,18 @@ function Get-CodeSigningContext {
             Required = $false
             SignTool = ""
             ExpectedThumbprint = ""
+            Mode = "Unsigned"
         }
     }
 
+    $signTool = Resolve-SignTool
+    $expectedThumbprint = Get-ConfiguredCertificateThumbprint
+
     return [PSCustomObject]@{
         Required = $true
-        SignTool = Resolve-SignTool
-        ExpectedThumbprint = Get-ConfiguredCertificateThumbprint
+        SignTool = $signTool
+        ExpectedThumbprint = $expectedThumbprint
+        Mode = $script:CodeSigningMode
     }
 }
 
@@ -358,6 +450,7 @@ function Save-CodeSignatureReport {
         Path = ConvertTo-FullPath $Path
         Status = [string]$signature.Status
         StatusMessage = $signature.StatusMessage
+        SigningMode = $Context.Mode
         SignerSubject = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { "" }
         SignerThumbprint = if ($signature.SignerCertificate) { $signature.SignerCertificate.Thumbprint } else { "" }
         TimeStamperSubject = if ($signature.TimeStamperCertificate) { $signature.TimeStamperCertificate.Subject } else { "" }
@@ -367,6 +460,46 @@ function Save-CodeSignatureReport {
     $reportPath = Join-Path $PrivateBackupRoot $ReportName
     $report | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $reportPath -Encoding UTF8
     Copy-Item -LiteralPath $reportPath -Destination $LocalPrivateBackupRoot -Force
+}
+
+function Write-PublicChecksumManifest {
+    param(
+        [Parameter(Mandatory = $true)][string]$ZipPath,
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)]$Context
+    )
+
+    $checksumsDir = Join-Path $RepoRoot "checksums"
+    Ensure-Directory $checksumsDir
+    $manifestPath = Join-Path $checksumsDir "$PackageId-$Version.sha256.txt"
+
+    $zipRelativePath = "packages/$PackageId-$Version.zip"
+    $dllRelativePath = "packages/$PackageId-$Version.zip!/Editor/$AssemblyFileName"
+    $zipHash = (Get-FileHash -LiteralPath $ZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $dllHash = (Get-FileHash -LiteralPath $DllPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $signature = Get-AuthenticodeSignature -LiteralPath $DllPath
+
+    $lines = New-Object System.Collections.Generic.List[string]
+    [void]$lines.Add("# AvatarRecovery $Version public checksums")
+    [void]$lines.Add("# GeneratedAtUtc: $([DateTime]::UtcNow.ToString("o"))")
+    [void]$lines.Add("# PackageId: $PackageId")
+    [void]$lines.Add("# SigningMode: $($Context.Mode)")
+    [void]$lines.Add("# SignerSubject: $($signature.SignerCertificate.Subject)")
+    [void]$lines.Add("# SignerThumbprint: $(($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant())")
+    [void]$lines.Add("# SignatureStatus: $($signature.Status)")
+
+    if ($Context.Mode -eq "SelfSigned") {
+        $publicCertificatePath = Get-PublicCertificatePath
+        $certificateRelativePath = "certificates/avatar-recovery-self-signed-code-signing.cer"
+        $certificateHash = (Get-FileHash -LiteralPath $publicCertificatePath -Algorithm SHA256).Hash.ToLowerInvariant()
+        [void]$lines.Add("$certificateHash  $certificateRelativePath")
+    }
+
+    [void]$lines.Add("$zipHash  $zipRelativePath")
+    [void]$lines.Add("$dllHash  $dllRelativePath")
+
+    Write-TextUtf8NoBom -Path $manifestPath -Value (($lines -join [Environment]::NewLine) + [Environment]::NewLine)
+    Write-Host "Created public checksum manifest: $manifestPath"
 }
 
 function Get-XmlEscaped {
@@ -848,6 +981,7 @@ Test-PackageZip -ZipPath $zipPath
 Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Save-CodeSignatureReport -Path $packagedDll -ReportName "signature-packaged-$Version.json" -Context $codeSigningContext
 Test-BinaryLeak -Path $packagedDll
+Write-PublicChecksumManifest -ZipPath $zipPath -DllPath $packagedDll -Context $codeSigningContext
 
 Write-Host "Protected package created: $zipPath"
 Write-Host "Private backup root: $PrivateBackupRoot"
