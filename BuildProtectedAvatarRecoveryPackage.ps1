@@ -222,6 +222,30 @@ function Get-PublicCertificatePath {
     return (Join-Path $certificateDir "avatar-recovery-self-signed-code-signing.cer")
 }
 
+function Get-PublicCertificatePemPath {
+    $certificateDir = Join-Path $RepoRoot "certificates"
+    Ensure-Directory $certificateDir
+    return (Join-Path $certificateDir "avatar-recovery-self-signed-code-signing.cer.pem")
+}
+
+function Write-CertificatePem {
+    param(
+        [Parameter(Mandatory = $true)][System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    $base64 = [Convert]::ToBase64String($Certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert))
+    $builder = [System.Text.StringBuilder]::new()
+    [void]$builder.AppendLine("-----BEGIN CERTIFICATE-----")
+    for ($index = 0; $index -lt $base64.Length; $index += 64) {
+        $length = [Math]::Min(64, $base64.Length - $index)
+        [void]$builder.AppendLine($base64.Substring($index, $length))
+    }
+    [void]$builder.AppendLine("-----END CERTIFICATE-----")
+
+    Write-TextUtf8NoBom -Path $Path -Value $builder.ToString()
+}
+
 function Get-ExistingSelfSignedCodeSigningCertificate {
     $minimumExpiry = (Get-Date).AddMonths(3)
     Get-ChildItem -Path "Cert:\CurrentUser\My" -ErrorAction SilentlyContinue |
@@ -275,6 +299,7 @@ function Ensure-SelfSignedCodeSigningCertificate {
     $thumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
     $publicCertificatePath = Get-PublicCertificatePath
     Export-Certificate -Cert $certificate -FilePath $publicCertificatePath -Force | Out-Null
+    Write-CertificatePem -Certificate $certificate -Path (Get-PublicCertificatePemPath)
 
     # CurrentUser のみへ登録し、ビルド時の Authenticode 検証を Valid にする。
     Import-PublicCertificateIfMissing -CertificatePath $publicCertificatePath -StoreName "Root" -Thumbprint $thumbprint
@@ -462,6 +487,166 @@ function Save-CodeSignatureReport {
     Copy-Item -LiteralPath $reportPath -Destination $LocalPrivateBackupRoot -Force
 }
 
+function Get-CodeSigningCertificateFromContext {
+    param([Parameter(Mandatory = $true)]$Context)
+
+    if (-not $Context.Required) {
+        return $null
+    }
+
+    if ($Context.Mode -eq "CertificateFile") {
+        $password = Get-CodeSigningPassword
+        return [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+            (ConvertTo-FullPath $CodeSigningCertificatePath),
+            $password)
+    }
+
+    $thumbprint = ($Context.ExpectedThumbprint -replace '\s', '').ToUpperInvariant()
+    $certPath = "Cert:\$CodeSigningCertificateStoreLocation\$CodeSigningCertificateStoreName\$thumbprint"
+    $certificate = Get-Item -LiteralPath $certPath -ErrorAction SilentlyContinue
+    if ($null -eq $certificate) {
+        throw "Code signing certificate was not found for detached signatures: $thumbprint"
+    }
+
+    return $certificate
+}
+
+function Test-DetachedSignatureFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$TargetPath,
+        [Parameter(Mandatory = $true)][string]$SignaturePath,
+        [Parameter(Mandatory = $true)][string]$CertificatePath
+    )
+
+    if (-not (Test-Path -LiteralPath $TargetPath)) {
+        throw "Detached signature target was not found: $TargetPath"
+    }
+    if (-not (Test-Path -LiteralPath $SignaturePath)) {
+        throw "Detached signature file was not found: $SignaturePath"
+    }
+    if (-not (Test-Path -LiteralPath $CertificatePath)) {
+        throw "Detached signature certificate was not found: $CertificatePath"
+    }
+
+    $signature = Get-Content -LiteralPath $SignaturePath -Raw | ConvertFrom-Json
+    if ($signature.format -ne "AvatarRecovery detached signature v1") {
+        throw "Unsupported detached signature format: $SignaturePath"
+    }
+    if ($signature.algorithm -ne "RSA-SHA256-PKCS1") {
+        throw "Unsupported detached signature algorithm: $SignaturePath"
+    }
+
+    $actualHash = (Get-FileHash -LiteralPath $TargetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne $signature.targetSha256) {
+        throw "Detached signature target hash mismatch: $TargetPath"
+    }
+
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new((ConvertTo-FullPath $CertificatePath))
+    $actualThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+    if ($actualThumbprint -ne (($signature.signerThumbprint -replace '\s', '').ToUpperInvariant())) {
+        throw "Detached signature certificate mismatch: $SignaturePath"
+    }
+
+    $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
+    if ($null -eq $publicKey) {
+        throw "Detached signature public key was not available: $CertificatePath"
+    }
+
+    $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
+    $signatureBytes = [Convert]::FromBase64String($signature.signatureBase64)
+    $verified = $publicKey.VerifyData(
+        $targetBytes,
+        $signatureBytes,
+        [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+        [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+    if (-not $verified) {
+        throw "Detached signature verification failed: $SignaturePath"
+    }
+}
+
+function Write-DetachedSignatureFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$TargetPath,
+        [Parameter(Mandatory = $true)][string]$SignaturePath,
+        [Parameter(Mandatory = $true)][string]$TargetRelativePath,
+        [Parameter(Mandatory = $true)]$Context
+    )
+
+    if (-not $Context.Required) {
+        return
+    }
+
+    $certificate = Get-CodeSigningCertificateFromContext -Context $Context
+    if ($null -eq $certificate -or -not $certificate.HasPrivateKey) {
+        throw "Detached signature certificate does not have a private key."
+    }
+
+    Write-CertificatePem -Certificate $certificate -Path (Get-PublicCertificatePemPath)
+    $publicCertificatePath = Get-PublicCertificatePath
+    if (-not (Test-Path -LiteralPath $publicCertificatePath)) {
+        Export-Certificate -Cert $certificate -FilePath $publicCertificatePath -Force | Out-Null
+    }
+
+    $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($certificate)
+    if ($null -eq $privateKey) {
+        throw "Detached signature private key was not available."
+    }
+
+    $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
+    $signatureBytes = $privateKey.SignData(
+        $targetBytes,
+        [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+        [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+    $targetHash = (Get-FileHash -LiteralPath $TargetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+
+    $signature = [ordered]@{
+        format = "AvatarRecovery detached signature v1"
+        algorithm = "RSA-SHA256-PKCS1"
+        signedAtUtc = [DateTime]::UtcNow.ToString("o")
+        target = $TargetRelativePath
+        targetSha256 = $targetHash
+        signerCertificate = "certificates/avatar-recovery-self-signed-code-signing.cer"
+        signerCertificatePem = "certificates/avatar-recovery-self-signed-code-signing.cer.pem"
+        signerThumbprint = (($certificate.Thumbprint -replace '\s', '').ToUpperInvariant())
+        signatureBase64 = [Convert]::ToBase64String($signatureBytes)
+    }
+
+    Write-TextUtf8NoBom -Path $SignaturePath -Value (($signature | ConvertTo-Json -Depth 10) + [Environment]::NewLine)
+    Test-DetachedSignatureFile -TargetPath $TargetPath -SignaturePath $SignaturePath -CertificatePath $publicCertificatePath
+    Write-Host "Created detached signature: $SignaturePath"
+}
+
+function Write-PublicDetachedSignatures {
+    param(
+        [Parameter(Mandatory = $true)][string]$ZipPath,
+        [Parameter(Mandatory = $true)][string]$ChecksumPath,
+        [Parameter(Mandatory = $true)][string]$IndexPath,
+        [Parameter(Mandatory = $true)]$Context
+    )
+
+    if (-not $Context.Required) {
+        return
+    }
+
+    Write-DetachedSignatureFile `
+        -TargetPath $ZipPath `
+        -SignaturePath "$ZipPath.sig" `
+        -TargetRelativePath "packages/$PackageId-$Version.zip" `
+        -Context $Context
+
+    Write-DetachedSignatureFile `
+        -TargetPath $ChecksumPath `
+        -SignaturePath "$ChecksumPath.sig" `
+        -TargetRelativePath "checksums/$PackageId-$Version.sha256.txt" `
+        -Context $Context
+
+    Write-DetachedSignatureFile `
+        -TargetPath $IndexPath `
+        -SignaturePath "$IndexPath.sig" `
+        -TargetRelativePath "index.json" `
+        -Context $Context
+}
+
 function Write-PublicChecksumManifest {
     param(
         [Parameter(Mandatory = $true)][string]$ZipPath,
@@ -493,6 +678,13 @@ function Write-PublicChecksumManifest {
         $certificateRelativePath = "certificates/avatar-recovery-self-signed-code-signing.cer"
         $certificateHash = (Get-FileHash -LiteralPath $publicCertificatePath -Algorithm SHA256).Hash.ToLowerInvariant()
         [void]$lines.Add("$certificateHash  $certificateRelativePath")
+
+        $publicCertificatePemPath = Get-PublicCertificatePemPath
+        if (Test-Path -LiteralPath $publicCertificatePemPath) {
+            $certificatePemRelativePath = "certificates/avatar-recovery-self-signed-code-signing.cer.pem"
+            $certificatePemHash = (Get-FileHash -LiteralPath $publicCertificatePemPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            [void]$lines.Add("$certificatePemHash  $certificatePemRelativePath")
+        }
     }
 
     [void]$lines.Add("$zipHash  $zipRelativePath")
@@ -982,6 +1174,11 @@ Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Save-CodeSignatureReport -Path $packagedDll -ReportName "signature-packaged-$Version.json" -Context $codeSigningContext
 Test-BinaryLeak -Path $packagedDll
 Write-PublicChecksumManifest -ZipPath $zipPath -DllPath $packagedDll -Context $codeSigningContext
+Write-PublicDetachedSignatures `
+    -ZipPath $zipPath `
+    -ChecksumPath (Join-Path $RepoRoot "checksums\$PackageId-$Version.sha256.txt") `
+    -IndexPath (Join-Path $RepoRoot "index.json") `
+    -Context $codeSigningContext
 
 Write-Host "Protected package created: $zipPath"
 Write-Host "Private backup root: $PrivateBackupRoot"

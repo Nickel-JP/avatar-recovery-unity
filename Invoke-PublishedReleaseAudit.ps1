@@ -1,0 +1,370 @@
+param(
+    [string]$Version = "1.1.5",
+    [string]$PackageId = "com.nickel-jp.avatar-recovery",
+    [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
+    [string]$OutputRoot = "",
+    [int]$RetryCount = 18,
+    [int]$RetryDelaySeconds = 10
+)
+
+$ErrorActionPreference = "Stop"
+
+$RepoRoot = $PSScriptRoot
+if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
+    $OutputRoot = Join-Path $RepoRoot ".work\PublishedAudit$($Version.Replace('.', ''))"
+}
+
+$AssemblyFileName = "EditorTools.AvatarRecovery.Editor.dll"
+$CertificateFileName = "avatar-recovery-self-signed-code-signing.cer"
+$CertificatePemFileName = "avatar-recovery-self-signed-code-signing.cer.pem"
+
+function ConvertTo-FullPath {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    return [System.IO.Path]::GetFullPath($Path)
+}
+
+function Assert-UnderPath {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ParentPath
+    )
+
+    $fullPath = ConvertTo-FullPath $Path
+    $fullParent = (ConvertTo-FullPath $ParentPath).TrimEnd('\') + '\'
+    if (-not $fullPath.StartsWith($fullParent, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "安全でないパスです: $fullPath"
+    }
+}
+
+function Ensure-Directory {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    New-Item -ItemType Directory -Force -Path $Path | Out-Null
+}
+
+function Remove-SafeAuditDirectory {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        return
+    }
+
+    Assert-UnderPath -Path $Path -ParentPath (Join-Path $RepoRoot ".work")
+    Remove-Item -LiteralPath $Path -Recurse -Force
+}
+
+function Get-CacheBustUrl {
+    param([Parameter(Mandatory = $true)][string]$Url)
+
+    $separator = if ($Url.Contains("?")) { "&" } else { "?" }
+    return "$Url${separator}cb=$([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds())"
+}
+
+function Save-Url {
+    param(
+        [Parameter(Mandatory = $true)][string]$Url,
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    Ensure-Directory (Split-Path -Parent $Path)
+    Invoke-WebRequest `
+        -Uri (Get-CacheBustUrl -Url $Url) `
+        -OutFile $Path `
+        -UseBasicParsing `
+        -Headers @{ "Cache-Control" = "no-cache" }
+}
+
+function Get-UrlText {
+    param([Parameter(Mandatory = $true)][string]$Url)
+
+    $response = Invoke-WebRequest `
+        -Uri (Get-CacheBustUrl -Url $Url) `
+        -UseBasicParsing `
+        -Headers @{ "Cache-Control" = "no-cache" }
+    return $response.Content
+}
+
+function Import-PublicCertificateIfMissing {
+    param(
+        [Parameter(Mandatory = $true)][string]$CertificatePath,
+        [Parameter(Mandatory = $true)][string]$StoreName,
+        [Parameter(Mandatory = $true)][string]$Thumbprint
+    )
+
+    $storePath = "Cert:\CurrentUser\$StoreName"
+    $existing = Get-ChildItem -Path $storePath -ErrorAction SilentlyContinue |
+        Where-Object { ($_.Thumbprint -replace '\s', '').ToUpperInvariant() -eq $Thumbprint } |
+        Select-Object -First 1
+    if ($null -ne $existing) {
+        return
+    }
+
+    Import-Certificate -FilePath $CertificatePath -CertStoreLocation $storePath | Out-Null
+}
+
+function Test-DetachedSignatureFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$TargetPath,
+        [Parameter(Mandatory = $true)][string]$SignaturePath,
+        [Parameter(Mandatory = $true)][string]$CertificatePath
+    )
+
+    $signature = Get-Content -LiteralPath $SignaturePath -Raw | ConvertFrom-Json
+    if ($signature.format -ne "AvatarRecovery detached signature v1") {
+        throw "Unsupported detached signature format: $SignaturePath"
+    }
+    if ($signature.algorithm -ne "RSA-SHA256-PKCS1") {
+        throw "Unsupported detached signature algorithm: $SignaturePath"
+    }
+
+    $targetHash = (Get-FileHash -LiteralPath $TargetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($targetHash -ne $signature.targetSha256) {
+        throw "Detached signature hash mismatch: $TargetPath"
+    }
+
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new((ConvertTo-FullPath $CertificatePath))
+    $certificateThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+    if ($certificateThumbprint -ne (($signature.signerThumbprint -replace '\s', '').ToUpperInvariant())) {
+        throw "Detached signature signer mismatch: $SignaturePath"
+    }
+
+    $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
+    if ($null -eq $publicKey) {
+        throw "Public key was not available: $CertificatePath"
+    }
+
+    $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
+    $signatureBytes = [Convert]::FromBase64String($signature.signatureBase64)
+    $verified = $publicKey.VerifyData(
+        $targetBytes,
+        $signatureBytes,
+        [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+        [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+    if (-not $verified) {
+        throw "Detached signature verification failed: $SignaturePath"
+    }
+}
+
+function Test-BinaryLeak {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $userName = [Environment]::UserName
+    $checks = @(
+        @{ Name = "current user name"; Pattern = $userName },
+        @{ Name = "repo source path"; Pattern = "\Packages\com.nickel-jp.avatar-recovery\Editor\" },
+        @{ Name = "VrcaExtractor.cs"; Pattern = "VrcaExtractor.cs" },
+        @{ Name = "local user path"; Pattern = "C:\Users\" }
+    )
+
+    foreach ($check in $checks) {
+        if ($ascii.Contains($check.Pattern) -or $unicode.Contains($check.Pattern)) {
+            throw "Binary leak check failed for ${Path}: $($check.Name)"
+        }
+    }
+}
+
+function Test-ZipPackage {
+    param(
+        [Parameter(Mandatory = $true)][string]$ZipPath,
+        [Parameter(Mandatory = $true)][string]$ExtractRoot
+    )
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+    try {
+        $blocked = @($archive.Entries | Where-Object {
+            $_.FullName -match '\.(cs|pdb|mdb)$' -or
+            $_.FullName -match '(Mapping|rename|report)' -or
+            $_.FullName -match 'obfuscar'
+        })
+        if ($blocked.Count -gt 0) {
+            throw "配布 zip に含めてはいけないファイルがあります: $($blocked.FullName -join ', ')"
+        }
+
+        $dllEntry = $archive.Entries |
+            Where-Object { ($_.FullName -replace '\\', '/') -eq "Editor/$AssemblyFileName" } |
+            Select-Object -First 1
+        if ($null -eq $dllEntry) {
+            throw "DLL was not found in package zip."
+        }
+
+        Ensure-Directory $ExtractRoot
+        $dllPath = Join-Path $ExtractRoot $AssemblyFileName
+        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($dllEntry, $dllPath, $true)
+        return $dllPath
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
+function Test-IlSpyOutput {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)][string]$OutputPath
+    )
+
+    $ilspy = Get-Command ilspycmd -ErrorAction SilentlyContinue
+    if ($null -eq $ilspy) {
+        return [PSCustomObject]@{
+            Status = "Skipped"
+            Reason = "ilspycmd was not found"
+            OutputPath = ""
+            SourceFileCount = 0
+        }
+    }
+
+    if (Test-Path -LiteralPath $OutputPath) {
+        Remove-Item -LiteralPath $OutputPath -Recurse -Force
+    }
+    Ensure-Directory $OutputPath
+    $logPath = Join-Path $OutputPath "ilspycmd.log"
+
+    if ([string]::IsNullOrWhiteSpace($env:DOTNET_ROLL_FORWARD)) {
+        $env:DOTNET_ROLL_FORWARD = "Major"
+    }
+
+    & $ilspy.Source -p -o $OutputPath $DllPath *> $logPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "ILSpy decompile failed. Log: $logPath"
+    }
+
+    $sourceFiles = @(Get-ChildItem -LiteralPath $OutputPath -Recurse -File -Include "*.cs", "*.csproj")
+    $leaks = @()
+    if ($sourceFiles.Count -gt 0) {
+        $patterns = @(
+            "C:\\Users\\",
+            "\\Packages\\com\.nickel-jp\.avatar-recovery\\Editor\\",
+            "VrcaExtractor\.cs"
+        )
+        $leaks = @(Select-String -Path ($sourceFiles | Select-Object -ExpandProperty FullName) -Pattern $patterns -ErrorAction SilentlyContinue)
+    }
+    if ($leaks.Count -gt 0) {
+        throw "ILSpy output leak check failed: $($leaks[0].Path):$($leaks[0].LineNumber)"
+    }
+
+    return [PSCustomObject]@{
+        Status = "Passed"
+        Reason = ""
+        OutputPath = $OutputPath
+        SourceFileCount = $sourceFiles.Count
+    }
+}
+
+function Invoke-AuditOnce {
+    $normalizedBaseUrl = $BaseUrl.TrimEnd("/")
+    Remove-SafeAuditDirectory -Path $OutputRoot
+    Ensure-Directory $OutputRoot
+
+    $indexPath = Join-Path $OutputRoot "index.json"
+    $indexSignaturePath = Join-Path $OutputRoot "index.json.sig"
+    $zipPath = Join-Path $OutputRoot "$PackageId-$Version.zip"
+    $zipSignaturePath = "$zipPath.sig"
+    $checksumPath = Join-Path $OutputRoot "$PackageId-$Version.sha256.txt"
+    $checksumSignaturePath = "$checksumPath.sig"
+    $certificatePath = Join-Path $OutputRoot $CertificateFileName
+    $certificatePemPath = Join-Path $OutputRoot $CertificatePemFileName
+
+    Save-Url -Url "$normalizedBaseUrl/index.json" -Path $indexPath
+    Save-Url -Url "$normalizedBaseUrl/index.json.sig" -Path $indexSignaturePath
+    Save-Url -Url "$normalizedBaseUrl/packages/$PackageId-$Version.zip" -Path $zipPath
+    Save-Url -Url "$normalizedBaseUrl/packages/$PackageId-$Version.zip.sig" -Path $zipSignaturePath
+    Save-Url -Url "$normalizedBaseUrl/checksums/$PackageId-$Version.sha256.txt" -Path $checksumPath
+    Save-Url -Url "$normalizedBaseUrl/checksums/$PackageId-$Version.sha256.txt.sig" -Path $checksumSignaturePath
+    Save-Url -Url "$normalizedBaseUrl/certificates/$CertificateFileName" -Path $certificatePath
+    Save-Url -Url "$normalizedBaseUrl/certificates/$CertificatePemFileName" -Path $certificatePemPath
+
+    Test-DetachedSignatureFile -TargetPath $indexPath -SignaturePath $indexSignaturePath -CertificatePath $certificatePath
+    Test-DetachedSignatureFile -TargetPath $zipPath -SignaturePath $zipSignaturePath -CertificatePath $certificatePath
+    Test-DetachedSignatureFile -TargetPath $checksumPath -SignaturePath $checksumSignaturePath -CertificatePath $certificatePath
+
+    $index = Get-Content -LiteralPath $indexPath -Raw | ConvertFrom-Json
+    $packageEntry = $index.packages.PSObject.Properties[$PackageId].Value
+    if ($null -eq $packageEntry) {
+        throw "Package id was not found in index.json: $PackageId"
+    }
+
+    $versions = @($packageEntry.versions.PSObject.Properties.Name)
+    if ($versions.Count -ne 1 -or $versions[0] -ne $Version) {
+        throw "Unexpected published versions: $($versions -join ', ')"
+    }
+
+    $zipHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($packageEntry.versions.$Version.zipSHA256 -ne $zipHash) {
+        throw "index.json zipSHA256 mismatch."
+    }
+
+    $certificateHash = (Get-FileHash -LiteralPath $certificatePath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $certificatePemHash = (Get-FileHash -LiteralPath $certificatePemPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $checksumText = Get-Content -LiteralPath $checksumPath -Raw
+    foreach ($requiredHash in @($zipHash, $certificateHash, $certificatePemHash)) {
+        if ($checksumText -notmatch [regex]::Escape($requiredHash)) {
+            throw "Checksum manifest does not include expected hash: $requiredHash"
+        }
+    }
+
+    $extractRoot = Join-Path $OutputRoot "zip"
+    $dllPath = Test-ZipPackage -ZipPath $zipPath -ExtractRoot $extractRoot
+    $dllHash = (Get-FileHash -LiteralPath $dllPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($checksumText -notmatch [regex]::Escape($dllHash)) {
+        throw "Checksum manifest does not include DLL hash."
+    }
+
+    Test-BinaryLeak -Path $dllPath
+
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new((ConvertTo-FullPath $certificatePath))
+    $certificateThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+    Import-PublicCertificateIfMissing -CertificatePath $certificatePath -StoreName "Root" -Thumbprint $certificateThumbprint
+    Import-PublicCertificateIfMissing -CertificatePath $certificatePath -StoreName "TrustedPublisher" -Thumbprint $certificateThumbprint
+
+    $signature = Get-AuthenticodeSignature -LiteralPath $dllPath
+    if ($signature.Status -ne "Valid") {
+        throw "DLL Authenticode signature is not valid: $($signature.Status) $($signature.StatusMessage)"
+    }
+    $signerThumbprint = ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+    if ($signerThumbprint -ne $certificateThumbprint) {
+        throw "DLL signer does not match published certificate."
+    }
+
+    $ilspyResult = Test-IlSpyOutput -DllPath $dllPath -OutputPath (Join-Path $OutputRoot "ilspy")
+
+    $report = [PSCustomObject]@{
+        Version = $Version
+        BaseUrl = $normalizedBaseUrl
+        ZipSHA256 = $zipHash
+        CertificateSHA256 = $certificateHash
+        DetachedSignatures = "Valid"
+        DllAuthenticode = [string]$signature.Status
+        DllSignerThumbprint = $signerThumbprint
+        IlSpy = $ilspyResult
+        ReportPath = Join-Path $OutputRoot "published-audit-$Version.json"
+    }
+
+    $report | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $report.ReportPath -Encoding UTF8
+    return $report
+}
+
+$lastError = $null
+for ($attempt = 1; $attempt -le $RetryCount; $attempt++) {
+    try {
+        $report = Invoke-AuditOnce
+        Write-Host "Published release audit passed."
+        $report | Format-List
+        exit 0
+    }
+    catch {
+        $lastError = $_
+        if ($attempt -ge $RetryCount) {
+            break
+        }
+
+        Write-Warning "Published release audit attempt $attempt failed: $($_.Exception.Message)"
+        Start-Sleep -Seconds $RetryDelaySeconds
+    }
+}
+
+throw $lastError
