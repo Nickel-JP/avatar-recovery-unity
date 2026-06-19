@@ -4,6 +4,15 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Older Releases
 
+### Version 1.0.11 — Removed the File Select Add Row
+
+This update keeps the 1.0.10 file grouping UI and removes the low-visibility `Add` object field row.
+
+- Removed the `Add` row from the File Select tab.
+- Kept file addition through `Browse File...` and `Add from Folder...`.
+- Preserved the `Avatar (.vrca)`, `World (.vrcw)`, and `Prop (.vrcp)` foldout groups.
+- Preserved the existing batch extraction, preview, removal, and restore routing behavior.
+
 ### Version 1.0.10 — File Select Add Field and Type Foldouts
 
 This update reorganizes the File Select tab without changing the recovery pipeline.

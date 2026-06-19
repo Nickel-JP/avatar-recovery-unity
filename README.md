@@ -38,9 +38,18 @@ VCC can choose any version listed in this repository, including older published 
 | External extractor | AssetRipper.exe, obtained separately by the user |
 | License | AvatarRecovery Custom License |
 
+The distributed VPM package contains a protected DLL. Source code, debug symbols, and obfuscation mapping files are not included in the public package.
+
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.1.2 — Protected DLL Distribution
+
+- Distributed package now contains an obfuscated Editor DLL.
+- Debug symbols, source files, and obfuscation mapping reports are excluded from the public package.
+- Unity message methods, VRC SDK callback types, reflection-sensitive APIs, package metadata, and VPM index fields are preserved for compatibility.
+- String hiding was evaluated and disabled for this release because it introduced a Unity-incompatible assembly reference.
 
 ### Version 1.1.1 — MissingScriptSearch Add Row and Foldout Defaults
 
@@ -61,15 +70,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - First-use consent was added. Choosing not to agree disables the tool UI but does not delete files.
 - MissingScriptSearch drag-and-drop now adds targets instead of replacing the previous target.
 - The package license changed to AvatarRecovery Custom License for v1.1.0 and later.
-
-### Version 1.0.11 — Removed the File Select Add Row
-
-This update keeps the 1.0.10 file grouping UI and removes the low-visibility `Add` object field row.
-
-- Removed the `Add` row from the File Select tab.
-- Kept file addition through `Browse File...` and `Add from Folder...`.
-- Preserved the `Avatar (.vrca)`, `World (.vrcw)`, and `Prop (.vrcp)` foldout groups.
-- Preserved the existing batch extraction, preview, removal, and restore routing behavior.
 
 Older release notes are available in [UPDATE_HISTORY.md](UPDATE_HISTORY.md).
 
@@ -93,7 +93,7 @@ Maintainer-only example:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\BuildVpmRepository.ps1 `
-  -ProjectRoot "C:\path\to\UnityProject" `
+  -ProjectRoot "<path-to-UnityProject>" `
   -BaseUrl "https://nickel-jp.github.io/avatar-recovery-unity"
 ```
 
