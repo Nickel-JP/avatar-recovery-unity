@@ -6,3 +6,5 @@ packages/*.zip.sig text eol=lf
 certificates/*.cer.pem text eol=lf
 certificates/*.pub text eol=lf
 certificates/*allowed-signers text eol=lf
+reports/*.json text eol=lf
+reports/*.sig text eol=lf
