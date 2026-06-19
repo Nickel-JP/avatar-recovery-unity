@@ -7,7 +7,16 @@
     [string]$BackupRoot = "",
     [string]$ObfuscarToolVersion = "2.2.50",
     [string]$ObfuscarExe = "",
-    [switch]$SkipUnityCompile
+    [string]$SignToolExe = "",
+    [string]$CodeSigningCertificateThumbprint = $env:AVATAR_RECOVERY_CODE_SIGNING_THUMBPRINT,
+    [string]$CodeSigningCertificatePath = $env:AVATAR_RECOVERY_CODE_SIGNING_CERT_PATH,
+    [string]$CodeSigningCertificatePasswordEnv = "AVATAR_RECOVERY_CODE_SIGNING_PASSWORD",
+    [ValidateSet("CurrentUser", "LocalMachine")]
+    [string]$CodeSigningCertificateStoreLocation = "CurrentUser",
+    [string]$CodeSigningCertificateStoreName = "My",
+    [string]$TimestampUrl = "http://timestamp.digicert.com",
+    [switch]$SkipUnityCompile,
+    [switch]$AllowUnsignedPackage
 )
 
 $ErrorActionPreference = "Stop"
@@ -120,6 +129,244 @@ function Install-ObfuscarIfNeeded {
     }
 
     return (ConvertTo-FullPath $exePath)
+}
+
+function Resolve-SignTool {
+    if (-not [string]::IsNullOrWhiteSpace($SignToolExe)) {
+        if (-not (Test-Path $SignToolExe)) {
+            throw "SignTool executable was not found: $SignToolExe"
+        }
+        return (ConvertTo-FullPath $SignToolExe)
+    }
+
+    $candidatePatterns = @(
+        (Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin\*\x64\signtool.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\App Certification Kit\signtool.exe"),
+        (Join-Path ${env:ProgramFiles(x86)} "Microsoft SDKs\ClickOnce\SignTool\signtool.exe")
+    )
+
+    foreach ($pattern in $candidatePatterns) {
+        $candidate = Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue |
+            Sort-Object FullName -Descending |
+            Select-Object -First 1
+        if ($null -ne $candidate) {
+            return (ConvertTo-FullPath $candidate.FullName)
+        }
+    }
+
+    throw "SignTool executable was not found. Install Windows SDK or pass -SignToolExe."
+}
+
+function Get-CodeSigningPassword {
+    if ([string]::IsNullOrWhiteSpace($CodeSigningCertificatePasswordEnv)) {
+        return ""
+    }
+
+    $password = [Environment]::GetEnvironmentVariable($CodeSigningCertificatePasswordEnv)
+    if ($null -eq $password) {
+        return ""
+    }
+
+    return $password
+}
+
+function Assert-CertificatePathIsPrivate {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $fullPath = ConvertTo-FullPath $Path
+    $repoRoot = (ConvertTo-FullPath $RepoRoot).TrimEnd('\') + '\'
+    $privateRoot = (ConvertTo-FullPath (Join-Path $WorkRoot "BackupsPrivate")).TrimEnd('\') + '\'
+    if ($fullPath.StartsWith($repoRoot, [StringComparison]::OrdinalIgnoreCase) -and
+        -not $fullPath.StartsWith($privateRoot, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Code signing certificate must not be stored in the public repository tree: $fullPath"
+    }
+}
+
+function Test-CertificateHasCodeSigningUsage {
+    param([Parameter(Mandatory = $true)][System.Security.Cryptography.X509Certificates.X509Certificate2]$Certificate)
+
+    foreach ($extension in $Certificate.Extensions) {
+        if ($extension.Oid.Value -ne "2.5.29.37") {
+            continue
+        }
+
+        $eku = [System.Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension]$extension
+        foreach ($usage in $eku.EnhancedKeyUsages) {
+            if ($usage.Value -eq "1.3.6.1.5.5.7.3.3") {
+                return $true
+            }
+        }
+
+        return $false
+    }
+
+    return $true
+}
+
+function Get-ConfiguredCertificateThumbprint {
+    if (-not [string]::IsNullOrWhiteSpace($CodeSigningCertificatePath)) {
+        if (-not (Test-Path $CodeSigningCertificatePath)) {
+            throw "Code signing certificate file was not found: $CodeSigningCertificatePath"
+        }
+
+        Assert-CertificatePathIsPrivate -Path $CodeSigningCertificatePath
+        $password = Get-CodeSigningPassword
+        try {
+            $cert = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+                (ConvertTo-FullPath $CodeSigningCertificatePath),
+                $password)
+        }
+        catch {
+            throw "Code signing certificate file could not be opened. Check $CodeSigningCertificatePasswordEnv."
+        }
+
+        if (-not $cert.HasPrivateKey) {
+            throw "Code signing certificate file does not include a private key."
+        }
+        if (-not (Test-CertificateHasCodeSigningUsage -Certificate $cert)) {
+            throw "Certificate is not valid for code signing."
+        }
+
+        return $cert.Thumbprint
+    }
+
+    if ([string]::IsNullOrWhiteSpace($CodeSigningCertificateThumbprint)) {
+        throw "Code signing is required. Set -CodeSigningCertificateThumbprint or -CodeSigningCertificatePath, or set AVATAR_RECOVERY_CODE_SIGNING_THUMBPRINT / AVATAR_RECOVERY_CODE_SIGNING_CERT_PATH."
+    }
+
+    $thumbprint = ($CodeSigningCertificateThumbprint -replace '\s', '').ToUpperInvariant()
+    $certPath = "Cert:\$CodeSigningCertificateStoreLocation\$CodeSigningCertificateStoreName\$thumbprint"
+    $cert = Get-Item -LiteralPath $certPath -ErrorAction SilentlyContinue
+    if ($null -eq $cert) {
+        throw "Code signing certificate was not found in ${CodeSigningCertificateStoreLocation}\${CodeSigningCertificateStoreName}: $thumbprint"
+    }
+    if (-not $cert.HasPrivateKey) {
+        throw "Code signing certificate does not have a private key: $thumbprint"
+    }
+    if (-not (Test-CertificateHasCodeSigningUsage -Certificate $cert)) {
+        throw "Certificate is not valid for code signing: $thumbprint"
+    }
+
+    return $thumbprint
+}
+
+function Get-CodeSigningContext {
+    if ($AllowUnsignedPackage) {
+        Write-Warning "Unsigned package build is explicitly allowed. Do not publish this build."
+        return [PSCustomObject]@{
+            Required = $false
+            SignTool = ""
+            ExpectedThumbprint = ""
+        }
+    }
+
+    return [PSCustomObject]@{
+        Required = $true
+        SignTool = Resolve-SignTool
+        ExpectedThumbprint = Get-ConfiguredCertificateThumbprint
+    }
+}
+
+function Invoke-CodeSign {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)]$Context
+    )
+
+    if (-not $Context.Required) {
+        return
+    }
+
+    $arguments = New-Object System.Collections.Generic.List[string]
+    [void]$arguments.Add("sign")
+    [void]$arguments.Add("/fd")
+    [void]$arguments.Add("SHA256")
+    [void]$arguments.Add("/v")
+
+    if (-not [string]::IsNullOrWhiteSpace($TimestampUrl)) {
+        [void]$arguments.Add("/tr")
+        [void]$arguments.Add($TimestampUrl)
+        [void]$arguments.Add("/td")
+        [void]$arguments.Add("SHA256")
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($CodeSigningCertificatePath)) {
+        [void]$arguments.Add("/f")
+        [void]$arguments.Add((ConvertTo-FullPath $CodeSigningCertificatePath))
+        $password = Get-CodeSigningPassword
+        if (-not [string]::IsNullOrEmpty($password)) {
+            [void]$arguments.Add("/p")
+            [void]$arguments.Add($password)
+        }
+    }
+    else {
+        [void]$arguments.Add("/s")
+        [void]$arguments.Add($CodeSigningCertificateStoreName)
+        if ($CodeSigningCertificateStoreLocation -eq "LocalMachine") {
+            [void]$arguments.Add("/sm")
+        }
+        [void]$arguments.Add("/sha1")
+        [void]$arguments.Add($Context.ExpectedThumbprint)
+    }
+
+    [void]$arguments.Add((ConvertTo-FullPath $Path))
+
+    & $Context.SignTool @arguments
+    if ($LASTEXITCODE -ne 0) {
+        throw "Authenticode signing failed for: $Path"
+    }
+}
+
+function Test-CodeSignature {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)]$Context
+    )
+
+    if (-not $Context.Required) {
+        return
+    }
+
+    $signature = Get-AuthenticodeSignature -LiteralPath $Path
+    if ($signature.Status -ne "Valid") {
+        throw "Authenticode signature is not valid for ${Path}: $($signature.Status) $($signature.StatusMessage)"
+    }
+
+    if ($null -eq $signature.SignerCertificate) {
+        throw "Authenticode signer certificate was not found for: $Path"
+    }
+
+    $actualThumbprint = ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+    if ($actualThumbprint -ne $Context.ExpectedThumbprint) {
+        throw "Unexpected signer certificate for ${Path}: $actualThumbprint"
+    }
+}
+
+function Save-CodeSignatureReport {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ReportName,
+        [Parameter(Mandatory = $true)]$Context
+    )
+
+    if (-not $Context.Required) {
+        return
+    }
+
+    $signature = Get-AuthenticodeSignature -LiteralPath $Path
+    $report = [PSCustomObject]@{
+        Path = ConvertTo-FullPath $Path
+        Status = [string]$signature.Status
+        StatusMessage = $signature.StatusMessage
+        SignerSubject = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { "" }
+        SignerThumbprint = if ($signature.SignerCertificate) { $signature.SignerCertificate.Thumbprint } else { "" }
+        TimeStamperSubject = if ($signature.TimeStamperCertificate) { $signature.TimeStamperCertificate.Subject } else { "" }
+        TimeStamperThumbprint = if ($signature.TimeStamperCertificate) { $signature.TimeStamperCertificate.Thumbprint } else { "" }
+    }
+
+    $reportPath = Join-Path $PrivateBackupRoot $ReportName
+    $report | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $reportPath -Encoding UTF8
+    Copy-Item -LiteralPath $reportPath -Destination $LocalPrivateBackupRoot -Force
 }
 
 function Get-XmlEscaped {
@@ -523,6 +770,7 @@ $ObfuscarExe = Install-ObfuscarIfNeeded
 Ensure-Directory $ProtectionRoot
 Ensure-Directory $PrivateBackupRoot
 Ensure-Directory $LocalPrivateBackupRoot
+$codeSigningContext = Get-CodeSigningContext
 
 $scan = Get-SourceScan -SourceRoot (Join-Path $SourcePackageRoot "Editor")
 $scanPath = Join-Path $PrivateBackupRoot "static-scan-$Version.json"
@@ -573,6 +821,10 @@ if (-not (Test-Path $obfuscatedDll)) {
 $patchedAfterObfuscar = Clear-SourceDocumentPaths -Path $obfuscatedDll
 Write-Host "Source document paths sanitized after Obfuscar: $patchedAfterObfuscar"
 Test-BinaryLeak -Path $obfuscatedDll
+Invoke-CodeSign -Path $obfuscatedDll -Context $codeSigningContext
+Test-CodeSignature -Path $obfuscatedDll -Context $codeSigningContext
+Save-CodeSignatureReport -Path $obfuscatedDll -ReportName "signature-obfuscated-$Version.json" -Context $codeSigningContext
+Test-BinaryLeak -Path $obfuscatedDll
 
 Get-ChildItem -LiteralPath $outputDir -Force |
     Where-Object { $_.Name -match 'Mapping|rename|report|obfuscar' } |
@@ -582,7 +834,9 @@ Get-ChildItem -LiteralPath $outputDir -Force |
     }
 
 Initialize-ProjectPackage
-Copy-Item -LiteralPath $obfuscatedDll -Destination (Join-Path $ProjectPackageRoot "Editor\$AssemblyFileName") -Force
+$packagedDll = Join-Path $ProjectPackageRoot "Editor\$AssemblyFileName"
+Copy-Item -LiteralPath $obfuscatedDll -Destination $packagedDll -Force
+Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") -ProjectRoot $ProjectRoot -BaseUrl $BaseUrl
 if ($LASTEXITCODE -ne 0) {
@@ -591,7 +845,9 @@ if ($LASTEXITCODE -ne 0) {
 
 $zipPath = Join-Path $RepoRoot "packages\$PackageId-$Version.zip"
 Test-PackageZip -ZipPath $zipPath
-Test-BinaryLeak -Path (Join-Path $ProjectPackageRoot "Editor\$AssemblyFileName")
+Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
+Save-CodeSignatureReport -Path $packagedDll -ReportName "signature-packaged-$Version.json" -Context $codeSigningContext
+Test-BinaryLeak -Path $packagedDll
 
 Write-Host "Protected package created: $zipPath"
 Write-Host "Private backup root: $PrivateBackupRoot"
