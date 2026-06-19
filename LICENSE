@@ -38,6 +38,10 @@ You may not:
   legally permitted to recover;
 - reverse engineer, decompile, or disassemble distributed AvatarRecovery DLLs
   except where such restriction is prohibited by applicable law.
+- bypass, remove, disable, tamper with, or otherwise circumvent obfuscation,
+  encryption, anti-tamper, integrity checks, or other technical protection
+  measures applied to AvatarRecovery, except where such restriction is
+  prohibited by applicable law.
 
 3. Third-party components
 
