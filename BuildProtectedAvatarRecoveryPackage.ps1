@@ -1007,6 +1007,7 @@ function Test-PackageZip {
         $blocked = $archive.Entries |
             Where-Object {
                 $_.FullName -match '\.(cs|pdb|mdb)$' -or
+                $_.FullName -match '\.(pfx|p12|pvk|key)$' -or
                 $_.FullName -match '(Mapping|rename|report)' -or
                 $_.FullName -match 'obfuscar'
             }
@@ -1014,9 +1015,86 @@ function Test-PackageZip {
         if ($blocked) {
             throw "配布 zip に含めてはいけないファイルがあります: $($blocked.FullName -join ', ')"
         }
+
+        foreach ($entry in $archive.Entries) {
+            if ($entry.Length -gt 1048576 -or [string]::IsNullOrWhiteSpace($entry.Name)) {
+                continue
+            }
+
+            $stream = $entry.Open()
+            try {
+                $reader = [System.IO.StreamReader]::new($stream)
+                try {
+                    $text = $reader.ReadToEnd()
+                    if ($text -match '-----BEGIN [A-Z ]*PRIVATE KEY-----') {
+                        throw "配布 zip 内に秘密鍵本文が含まれています: $($entry.FullName)"
+                    }
+                }
+                finally {
+                    $reader.Dispose()
+                }
+            }
+            finally {
+                $stream.Dispose()
+            }
+        }
     }
     finally {
         $archive.Dispose()
+    }
+}
+
+function Test-PublicFileForSecrets {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [string]$SecretValue = ""
+    )
+
+    $fileName = [System.IO.Path]::GetFileName($Path)
+    if ($fileName -match '\.(pfx|p12|pvk|key)$') {
+        throw "公開禁止の秘密鍵/証明書秘密情報ファイルです: $Path"
+    }
+
+    $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $Path))
+    $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    if ($ascii -match '-----BEGIN [A-Z ]*PRIVATE KEY-----' -or
+        $unicode -match '-----BEGIN [A-Z ]*PRIVATE KEY-----') {
+        throw "公開禁止の秘密鍵本文が含まれています: $Path"
+    }
+
+    if (-not [string]::IsNullOrEmpty($SecretValue)) {
+        if ($ascii.Contains($SecretValue) -or $unicode.Contains($SecretValue)) {
+            throw "公開禁止の秘密情報値が含まれています: $Path"
+        }
+    }
+}
+
+function Test-PublicReleaseSecrets {
+    $paths = New-Object System.Collections.Generic.List[string]
+    foreach ($filePath in @(
+        (Join-Path $RepoRoot "index.json"),
+        (Join-Path $RepoRoot "index.json.sig")
+    )) {
+        if (Test-Path -LiteralPath $filePath) {
+            [void]$paths.Add($filePath)
+        }
+    }
+
+    foreach ($directoryPath in @(
+        (Join-Path $RepoRoot "packages"),
+        (Join-Path $RepoRoot "checksums"),
+        (Join-Path $RepoRoot "certificates")
+    )) {
+        if (Test-Path -LiteralPath $directoryPath) {
+            Get-ChildItem -LiteralPath $directoryPath -File -Recurse |
+                ForEach-Object { [void]$paths.Add($_.FullName) }
+        }
+    }
+
+    $codeSigningPassword = Get-CodeSigningPassword
+    foreach ($path in $paths) {
+        Test-PublicFileForSecrets -Path $path -SecretValue $codeSigningPassword
     }
 }
 
@@ -1180,6 +1258,7 @@ Write-PublicDetachedSignatures `
     -ChecksumPath (Join-Path $RepoRoot "checksums\$PackageId-$Version.sha256.txt") `
     -IndexPath (Join-Path $RepoRoot "index.json") `
     -Context $codeSigningContext
+Test-PublicReleaseSecrets
 
 Write-Host "Protected package created: $zipPath"
 Write-Host "Private backup root: $PrivateBackupRoot"

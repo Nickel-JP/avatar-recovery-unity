@@ -4,7 +4,8 @@ param(
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$OutputRoot = "",
     [int]$RetryCount = 18,
-    [int]$RetryDelaySeconds = 10
+    [int]$RetryDelaySeconds = 10,
+    [switch]$TrustPublishedCertificateForAuthenticode
 )
 
 $ErrorActionPreference = "Stop"
@@ -146,6 +147,41 @@ function Test-DetachedSignatureFile {
     }
 }
 
+function Test-ForbiddenPublishedFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [string]$SecretValue = ""
+    )
+
+    $fileName = [System.IO.Path]::GetFileName($Path)
+    if ($fileName -match '\.(pfx|p12|pvk|key)$') {
+        throw "公開禁止の秘密鍵/証明書秘密情報ファイルです: $Path"
+    }
+
+    $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $Path))
+    $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    if ($ascii -match '-----BEGIN [A-Z ]*PRIVATE KEY-----' -or
+        $unicode -match '-----BEGIN [A-Z ]*PRIVATE KEY-----') {
+        throw "公開禁止の秘密鍵本文が含まれています: $Path"
+    }
+
+    if (-not [string]::IsNullOrEmpty($SecretValue)) {
+        if ($ascii.Contains($SecretValue) -or $unicode.Contains($SecretValue)) {
+            throw "公開禁止の秘密情報値が含まれています: $Path"
+        }
+    }
+}
+
+function Test-DownloadedPublicFiles {
+    param([Parameter(Mandatory = $true)][string[]]$Paths)
+
+    $codeSigningPassword = [Environment]::GetEnvironmentVariable("AVATAR_RECOVERY_CODE_SIGNING_PASSWORD")
+    foreach ($path in $Paths) {
+        Test-ForbiddenPublishedFile -Path $path -SecretValue $codeSigningPassword
+    }
+}
+
 function Test-BinaryLeak {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -178,6 +214,7 @@ function Test-ZipPackage {
     try {
         $blocked = @($archive.Entries | Where-Object {
             $_.FullName -match '\.(cs|pdb|mdb)$' -or
+            $_.FullName -match '\.(pfx|p12|pvk|key)$' -or
             $_.FullName -match '(Mapping|rename|report)' -or
             $_.FullName -match 'obfuscar'
         })
@@ -195,6 +232,30 @@ function Test-ZipPackage {
         Ensure-Directory $ExtractRoot
         $dllPath = Join-Path $ExtractRoot $AssemblyFileName
         [System.IO.Compression.ZipFileExtensions]::ExtractToFile($dllEntry, $dllPath, $true)
+
+        foreach ($entry in $archive.Entries) {
+            if ($entry.Length -gt 1048576 -or [string]::IsNullOrWhiteSpace($entry.Name)) {
+                continue
+            }
+
+            $stream = $entry.Open()
+            try {
+                $reader = [System.IO.StreamReader]::new($stream)
+                try {
+                    $text = $reader.ReadToEnd()
+                    if ($text -match '-----BEGIN [A-Z ]*PRIVATE KEY-----') {
+                        throw "zip内に公開禁止の秘密鍵本文が含まれています: $($entry.FullName)"
+                    }
+                }
+                finally {
+                    $reader.Dispose()
+                }
+            }
+            finally {
+                $stream.Dispose()
+            }
+        }
+
         return $dllPath
     }
     finally {
@@ -255,6 +316,66 @@ function Test-IlSpyOutput {
     }
 }
 
+function Test-DllAuthenticodeIdentity {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)][string]$CertificatePath,
+        [Parameter(Mandatory = $true)][string]$ExpectedThumbprint
+    )
+
+    if ($TrustPublishedCertificateForAuthenticode) {
+        Import-PublicCertificateIfMissing -CertificatePath $CertificatePath -StoreName "Root" -Thumbprint $ExpectedThumbprint
+        Import-PublicCertificateIfMissing -CertificatePath $CertificatePath -StoreName "TrustedPublisher" -Thumbprint $ExpectedThumbprint
+    }
+
+    $signature = Get-AuthenticodeSignature -LiteralPath $DllPath
+    if ($signature.Status -eq "NotSigned" -or $signature.Status -eq "HashMismatch") {
+        throw "DLL Authenticode signature is broken: $($signature.Status) $($signature.StatusMessage)"
+    }
+    if ($null -eq $signature.SignerCertificate) {
+        throw "DLL signer certificate was not available: $DllPath"
+    }
+
+    $signerThumbprint = ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+    if ($signerThumbprint -ne $ExpectedThumbprint) {
+        throw "DLL signer does not match published certificate: $signerThumbprint"
+    }
+
+    if ($TrustPublishedCertificateForAuthenticode -and $signature.Status -ne "Valid") {
+        throw "DLL Authenticode signature is not valid after trust registration: $($signature.Status) $($signature.StatusMessage)"
+    }
+
+    return $signature
+}
+
+function Test-DllTamperDetection {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)][string]$TamperedPath
+    )
+
+    Copy-Item -LiteralPath $DllPath -Destination $TamperedPath -Force
+    $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TamperedPath))
+    if ($bytes.Length -lt 4) {
+        throw "DLL is too small for tamper test: $DllPath"
+    }
+
+    $offset = [Math]::Floor($bytes.Length / 2)
+    $bytes[$offset] = $bytes[$offset] -bxor 0x01
+    [System.IO.File]::WriteAllBytes((ConvertTo-FullPath $TamperedPath), $bytes)
+
+    $tamperedSignature = Get-AuthenticodeSignature -LiteralPath $TamperedPath
+    if ($tamperedSignature.Status -eq "Valid") {
+        throw "Tampered DLL signature unexpectedly stayed Valid: $TamperedPath"
+    }
+
+    return [PSCustomObject]@{
+        Status = [string]$tamperedSignature.Status
+        StatusMessage = $tamperedSignature.StatusMessage
+        ModifiedOffset = $offset
+    }
+}
+
 function Invoke-AuditOnce {
     $normalizedBaseUrl = $BaseUrl.TrimEnd("/")
     Remove-SafeAuditDirectory -Path $OutputRoot
@@ -277,6 +398,17 @@ function Invoke-AuditOnce {
     Save-Url -Url "$normalizedBaseUrl/checksums/$PackageId-$Version.sha256.txt.sig" -Path $checksumSignaturePath
     Save-Url -Url "$normalizedBaseUrl/certificates/$CertificateFileName" -Path $certificatePath
     Save-Url -Url "$normalizedBaseUrl/certificates/$CertificatePemFileName" -Path $certificatePemPath
+
+    Test-DownloadedPublicFiles -Paths @(
+        $indexPath,
+        $indexSignaturePath,
+        $zipPath,
+        $zipSignaturePath,
+        $checksumPath,
+        $checksumSignaturePath,
+        $certificatePath,
+        $certificatePemPath
+    )
 
     Test-DetachedSignatureFile -TargetPath $indexPath -SignaturePath $indexSignaturePath -CertificatePath $certificatePath
     Test-DetachedSignatureFile -TargetPath $zipPath -SignaturePath $zipSignaturePath -CertificatePath $certificatePath
@@ -318,17 +450,14 @@ function Invoke-AuditOnce {
 
     $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new((ConvertTo-FullPath $certificatePath))
     $certificateThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
-    Import-PublicCertificateIfMissing -CertificatePath $certificatePath -StoreName "Root" -Thumbprint $certificateThumbprint
-    Import-PublicCertificateIfMissing -CertificatePath $certificatePath -StoreName "TrustedPublisher" -Thumbprint $certificateThumbprint
-
-    $signature = Get-AuthenticodeSignature -LiteralPath $dllPath
-    if ($signature.Status -ne "Valid") {
-        throw "DLL Authenticode signature is not valid: $($signature.Status) $($signature.StatusMessage)"
-    }
+    $signature = Test-DllAuthenticodeIdentity `
+        -DllPath $dllPath `
+        -CertificatePath $certificatePath `
+        -ExpectedThumbprint $certificateThumbprint
     $signerThumbprint = ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
-    if ($signerThumbprint -ne $certificateThumbprint) {
-        throw "DLL signer does not match published certificate."
-    }
+    $tamperResult = Test-DllTamperDetection `
+        -DllPath $dllPath `
+        -TamperedPath (Join-Path $OutputRoot "tampered-$AssemblyFileName")
 
     $ilspyResult = Test-IlSpyOutput -DllPath $dllPath -OutputPath (Join-Path $OutputRoot "ilspy")
 
@@ -339,7 +468,9 @@ function Invoke-AuditOnce {
         CertificateSHA256 = $certificateHash
         DetachedSignatures = "Valid"
         DllAuthenticode = [string]$signature.Status
+        DllAuthenticodeTrustMode = if ($TrustPublishedCertificateForAuthenticode) { "TrustedStoreRequired" } else { "ThumbprintOnlyAcceptedWhenUntrusted" }
         DllSignerThumbprint = $signerThumbprint
+        TamperedDllAuthenticode = $tamperResult
         IlSpy = $ilspyResult
         ReportPath = Join-Path $OutputRoot "published-audit-$Version.json"
     }
