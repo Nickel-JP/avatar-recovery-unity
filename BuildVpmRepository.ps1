@@ -37,7 +37,8 @@ function Write-Utf8NoBom {
     )
 
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-    [System.IO.File]::WriteAllText($Path, $Value, $utf8NoBom)
+    $normalizedValue = $Value -replace "`r`n", "`n" -replace "`r", "`n"
+    [System.IO.File]::WriteAllText($Path, $normalizedValue, $utf8NoBom)
 }
 
 function Get-PackageManifestFromZip {

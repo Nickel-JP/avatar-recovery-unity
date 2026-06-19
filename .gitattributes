@@ -1,0 +1,8 @@
+index.json text eol=lf
+index.json.sig text eol=lf
+checksums/*.sha256.txt text eol=lf
+checksums/*.sha256.txt.sig text eol=lf
+packages/*.zip.sig text eol=lf
+certificates/*.cer.pem text eol=lf
+certificates/*.pub text eol=lf
+certificates/*allowed-signers text eol=lf

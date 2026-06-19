@@ -120,7 +120,8 @@ function Write-TextUtf8NoBom {
     )
 
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
-    [System.IO.File]::WriteAllText($Path, $Value, $utf8NoBom)
+    $normalizedValue = $Value -replace "`r`n", "`n" -replace "`r", "`n"
+    [System.IO.File]::WriteAllText($Path, $normalizedValue, $utf8NoBom)
 }
 
 function Install-ObfuscarIfNeeded {
@@ -690,7 +691,7 @@ function Write-PublicChecksumManifest {
     [void]$lines.Add("$zipHash  $zipRelativePath")
     [void]$lines.Add("$dllHash  $dllRelativePath")
 
-    Write-TextUtf8NoBom -Path $manifestPath -Value (($lines -join [Environment]::NewLine) + [Environment]::NewLine)
+    Write-TextUtf8NoBom -Path $manifestPath -Value (($lines -join "`n") + "`n")
     Write-Host "Created public checksum manifest: $manifestPath"
 }
 
