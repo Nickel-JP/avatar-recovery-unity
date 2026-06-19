@@ -38,18 +38,14 @@ VCC can choose any version listed in this repository, including older published 
 | External extractor | AssetRipper.exe, obtained separately by the user |
 | License | AvatarRecovery Custom License |
 
-The distributed VPM package contains a protected DLL. Source code, debug symbols, and obfuscation mapping files are not included in the public package.
-
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
 
-### Version 1.1.2 — Protected DLL Distribution
+### Version 1.1.2 — Package Maintenance
 
-- Distributed package now contains an obfuscated Editor DLL.
-- Debug symbols, source files, and obfuscation mapping reports are excluded from the public package.
-- Unity message methods, VRC SDK callback types, reflection-sensitive APIs, package metadata, and VPM index fields are preserved for compatibility.
-- String hiding was evaluated and disabled for this release because it introduced a Unity-incompatible assembly reference.
+- Updated the VPM package and repository metadata for the 1.1.2 release.
+- Preserved Unity message methods, VRC SDK callback types, package metadata, and VPM index fields for compatibility.
 
 ### Version 1.1.1 — MissingScriptSearch Add Row and Foldout Defaults
 
