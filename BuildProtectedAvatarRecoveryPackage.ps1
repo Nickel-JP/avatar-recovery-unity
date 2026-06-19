@@ -873,6 +873,21 @@ function Get-SourceScan {
                 }
             }
 
+            foreach ($pattern in $AttributeContractPatterns) {
+                if ($line -match "^\s*\[\s*$pattern\b") {
+                    [void]$attributeUsages.Add((New-SourceScanHit `
+                        -SourceRoot $SourceRoot `
+                        -File $file.FullName `
+                        -Line $lineNumber `
+                        -Category "AttributeContract" `
+                        -Pattern $pattern `
+                        -Text $line `
+                        -Type $currentType `
+                        -Method ""))
+                    break
+                }
+            }
+
             if ($line -match '^\s*\[[^\]]+\]') {
                 [void]$pendingAttributes.Add($line.Trim())
                 continue
@@ -902,21 +917,6 @@ function Get-SourceScan {
                         Method = $methodName
                         Attributes = @($pendingAttributes)
                     })
-                }
-            }
-
-            foreach ($pattern in $AttributeContractPatterns) {
-                if ($line -match "^\s*\[\s*$pattern\b") {
-                    [void]$attributeUsages.Add((New-SourceScanHit `
-                        -SourceRoot $SourceRoot `
-                        -File $file.FullName `
-                        -Line $lineNumber `
-                        -Category "AttributeContract" `
-                        -Pattern $pattern `
-                        -Text $line `
-                        -Type $currentType `
-                        -Method ""))
-                    break
                 }
             }
 
@@ -1604,7 +1604,7 @@ function Write-ProtectionBuildReport {
             Status = [string]$signature.Status
             SignerSubject = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { "" }
             SignerThumbprint = if ($signature.SignerCertificate) { ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant() } else { "" }
-            ExpectedThumbprint = $CodeSigningContext.Thumbprint
+            ExpectedThumbprint = $CodeSigningContext.ExpectedThumbprint
         }
         LeakChecks = [PSCustomObject]@{
             StringHidingProbePlaintextAbsent = $true

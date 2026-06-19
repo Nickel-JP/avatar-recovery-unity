@@ -1,11 +1,11 @@
 {
-    "format":  "AvatarRecovery detached signature v1",
-    "algorithm":  "RSA-SHA256-PKCS1",
-    "signedAtUtc":  "2026-06-19T18:43:10.8966621Z",
-    "target":  "index.json",
-    "targetSha256":  "d7f96f3ef1d62821295d676174b1c9e656dd5228403b91c4ee54dd0adbb6a41e",
-    "signerCertificate":  "certificates/avatar-recovery-self-signed-code-signing.cer",
-    "signerCertificatePem":  "certificates/avatar-recovery-self-signed-code-signing.cer.pem",
-    "signerThumbprint":  "960260D2C8E24599FD3BC639F393733DE07997E2",
-    "signatureBase64":  "rJqFrnmsey/E0mfVFQVeboDlVk/T3pD1OfK232fHzv4sO+3EF8ot47Wx9LzC8UBeuyoqkU3dBwTsrmGOIG4wahh2kW9M7ft8u9VdZfhg/a3EICCUHNefJq7J0K7ktuqe9xrx3rjqLeXMzgri7szDirL4Z7SeN4YetNqkJYMabMWL35U7KavyTGr1DuA0MH9e/Sil7s5oQdoWWpI7JGJePqrd+SRWeO1N46VBMdOu5TlryhSozj2XZy6BG7irft27NxUgrZXWfIkPRUtgpDWFjFpi5jardY1JQL2IGxMeV25Kai083xThTayCjnRUzNacdSGXeD0/w7RfYw6HmzChsrBo6jQMQhDgpP3WZLZnnIIOI4TpO7Xq3LgNKjArjdZgTHjEwclbTbQ1skGtbypl4OF+FSlTUGiMXv/uVoTggDIYpzcrgfyMlKnvfDQnRwtAlx7g+RmPWG2nM9DIBfKxzz4+mxfM550NKJhA3gYZWcRXiBD5iBbO7Og6RNkTXqJw"
+  "format": "AvatarRecovery detached signature v1",
+  "algorithm": "RSA-SHA256-PKCS1",
+  "signedAtUtc": "2026-06-19T18:52:47.8816972Z",
+  "target": "index.json",
+  "targetSha256": "dd22a8560fa4451732e28a7aff7a67700cf8104a8dad66ec5eed5e511cbccc9e",
+  "signerCertificate": "certificates/avatar-recovery-self-signed-code-signing.cer",
+  "signerCertificatePem": "certificates/avatar-recovery-self-signed-code-signing.cer.pem",
+  "signerThumbprint": "960260D2C8E24599FD3BC639F393733DE07997E2",
+  "signatureBase64": "WevOaP/TEd6tUkBznIU7AHAJbHA1/XxjILikrX1rVz4OY8sXOzBD44REl2IL0rlTpmy6kn67d4l5+k1UjQXIERJ7Y7mwrUwxonAsRsbUaAri1lP2vgLm1x9kl8e/0t+pT1IUt4kL52tnzIluKYssaBrupIzIc5UqSMKpPkqS4jj7mAFDI5kZBscxF/s+0luncg2cJUbwGa6yN/Sa8nOH7QY6aR/yJ3WSfqi88te3H2atlOU66ghUbhEyvqQVMsyfbA0G7dgzeNchFqxBDtt+VAWB/8HAiVhhBAtlxG2fIkJsPi1/Wyg7796PO1qBw7tSiGahlyHRpE1mTNKE1g0ppM2F2CVYkLzjOE8JYxMo1gzD0vSmfL5ppD6D9mTxvsXeKasIQ2ZicS52ZYxAlGLGe2vJLha7OTcfjpAIRJXI0101rRalR+uOCiChx9kp6v08cs66wKJrvk6LtvWph2/vucI7kz1gIk57LPTnhCKIeq5ieNyw2EzTRzdaJF5IC3B5"
 }
