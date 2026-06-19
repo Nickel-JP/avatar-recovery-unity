@@ -3,7 +3,7 @@ param(
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$OutputRoot = $PSScriptRoot,
     [string]$BaseUrl = "",
-    [string]$MinimumPublishedVersion = "1.1.2"
+    [string]$MinimumPublishedVersion = "1.1.3"
 )
 
 $ErrorActionPreference = "Stop"
