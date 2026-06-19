@@ -12,11 +12,20 @@ AssetRipper.exe を外部プロセスとして呼び出し、その後に Avatar
 https://nickel-jp.github.io/avatar-recovery-unity/index.json
 ```
 
-Add page:
+## Install
+
+Click the button below to add this repository to VRChat Creator Companion:
+
+[![Add to VCC](https://img.shields.io/badge/VCC-Add%20Repository-2563eb?style=for-the-badge&logo=unity&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/)
+
+Manual repository URL:
 
 ```text
-https://nickel-jp.github.io/avatar-recovery-unity/add/
+https://nickel-jp.github.io/avatar-recovery-unity/index.json
 ```
+
+After adding the repository, install `Avatar Recovery` from the VCC package list.
+VCC can choose any version listed in this repository, including older published versions.
 
 ## Technical Specifications
 
