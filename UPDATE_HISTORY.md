@@ -4,6 +4,16 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Older Releases
 
+### Version 1.0.10 — File Select Add Field and Type Foldouts
+
+This update reorganizes the File Select tab without changing the recovery pipeline.
+
+- Replaced the large file drop box with a Shader Lists-style `Add` object field row.
+- Kept drag-and-drop support for `.vrca`, `.vrcw`, `.vrcp`, and folders containing those files on the `Add` row.
+- Split the selected file list into `Avatar (.vrca)`, `World (.vrcw)`, and `Prop (.vrcp)` foldout groups.
+- Keeps all three foldouts closed by default.
+- Preserved the existing batch extraction, preview, removal, and restore routing behavior.
+
 ### Version 1.0.9 — Safer Scene Missing Prefab Cleanup
 
 This update improves cleanup for stale Scene objects that Unity reports as missing prefab instances after restoration.

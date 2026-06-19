@@ -42,6 +42,12 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
+### Version 1.1.1 — MissingScriptSearch Add Row and Foldout Defaults
+
+- MissingScriptSearch target input now uses an Add-style ObjectField row instead of a large drag-and-drop box.
+- GameObject / Prefab scan targets can still be added by dragging onto the Add row or selecting an object.
+- File Select keeps the Avatar / World / Prop foldout headers visible, but the groups start collapsed instead of always expanded.
+
 ### Version 1.1.0 — DLL Package and v1.1.0 UI Cleanup
 
 - UI names were organized around `AvatarRecovery`, `View Assets Info`, and `Run`.
@@ -63,16 +69,6 @@ This update keeps the 1.0.10 file grouping UI and removes the low-visibility `Ad
 - Removed the `Add` row from the File Select tab.
 - Kept file addition through `Browse File...` and `Add from Folder...`.
 - Preserved the `Avatar (.vrca)`, `World (.vrcw)`, and `Prop (.vrcp)` foldout groups.
-- Preserved the existing batch extraction, preview, removal, and restore routing behavior.
-
-### Version 1.0.10 — File Select Add Field and Type Foldouts
-
-This update reorganizes the File Select tab without changing the recovery pipeline.
-
-- Replaced the large file drop box with a Shader Lists-style `Add` object field row.
-- Kept drag-and-drop support for `.vrca`, `.vrcw`, `.vrcp`, and folders containing those files on the `Add` row.
-- Split the selected file list into `Avatar (.vrca)`, `World (.vrcw)`, and `Prop (.vrcp)` foldout groups.
-- Keeps all three foldouts closed by default.
 - Preserved the existing batch extraction, preview, removal, and restore routing behavior.
 
 Older release notes are available in [UPDATE_HISTORY.md](UPDATE_HISTORY.md).
