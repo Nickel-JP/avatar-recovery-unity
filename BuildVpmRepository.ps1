@@ -29,6 +29,16 @@ function Set-JsonProperty {
     }
 }
 
+function Write-Utf8NoBom {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Value
+    )
+
+    $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+    [System.IO.File]::WriteAllText($Path, $Value, $utf8NoBom)
+}
+
 function Get-PackageManifestFromZip {
     param([Parameter(Mandatory = $true)][string]$ZipPath)
 
@@ -124,7 +134,7 @@ try {
     Set-JsonProperty -Object $stagedManifest -Name "url" -Value $packageUrl
     Set-JsonProperty -Object $stagedManifest -Name "repo" -Value $repoUrl
 
-    $stagedManifest | ConvertTo-Json -Depth 50 | Set-Content -LiteralPath $stagedManifestPath -Encoding UTF8
+    Write-Utf8NoBom -Path $stagedManifestPath -Value ($stagedManifest | ConvertTo-Json -Depth 50)
 
     Compress-Archive -Path (Join-Path $stagingRoot "*") -DestinationPath $zipPath -Force
     $zipSha256 = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -186,7 +196,7 @@ try {
         packages = $packages
     }
 
-    $repo | ConvertTo-Json -Depth 80 | Set-Content -LiteralPath $indexPath -Encoding UTF8
+    Write-Utf8NoBom -Path $indexPath -Value ($repo | ConvertTo-Json -Depth 80)
 
     Write-Host "Created VPM package: $zipPath"
     Write-Host "Created VPM repository: $indexPath"
