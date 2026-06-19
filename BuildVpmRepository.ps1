@@ -2,7 +2,8 @@ param(
     [string]$ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path,
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$OutputRoot = $PSScriptRoot,
-    [string]$BaseUrl = ""
+    [string]$BaseUrl = "",
+    [string]$MinimumPublishedVersion = "1.1.2"
 )
 
 $ErrorActionPreference = "Stop"
@@ -84,6 +85,22 @@ function Get-VersionSortKey {
     }
 }
 
+function Test-VersionIsPublished {
+    param([string]$Version)
+
+    if ([string]::IsNullOrWhiteSpace($MinimumPublishedVersion)) {
+        return $true
+    }
+
+    try {
+        return ([version]$Version) -ge ([version]$MinimumPublishedVersion)
+    }
+    catch {
+        Write-Warning "Skipping package zip with invalid version: $Version"
+        return $false
+    }
+}
+
 $packageRoot = Join-Path $ProjectRoot "Packages\$PackageId"
 $packageJsonPath = Join-Path $packageRoot "package.json"
 
@@ -151,6 +168,11 @@ try {
         $candidateVersion = $candidateManifest.version
         if ([string]::IsNullOrWhiteSpace($candidateVersion)) {
             Write-Warning "Skipping package zip with empty version: $($packageZip.FullName)"
+            continue
+        }
+
+        if (-not (Test-VersionIsPublished -Version $candidateVersion)) {
+            Write-Host "Skipping package below published minimum version $MinimumPublishedVersion`: $candidateVersion"
             continue
         }
 
