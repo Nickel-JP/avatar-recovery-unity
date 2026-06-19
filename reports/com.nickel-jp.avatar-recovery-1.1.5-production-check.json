@@ -1,0 +1,75 @@
+{
+  "format": "AvatarRecovery production check v1",
+  "version": "1.1.5",
+  "generatedAtUtc": "2026-06-19T19:15:24.3917188Z",
+  "sourceCommit": "87e86609a2429364635d8beaaee635a47977edd4",
+  "releaseTag": "v1.1.5",
+  "releaseTagCommit": "87e86609a2429364635d8beaaee635a47977edd4",
+  "releaseUrl": "https://github.com/Nickel-JP/avatar-recovery-unity/releases/tag/v1.1.5",
+  "vccIndexUrl": "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
+  "packageUrl": "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.1.5.zip",
+  "zipSHA256": "72326b263bb89f8cdc6ee7e315367c31faa4949cca4641d3c0a048b2d2406a31",
+  "indexZipSHA256": "72326b263bb89f8cdc6ee7e315367c31faa4949cca4641d3c0a048b2d2406a31",
+  "dllSHA256": "24526682819a5511bcef903c99a2befebf137915e6d8513f6da0fa652b83b141",
+  "dllSignerThumbprint": "960260D2C8E24599FD3BC639F393733DE07997E2",
+  "result": "PASS",
+  "passes": [
+    {
+      "name": "published-release-audit-pass-1",
+      "result": "PASS",
+      "detachedSignatures": "Valid",
+      "dllAuthenticode": "Valid",
+      "tamperedDll": "HashMismatch",
+      "tamperedZip": "HashMismatchAndSignatureRejected",
+      "ilSpy": "Passed"
+    },
+    {
+      "name": "published-release-audit-pass-2",
+      "result": "PASS",
+      "detachedSignatures": "Valid",
+      "dllAuthenticode": "Valid",
+      "tamperedDll": "HashMismatch",
+      "tamperedZip": "HashMismatchAndSignatureRejected",
+      "ilSpy": "Passed"
+    },
+    {
+      "name": "unity-runtime-pass-1",
+      "result": "PASS",
+      "import": "Passed",
+      "editorWindows": "Passed",
+      "vrcSdkCallbacks": "Passed",
+      "dataRecoveryInvalidEncryptedInput": "SafeFailure",
+      "assetRipperAvailabilityProbe": "Passed",
+      "materialShaderMap": "Generated",
+      "materialShaderMapCsvSHA256": "67ffe5bf1acfba91a2d8d447783b3714c85775f3a551b2110a68aa0d850aabad"
+    },
+    {
+      "name": "unity-runtime-pass-2",
+      "result": "PASS",
+      "import": "Passed",
+      "editorWindows": "Passed",
+      "vrcSdkCallbacks": "Passed",
+      "dataRecoveryInvalidEncryptedInput": "SafeFailure",
+      "assetRipperAvailabilityProbe": "Passed",
+      "materialShaderMap": "Generated",
+      "materialShaderMapCsvSHA256": "67ffe5bf1acfba91a2d8d447783b3714c85775f3a551b2110a68aa0d850aabad"
+    }
+  ],
+  "consistency": {
+    "vccIndexVersions": "1.1.5",
+    "materialShaderMapCsvHashesMatch": true,
+    "localPublicZipIndexAndRemoteHashMatch": true
+  },
+  "publicArtifactSafety": {
+    "privateKeysInPublicTree": "Absent",
+    "trackedDiffAfterCheck": "None",
+    "stagedDiffAfterCheck": "None",
+    "debugSymbolsInZip": "Absent",
+    "mappingReportsInZip": "Absent",
+    "sourceFilesInZip": "Absent"
+  },
+  "limitations": [
+    "No valid real .vrca/.vrcw/.vrcp sample was available in the repository, so full successful extraction from a real VRChat cache file was not executed.",
+    "No live VRChat upload was executed; VRC SDK compatibility was checked via TypeCache discovery and callback invocation."
+  ]
+}
