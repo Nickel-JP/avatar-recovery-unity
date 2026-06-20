@@ -4,6 +4,11 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Older Releases
 
+### Version 1.1.4 — Tool License Display
+
+- Added the full AvatarRecovery license text to the tool-side License view.
+- Kept third-party license notices visible in the Unity Editor UI.
+
 ### Version 1.1.2 — Package Maintenance
 
 - Updated the VPM package and repository metadata for the 1.1.2 release.

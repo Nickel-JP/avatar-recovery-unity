@@ -42,6 +42,12 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
+### Version 1.1.7 — Scene AssetBundle Info View Stability
+
+- Fixed `View Assets Info` so scene-only `.vrcw` AssetBundles do not call Unity's GameObject asset loading path.
+- Scene-only bundles now show scene paths and asset names without logging `This method cannot be used on a streamed scene AssetBundle`.
+- Updated the VPM index so the active public package line points to 1.1.7.
+
 ### Version 1.1.6 — EditorWindow Serialization Stability
 
 - Fixed Unity EditorWindow serialized field-name collisions after release processing.
@@ -53,11 +59,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Added self-signed Authenticode signing for the distributed Editor DLL.
 - Added SHA-256 checksum output for the package ZIP and DLL.
 - Added detached signatures for the package ZIP, checksum file, and VPM index.
-
-### Version 1.1.4 — Tool License Display
-
-- Added the full AvatarRecovery license text to the tool-side License view.
-- Kept third-party license notices visible in the Unity Editor UI.
 
 Older release notes are available in [UPDATE_HISTORY.md](UPDATE_HISTORY.md).
 
