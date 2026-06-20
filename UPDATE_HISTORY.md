@@ -4,6 +4,12 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Older Releases
 
+### Version 1.1.5 — Signed Release Artifacts
+
+- Added self-signed Authenticode signing for the distributed Editor DLL.
+- Added SHA-256 checksum output for the package ZIP and DLL.
+- Added detached signatures for the package ZIP, checksum file, and VPM index.
+
 ### Version 1.1.4 — Tool License Display
 
 - Added the full AvatarRecovery license text to the tool-side License view.
