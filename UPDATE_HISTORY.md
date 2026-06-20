@@ -4,6 +4,31 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Older Releases
 
+### Version 1.1.2 — Package Maintenance
+
+- Updated the VPM package and repository metadata for the 1.1.2 release.
+- Preserved Unity message methods, VRC SDK callback types, package metadata, and VPM index fields for compatibility.
+
+### Version 1.1.1 — MissingScriptSearch Add Row and Foldout Defaults
+
+- MissingScriptSearch target input now uses an Add-style ObjectField row instead of a large drag-and-drop box.
+- GameObject / Prefab scan targets can still be added by dragging onto the Add row or selecting an object.
+- File Select keeps the Avatar / World / Prop foldout headers visible, but the groups start collapsed instead of always expanded.
+
+### Version 1.1.0 — DLL Package and v1.1.0 UI Cleanup
+
+- UI names were organized around `AvatarRecovery`, `View Assets Info`, and `Run`.
+- File Select now opens Avatar / World / Prop groups by default.
+- `View Assets Info` can show scene-only `.vrcw` bundle information even when no GameObject preview is available.
+- Preview camera distance is clamped to avoid unusably close views.
+- `Shader Error Fix` wording replaces the old pink-material wording.
+- The Shader Lists viewer no longer shows a dedicated `MaterialShaderMap.txt` tab.
+- The old diagnostics tab and automatic diagnostics path were removed.
+- A `Logs` tab exports the latest batch result as TXT, Markdown, or CSV.
+- First-use consent was added. Choosing not to agree disables the tool UI but does not delete files.
+- MissingScriptSearch drag-and-drop now adds targets instead of replacing the previous target.
+- The package license changed to AvatarRecovery Custom License for v1.1.0 and later.
+
 ### Version 1.0.11 — Removed the File Select Add Row
 
 This update keeps the 1.0.10 file grouping UI and removes the low-visibility `Add` object field row.

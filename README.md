@@ -25,7 +25,7 @@ https://nickel-jp.github.io/avatar-recovery-unity/index.json
 ```
 
 After adding the repository, install `Avatar Recovery` from the VCC package list.
-VCC can choose any version listed in this repository, including older published versions.
+VCC can choose versions listed in this repository. The public index is currently limited to the active supported release.
 
 ## Technical Specifications
 
@@ -42,30 +42,22 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Version 1.1.2 — Package Maintenance
+### Version 1.1.6 — EditorWindow Serialization Stability
 
-- Updated the VPM package and repository metadata for the 1.1.2 release.
-- Preserved Unity message methods, VRC SDK callback types, package metadata, and VPM index fields for compatibility.
+- Fixed Unity EditorWindow serialized field-name collisions after release processing.
+- Added a build-time check that fails if EditorWindow fields collapse to duplicate names during release processing.
+- Updated the VPM index so the active public package line points to 1.1.6.
 
-### Version 1.1.1 — MissingScriptSearch Add Row and Foldout Defaults
+### Version 1.1.5 — Signed Release Artifacts
 
-- MissingScriptSearch target input now uses an Add-style ObjectField row instead of a large drag-and-drop box.
-- GameObject / Prefab scan targets can still be added by dragging onto the Add row or selecting an object.
-- File Select keeps the Avatar / World / Prop foldout headers visible, but the groups start collapsed instead of always expanded.
+- Added self-signed Authenticode signing for the distributed Editor DLL.
+- Added SHA-256 checksum output for the package ZIP and DLL.
+- Added detached signatures for the package ZIP, checksum file, and VPM index.
 
-### Version 1.1.0 — DLL Package and v1.1.0 UI Cleanup
+### Version 1.1.4 — Tool License Display
 
-- UI names were organized around `AvatarRecovery`, `View Assets Info`, and `Run`.
-- File Select now opens Avatar / World / Prop groups by default.
-- `View Assets Info` can show scene-only `.vrcw` bundle information even when no GameObject preview is available.
-- Preview camera distance is clamped to avoid unusably close views.
-- `Shader Error Fix` wording replaces the old pink-material wording.
-- The Shader Lists viewer no longer shows a dedicated `MaterialShaderMap.txt` tab.
-- The old diagnostics tab and automatic diagnostics path were removed.
-- A `Logs` tab exports the latest batch result as TXT, Markdown, or CSV.
-- First-use consent was added. Choosing not to agree disables the tool UI but does not delete files.
-- MissingScriptSearch drag-and-drop now adds targets instead of replacing the previous target.
-- The package license changed to AvatarRecovery Custom License for v1.1.0 and later.
+- Added the full AvatarRecovery license text to the tool-side License view.
+- Kept third-party license notices visible in the Unity Editor UI.
 
 Older release notes are available in [UPDATE_HISTORY.md](UPDATE_HISTORY.md).
 

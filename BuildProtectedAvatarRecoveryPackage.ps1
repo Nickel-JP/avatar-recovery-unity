@@ -1132,6 +1132,27 @@ function Ensure-MonoCecilLoaded {
     }
 }
 
+function Get-CecilTypeDefinitions {
+    param([Parameter(Mandatory = $true)][object]$Assembly)
+
+    $allTypes = New-Object System.Collections.Generic.List[object]
+
+    function Add-CecilTypeDefinition {
+        param([Parameter(Mandatory = $true)][object]$TypeDefinition)
+
+        [void]$allTypes.Add($TypeDefinition)
+        foreach ($nestedType in $TypeDefinition.NestedTypes) {
+            Add-CecilTypeDefinition -TypeDefinition $nestedType
+        }
+    }
+
+    foreach ($type in $Assembly.MainModule.Types) {
+        Add-CecilTypeDefinition -TypeDefinition $type
+    }
+
+    return @($allTypes.ToArray())
+}
+
 function Repair-SystemPrivateCoreLibReference {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -1196,6 +1217,52 @@ function Test-ForbiddenAssemblyReferences {
     }
 }
 
+function Test-UnityEditorWindowFieldNameCollisions {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][object]$Scan
+    )
+
+    Ensure-MonoCecilLoaded
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    try {
+        $typeMap = @{}
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            $normalizedName = $type.FullName -replace '/', '+'
+            if (-not $typeMap.ContainsKey($normalizedName)) {
+                $typeMap[$normalizedName] = $type
+            }
+        }
+
+        $problems = New-Object System.Collections.Generic.List[string]
+        foreach ($typeName in @($Scan.EditorWindowTypes | Sort-Object -Unique)) {
+            if (-not $typeMap.ContainsKey($typeName)) {
+                [void]$problems.Add("${typeName}: protected DLL に型が見つかりません。")
+                continue
+            }
+
+            $type = $typeMap[$typeName]
+            $duplicateFields = @($type.Fields |
+                Where-Object { -not [string]::IsNullOrWhiteSpace($_.Name) } |
+                Group-Object -Property Name |
+                Where-Object { $_.Count -gt 1 } |
+                Sort-Object Name)
+
+            foreach ($fieldGroup in $duplicateFields) {
+                [void]$problems.Add("${typeName}: field '$($fieldGroup.Name)' が $($fieldGroup.Count) 回定義されています。")
+            }
+        }
+
+        if ($problems.Count -gt 0) {
+            $details = ($problems | Select-Object -First 40) -join [Environment]::NewLine
+            throw "Unity EditorWindow のフィールド名が保護後 DLL で重複しています。Unity シリアライズ警告や Domain Reload 復元破損を避けるため、EditorWindow 型のフィールド名を rename 除外してください。$([Environment]::NewLine)$details"
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+}
+
 function New-ObfuscarConfig {
     param(
         [Parameter(Mandatory = $true)][string]$InputDll,
@@ -1235,7 +1302,7 @@ function New-ObfuscarConfig {
     }
 
     foreach ($typeName in $Scan.EditorWindowTypes) {
-        [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $typeName)"" />")
+        [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $typeName)"" skipMethods=""true"" skipProperties=""true"" skipFields=""true"" skipEvents=""true"" />")
     }
 
     foreach ($typeName in $Scan.VrcSdkCallbackTypes) {
@@ -1556,6 +1623,7 @@ function Write-ProtectionBuildReport {
             "PublicApiAllowlist",
             "Obfuscar",
             "CoreLibReferenceRepair",
+            "UnityEditorWindowFieldCollisionCheck",
             "LeakCheck",
             "AuthenticodeSign",
             "SignatureVerify",
@@ -1753,6 +1821,7 @@ if (-not (Test-Path $obfuscatedDll)) {
 $repairedCoreLibReferences = Repair-SystemPrivateCoreLibReference -Path $obfuscatedDll
 Write-Host "System.Private.CoreLib references repaired after Obfuscar: $repairedCoreLibReferences"
 Test-ForbiddenAssemblyReferences -Path $obfuscatedDll
+Test-UnityEditorWindowFieldNameCollisions -Path $obfuscatedDll -Scan $scan
 $patchedAfterObfuscar = Clear-SourceDocumentPaths -Path $obfuscatedDll
 Write-Host "Source document paths sanitized after Obfuscar: $patchedAfterObfuscar"
 $patchedDebugSymbolsAfterObfuscar = Clear-DebugSymbolPaths -Path $obfuscatedDll
@@ -1777,8 +1846,9 @@ $packagedDll = Join-Path $ProjectPackageRoot "Editor\$AssemblyFileName"
 Copy-Item -LiteralPath $obfuscatedDll -Destination $packagedDll -Force
 Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Test-ForbiddenAssemblyReferences -Path $packagedDll
+Test-UnityEditorWindowFieldNameCollisions -Path $packagedDll -Scan $scan
 
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") -ProjectRoot $ProjectRoot -BaseUrl $BaseUrl
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") -ProjectRoot $ProjectRoot -BaseUrl $BaseUrl -MinimumPublishedVersion $Version
 if ($LASTEXITCODE -ne 0) {
     throw "VPM repository build failed."
 }

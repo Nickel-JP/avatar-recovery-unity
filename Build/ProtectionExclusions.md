@@ -44,9 +44,10 @@ The following non-entry types were changed from public to internal because they 
 
 - Unity magic methods are skipped globally: `OnGUI`, `OnEnable`, `OnDisable`, `OnDestroy`, `OnFocus`, `OnLostFocus`, `OnHierarchyChange`, `OnProjectChange`, `OnSelectionChange`, `OnInspectorUpdate`, `CreateGUI`, `Update`, `Awake`, `OnValidate`, `Reset`.
 - Methods with Unity attributes are skipped because Unity resolves them by attribute and often by method metadata.
-- EditorWindow types are skipped as whole types for the first protected release to avoid empty or unresponsive windows.
+- EditorWindow types are skipped as whole types, including methods, properties, fields, and events, for the first protected release to avoid empty or unresponsive windows and Unity serialized field-name collisions after Domain Reload.
 - VRC SDK callback classes are skipped as whole types, including members, because VRC SDK discovers callback implementers through TypeCache.
 - Enum fields are skipped so stored/displayed enum names remain stable when `ToString()` or inspector names are used.
+- Protected DLL builds fail if an EditorWindow type contains duplicate field names after obfuscation. This guards `AvatarRecoveryWindow`, `ShaderListViewerWindow`, and `ViewAssetsInfoWindow` against Unity's `The same field name is serialized multiple times` warning.
 
 ## Reflection And Serialization Contracts
 
