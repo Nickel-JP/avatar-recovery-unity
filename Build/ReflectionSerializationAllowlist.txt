@@ -15,7 +15,7 @@ Core\AnimationClipBindingRestorer.cs|Reflection|typeof\s*\(|*
 # Operation log auto-export setting is persisted through existing EditorPrefs keys.
 Core\AvatarRecoveryLogManager.cs|EditorPrefs|EditorPrefs|*
 
-# Recovery history persists successful restore entries through EditorPrefs JSON.
+# Recovery history stores project-local JSON and migrates legacy EditorPrefs JSON.
 Core\RecoveryHistoryStore.cs|EditorPrefs|EditorPrefs|*
 Core\RecoveryHistoryStore.cs|Reflection|JsonUtility|*
 

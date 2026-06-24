@@ -4,6 +4,14 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Recent Older Releases
 
+### Version 1.1.16 — Restore History Foldout
+
+- Added a `復元履歴` / `Recovery History` foldout below the Avatar / World / Prop file groups in the File Select tab.
+- Successful restores are recorded with the restored name, original file extension, output location, file size, and restore time.
+- Added sorting by restore order, file size, and extension order `.vrca` / `.vrcw` / `.vrcp`.
+- Recovery history rows display labels such as `RestoredName [.vrca]` and jump to the restored asset or output folder when clicked.
+- Updated the VPM index so the active public package line points to 1.1.16.
+
 ### Version 1.1.15 — Unity Startup Verification Fix
 
 - Fixed a Unity startup failure where the packaged Editor DLL could throw `System.Security.VerificationException` with `Invalid instruction target ffffffb7`.

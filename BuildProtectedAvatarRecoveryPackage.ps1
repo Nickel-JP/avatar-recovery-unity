@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.1.18",
-    [string]$PreviousVersion = "1.1.17",
+    [string]$Version = "1.1.19",
+    [string]$PreviousVersion = "1.1.18",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
