@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.1.14",
-    [string]$PreviousVersion = "1.1.13",
+    [string]$Version = "1.1.15",
+    [string]$PreviousVersion = "1.1.14",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -1781,17 +1781,13 @@ function Repair-SystemPrivateCoreLibReference {
             $changed = $true
         }
 
-        if ($changed) {
-            $assembly.Write((ConvertTo-FullPath $tempPath))
-        }
+        $assembly.Write((ConvertTo-FullPath $tempPath))
     }
     finally {
         $assembly.Dispose()
     }
 
-    if ($changed) {
-        Move-Item -LiteralPath $tempPath -Destination $Path -Force
-    }
+    Move-Item -LiteralPath $tempPath -Destination $Path -Force
 
     return $privateCoreLibReferenceCount
 }
@@ -3403,6 +3399,7 @@ function Write-ProtectionBuildReport {
         GeneratedAt = (Get-Date).ToString("o")
         Pipeline = @(
             "UnityCompile",
+            "PreObfuscarCoreLibRepair",
             "PublicApiAllowlist",
             "RuntimeIntegrityGuardInjection",
             "AntiDebugInjection",
@@ -3608,6 +3605,10 @@ $patchedCount = Clear-SourceDocumentPaths -Path $protectedInputDll
 Write-Host "Source document paths sanitized before Obfuscar: $patchedCount"
 $patchedDebugSymbols = Clear-DebugSymbolPaths -Path $protectedInputDll
 Write-Host "Debug symbol paths sanitized before Obfuscar: $patchedDebugSymbols"
+$repairToolProject = Join-Path $RepoRoot "Build\RepairCoreLibReference\RepairCoreLibReference.csproj"
+$repairOutput = & dotnet run --project $repairToolProject -- (ConvertTo-FullPath $protectedInputDll) 2>&1
+if ($LASTEXITCODE -ne 0) { throw "RepairCoreLibReference failed: $repairOutput" }
+Write-Host "System.Private.CoreLib repair (pre-Obfuscar): $repairOutput"
 Test-BinaryLeak -Path $protectedInputDll
 
 $assemblySearchPaths = Get-AssemblySearchPaths -UnityProjectRoot $CompileProjectRoot
@@ -3642,6 +3643,9 @@ $antiDecompileReport = Invoke-CecilAntiDecompile `
 $antiDecompileReportPath = Join-Path $PrivateBackupRoot "anti-decompile-$Version.json"
 $antiDecompileReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $antiDecompileReportPath -Encoding UTF8
 Copy-Item -LiteralPath $antiDecompileReportPath -Destination $LocalPrivateBackupRoot -Force
+$repairOutput2 = & dotnet run --project $repairToolProject -- (ConvertTo-FullPath $protectedInputDll) 2>&1
+if ($LASTEXITCODE -ne 0) { throw "RepairCoreLibReference failed (post-Cecil): $repairOutput2" }
+Write-Host "System.Private.CoreLib repair (post-Cecil): $repairOutput2"
 Test-BinaryLeak -Path $protectedInputDll
 
 $configPath = Join-Path $PrivateBackupRoot "obfuscar-$Version.xml"
@@ -3677,8 +3681,9 @@ $hideStringsImpactReportPath = Join-Path $PrivateBackupRoot "hide-strings-impact
 $hideStringsImpactReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $hideStringsImpactReportPath -Encoding UTF8
 Copy-Item -LiteralPath $hideStringsImpactReportPath -Destination $LocalPrivateBackupRoot -Force
 
-$repairedCoreLibReferences = Repair-SystemPrivateCoreLibReference -Path $obfuscatedDll
-Write-Host "System.Private.CoreLib references repaired after Obfuscar: $repairedCoreLibReferences"
+$repairOutputPostObfuscar = & dotnet run --project $repairToolProject -- (ConvertTo-FullPath $obfuscatedDll) 2>&1
+if ($LASTEXITCODE -ne 0) { throw "RepairCoreLibReference failed (post-Obfuscar): $repairOutputPostObfuscar" }
+Write-Host "System.Private.CoreLib repair (post-Obfuscar): $repairOutputPostObfuscar"
 $branchSanitizationReport = Invoke-CecilBranchSanitization -Path $obfuscatedDll
 Write-Host "Post-pipeline branch sanitization: expanded=$($branchSanitizationReport.ExpandedShortBranchCount) methods=$($branchSanitizationReport.SanitizedMethodCount)"
 Test-ForbiddenAssemblyReferences -Path $obfuscatedDll

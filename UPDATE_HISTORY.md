@@ -4,6 +4,14 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Recent Older Releases
 
+### Version 1.1.12 — Face_Emo AnimationClip Name Sanitization
+
+- Added `AnimationClipNameSanitizer` so Face_Emo can safely create assets from recovered clips.
+- Replaces `/`, `\`, Windows-invalid filename characters, and control characters in `AnimationClip.name`.
+- Shortens overly long clip names with a stable hash suffix.
+- Runs after animation binding restoration and before `Face_Anima` sorting.
+- Verified the sanitizer against existing output with `ClipCount=746`, `Renamed=705`, and `UnsafeAfter=0`.
+
 ### Version 1.1.11 — Expression Animation Binding Restore
 
 - Added `AnimationClipBindingRestorer`.

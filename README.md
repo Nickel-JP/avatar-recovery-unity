@@ -29,21 +29,21 @@ VCC can choose versions listed in this repository. The public index is currently
 
 ## Public Verification
 
-The current protected package is `com.nickel-jp.avatar-recovery-1.1.14.zip`.
+The current protected package is `com.nickel-jp.avatar-recovery-1.1.15.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. ZIP のハッシュ検証
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.1.14.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.1.15.zip -Algorithm SHA256).Hash
 
-# checksums/com.nickel-jp.avatar-recovery-1.1.14.sha256.txt の
-# packages/com.nickel-jp.avatar-recovery-1.1.14.zip 行と一致すること
+# checksums/com.nickel-jp.avatar-recovery-1.1.15.sha256.txt の
+# packages/com.nickel-jp.avatar-recovery-1.1.15.zip 行と一致すること
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.1.14.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.1.15.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -71,6 +71,12 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
+### Version 1.1.15 — Unity Startup Verification Fix
+
+- Fixed a Unity startup failure where the packaged Editor DLL could throw `System.Security.VerificationException` with `Invalid instruction target ffffffb7`.
+- Added a final IL branch validation step to the protected package build so invalid branch targets fail the build instead of reaching Unity.
+- Updated the VPM index so the active public package line points to 1.1.15.
+
 ### Version 1.1.14 — Script Report Output and Release Verification
 
 - Added `_ScriptReport/Scripts.md` output for restored assets.
@@ -85,14 +91,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Added `AvatarRecovery > AvatarRecovery説明書` to the Unity menu.
 - Added a scrollable Unity EditorWindow titled `AvatarRecovery の使い方`.
 - Rendered the maintainer help document in a Unity Editor-friendly layout with styled headings and readable body text.
-
-### Version 1.1.12 — Face_Emo AnimationClip Name Sanitization
-
-- Added `AnimationClipNameSanitizer` so Face_Emo can safely create assets from recovered clips.
-- Replaces `/`, `\`, Windows-invalid filename characters, and control characters in `AnimationClip.name`.
-- Shortens overly long clip names with a stable hash suffix.
-- Runs after animation binding restoration and before `Face_Anima` sorting.
-- Verified the sanitizer against existing output with `ClipCount=746`, `Renamed=705`, and `UnsafeAfter=0`.
 
 Older release notes are available in [UPDATE_HISTORY.md](UPDATE_HISTORY.md).
 

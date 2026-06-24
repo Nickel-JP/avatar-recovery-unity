@@ -18,7 +18,7 @@ on:
       - .github/workflows/verify-build.yml
 
 env:
-  VERSION: 1.1.14
+  VERSION: 1.1.15
 
 jobs:
   verify:
