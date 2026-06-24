@@ -9,6 +9,9 @@ Core\AssetRipperBridge.cs|Reflection|\.GetType\s*\(|*
 Core\AssetRipperBridge.cs|Reflection|FindProperty\s*\(|*
 Core\AssetRipperBridge.cs|Serialization|SerializedContract|*
 
+# AssetRipper-exported AnimationClip bindings are restored through Unity type checks and Animator.StringToHash.
+Core\AnimationClipBindingRestorer.cs|Reflection|typeof\s*\(|*
+
 # Operation log auto-export setting is persisted through existing EditorPrefs keys.
 Core\AvatarRecoveryLogManager.cs|EditorPrefs|EditorPrefs|*
 
