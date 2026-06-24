@@ -4,6 +4,12 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Recent Older Releases
 
+### Version 1.1.15 — Unity Startup Verification Fix
+
+- Fixed a Unity startup failure where the packaged Editor DLL could throw `System.Security.VerificationException` with `Invalid instruction target ffffffb7`.
+- Added a final IL branch validation step to the protected package build so invalid branch targets fail the build instead of reaching Unity.
+- Updated the VPM index so the active public package line points to 1.1.15.
+
 ### Version 1.1.14 — Script Report Output and Release Verification
 
 - Added `_ScriptReport/Scripts.md` output for restored assets.

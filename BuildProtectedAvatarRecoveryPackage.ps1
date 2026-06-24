@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.1.17",
-    [string]$PreviousVersion = "1.1.16",
+    [string]$Version = "1.1.18",
+    [string]$PreviousVersion = "1.1.17",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -1749,6 +1749,96 @@ function Get-CecilTypeDefinitions {
     return @($allTypes.ToArray())
 }
 
+function Test-CecilAttribute {
+    param(
+        [Parameter(Mandatory = $true)][object]$Provider,
+        [Parameter(Mandatory = $true)][string]$AttributeFullName
+    )
+
+    foreach ($attribute in $Provider.CustomAttributes) {
+        if ($attribute.AttributeType.FullName -eq $AttributeFullName) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Test-CecilTypeIsUnitySerializedContract {
+    param([Parameter(Mandatory = $true)][object]$Type)
+
+    if ($Type.FullName -eq "<Module>" -or $Type.IsEnum -or $Type.IsInterface) {
+        return $false
+    }
+
+    if (Test-CecilAttribute -Provider $Type -AttributeFullName "System.Runtime.CompilerServices.CompilerGeneratedAttribute") {
+        return $false
+    }
+
+    if (-not $Type.IsSerializable -and
+        -not (Test-CecilAttribute -Provider $Type -AttributeFullName "System.SerializableAttribute")) {
+        return $false
+    }
+
+    $instanceFields = @($Type.Fields |
+        Where-Object { -not $_.IsStatic -and -not [string]::IsNullOrWhiteSpace($_.Name) })
+
+    return $instanceFields.Count -gt 0
+}
+
+function Get-UnitySerializedFieldContractTypes {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    Ensure-MonoCecilLoaded
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    try {
+        $contractTypes = New-Object System.Collections.Generic.List[string]
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            if (Test-CecilTypeIsUnitySerializedContract -Type $type) {
+                [void]$contractTypes.Add($type.FullName)
+            }
+        }
+
+        return @($contractTypes | Sort-Object -Unique)
+    }
+    finally {
+        $assembly.Dispose()
+    }
+}
+
+function Test-UnitySerializedFieldNameCollisions {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    Ensure-MonoCecilLoaded
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    try {
+        $problems = New-Object System.Collections.Generic.List[string]
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            if (-not (Test-CecilTypeIsUnitySerializedContract -Type $type)) {
+                continue
+            }
+
+            $duplicateFields = @($type.Fields |
+                Where-Object { -not $_.IsStatic -and -not [string]::IsNullOrWhiteSpace($_.Name) } |
+                Group-Object -Property Name |
+                Where-Object { $_.Count -gt 1 } |
+                Sort-Object Name)
+
+            foreach ($fieldGroup in $duplicateFields) {
+                [void]$problems.Add("$($type.FullName): field '$($fieldGroup.Name)' が $($fieldGroup.Count) 回定義されています。")
+            }
+        }
+
+        if ($problems.Count -gt 0) {
+            $details = ($problems | Select-Object -First 40) -join [Environment]::NewLine
+            throw "Unity JsonUtility/Serializable 型のフィールド名が保護後 DLL で重複しています。Unity シリアライズエラーを避けるため、Serializable DTO のフィールド名を rename 除外してください。$([Environment]::NewLine)$details"
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+}
+
 function Repair-SystemPrivateCoreLibReference {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -2897,7 +2987,9 @@ function New-ObfuscarConfig {
         [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $typeName)"" skipFields=""true"" />")
     }
 
-    [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $RuntimeIntegritySignatureTypeName)"" skipFields=""true"" />")
+    foreach ($typeName in Get-UnitySerializedFieldContractTypes -Path $InputDll) {
+        [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $typeName)"" skipFields=""true"" />")
+    }
 
     if (-not $DisableCecilStringEncryption) {
         [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $StringDecryptorTypeName)"" skipMethods=""true"" skipProperties=""true"" skipFields=""true"" skipEvents=""true"" />")
@@ -3411,6 +3503,7 @@ function Write-ProtectionBuildReport {
             "CoreLibReferenceRepair",
             "BranchSanitization",
             "UnityEditorWindowFieldCollisionCheck",
+            "UnitySerializedFieldCollisionCheck",
             "LeakCheck",
             "AuthenticodeSign",
             "SignatureVerify",
@@ -3688,6 +3781,7 @@ $branchSanitizationReport = Invoke-CecilBranchSanitization -Path $obfuscatedDll
 Write-Host "Post-pipeline branch sanitization: expanded=$($branchSanitizationReport.ExpandedShortBranchCount) methods=$($branchSanitizationReport.SanitizedMethodCount)"
 Test-ForbiddenAssemblyReferences -Path $obfuscatedDll
 Test-UnityEditorWindowFieldNameCollisions -Path $obfuscatedDll -Scan $scan
+Test-UnitySerializedFieldNameCollisions -Path $obfuscatedDll
 $patchedAfterObfuscar = Clear-SourceDocumentPaths -Path $obfuscatedDll
 Write-Host "Source document paths sanitized after Obfuscar: $patchedAfterObfuscar"
 $patchedDebugSymbolsAfterObfuscar = Clear-DebugSymbolPaths -Path $obfuscatedDll
@@ -3729,6 +3823,7 @@ elseif (Test-Path -LiteralPath $packagedRuntimeIntegritySidecar) {
 Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Test-ForbiddenAssemblyReferences -Path $packagedDll
 Test-UnityEditorWindowFieldNameCollisions -Path $packagedDll -Scan $scan
+Test-UnitySerializedFieldNameCollisions -Path $packagedDll
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") -ProjectRoot $ProjectRoot -BaseUrl $BaseUrl -MinimumPublishedVersion $Version
 if ($LASTEXITCODE -ne 0) {
