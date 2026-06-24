@@ -2018,6 +2018,7 @@ function Inject-RuntimeIntegrityGuardCalls {
                     [Mono.Cecil.Cil.Instruction]::Create(
                         [Mono.Cecil.Cil.OpCodes]::Call,
                         $guardReference))
+                [void](Expand-CecilShortBranches -Method $method)
                 $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 1)
                 [void]$injected.Add($methodKey)
                 $changed = $true
@@ -2123,6 +2124,7 @@ function Inject-AntiDebugChecks {
                 $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Throw))
                 $processor.InsertBefore($first, $skipLabel)
 
+                [void](Expand-CecilShortBranches -Method $method)
                 $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 2)
                 [void]$injected.Add($methodKey)
                 $changed = $true
@@ -2278,6 +2280,7 @@ function Invoke-CecilControlFlowObfuscation {
                 $processor.InsertBefore($first, $deadLabel1)
                 $processor.InsertBefore($first, $deadLabel2)
 
+                [void](Expand-CecilShortBranches -Method $method)
                 $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 3)
                 [void]$obfuscated.Add([PSCustomObject]@{
                     Method = $methodKey
@@ -2764,6 +2767,86 @@ function Invoke-CecilAntiDecompile {
         AdjustedMethodCount = $adjustedMethodCount
         ProcessedTypes = @($processed.ToArray())
         Skipped = @($skipped.ToArray())
+    }
+}
+
+function Invoke-CecilBranchSanitization {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path
+    )
+
+    Ensure-MonoCecilLoaded
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $tempPath = "$Path.branch-sanitize.tmp"
+    $totalExpanded = 0
+    $sanitizedMethodCount = 0
+    $invalidTargets = New-Object System.Collections.Generic.List[string]
+
+    try {
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            $typeName = $type.FullName -replace '/', '+'
+            foreach ($method in $type.Methods) {
+                if (-not $method.HasBody -or $method.Body.Instructions.Count -eq 0) {
+                    continue
+                }
+
+                $expanded = Expand-CecilShortBranches -Method $method
+                if ($expanded -gt 0) {
+                    $totalExpanded += $expanded
+                    $sanitizedMethodCount++
+                }
+
+                $instructionOffsets = [System.Collections.Generic.HashSet[int]]::new()
+                foreach ($instr in $method.Body.Instructions) {
+                    [void]$instructionOffsets.Add($instr.Offset)
+                }
+
+                foreach ($instr in $method.Body.Instructions) {
+                    $flow = $instr.OpCode.FlowControl
+                    if ($flow -ne [Mono.Cecil.Cil.FlowControl]::Branch -and
+                        $flow -ne [Mono.Cecil.Cil.FlowControl]::Cond_Branch) {
+                        continue
+                    }
+
+                    if ($instr.OpCode.Code -eq [Mono.Cecil.Cil.Code]::Switch) {
+                        $targets = $instr.Operand
+                        for ($i = 0; $i -lt $targets.Length; $i++) {
+                            if (-not $instructionOffsets.Contains($targets[$i].Offset)) {
+                                [void]$invalidTargets.Add("$typeName|$($method.Name) IL_$($instr.Offset.ToString('x4')) switch[$i] -> IL_$($targets[$i].Offset.ToString('x4'))")
+                            }
+                        }
+                    }
+                    else {
+                        $target = $instr.Operand
+                        if ($null -eq $target -or -not $instructionOffsets.Contains($target.Offset)) {
+                            $targetOffset = if ($null -ne $target) { "IL_$($target.Offset.ToString('x4'))" } else { "null" }
+                            [void]$invalidTargets.Add("$typeName|$($method.Name) IL_$($instr.Offset.ToString('x4')) $($instr.OpCode.Name) -> $targetOffset")
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($invalidTargets.Count -gt 0) {
+            throw "IL branch target validation failed ($($invalidTargets.Count) invalid targets):`n$($invalidTargets -join "`n")"
+        }
+
+        if ($totalExpanded -gt 0) {
+            $assembly.Write((ConvertTo-FullPath $tempPath))
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($totalExpanded -gt 0) {
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    }
+
+    return [PSCustomObject]@{
+        ExpandedShortBranchCount = $totalExpanded
+        SanitizedMethodCount = $sanitizedMethodCount
+        InvalidTargetCount = $invalidTargets.Count
     }
 }
 
@@ -3295,6 +3378,7 @@ function Write-ProtectionBuildReport {
         [Parameter(Mandatory = $true)][object]$StringEncryptionReport,
         [Parameter(Mandatory = $true)][object]$HideStringsImpactReport,
         [Parameter(Mandatory = $true)][object]$AntiDecompileReport,
+        [Parameter(Mandatory = $true)][object]$BranchSanitizationReport,
         [Parameter(Mandatory = $true)][object]$RuntimeIntegritySidecarReport,
         [Parameter(Mandatory = $true)][object]$ControlFlowObfuscationReport,
         [Parameter(Mandatory = $true)][string]$InputDll,
@@ -3328,6 +3412,7 @@ function Write-ProtectionBuildReport {
             "CecilStringEncryption",
             "HideStringsImpactScan",
             "CoreLibReferenceRepair",
+            "BranchSanitization",
             "UnityEditorWindowFieldCollisionCheck",
             "LeakCheck",
             "AuthenticodeSign",
@@ -3358,6 +3443,7 @@ function Write-ProtectionBuildReport {
         StringEncryption = $StringEncryptionReport
         HideStringsImpact = $HideStringsImpactReport
         AntiDecompile = $AntiDecompileReport
+        BranchSanitization = $BranchSanitizationReport
         Metrics = [PSCustomObject]@{
             InputDllSize = (Get-Item -LiteralPath $InputDll).Length
             ObfuscatedDllSize = (Get-Item -LiteralPath $ObfuscatedDll).Length
@@ -3593,6 +3679,8 @@ Copy-Item -LiteralPath $hideStringsImpactReportPath -Destination $LocalPrivateBa
 
 $repairedCoreLibReferences = Repair-SystemPrivateCoreLibReference -Path $obfuscatedDll
 Write-Host "System.Private.CoreLib references repaired after Obfuscar: $repairedCoreLibReferences"
+$branchSanitizationReport = Invoke-CecilBranchSanitization -Path $obfuscatedDll
+Write-Host "Post-pipeline branch sanitization: expanded=$($branchSanitizationReport.ExpandedShortBranchCount) methods=$($branchSanitizationReport.SanitizedMethodCount)"
 Test-ForbiddenAssemblyReferences -Path $obfuscatedDll
 Test-UnityEditorWindowFieldNameCollisions -Path $obfuscatedDll -Scan $scan
 $patchedAfterObfuscar = Clear-SourceDocumentPaths -Path $obfuscatedDll
@@ -3668,6 +3756,7 @@ Write-ProtectionBuildReport `
     -StringEncryptionReport $stringEncryptionReport `
     -HideStringsImpactReport $hideStringsImpactReport `
     -AntiDecompileReport $antiDecompileReport `
+    -BranchSanitizationReport $branchSanitizationReport `
     -RuntimeIntegritySidecarReport $runtimeIntegritySidecarReport `
     -ControlFlowObfuscationReport $controlFlowObfuscationReport `
     -InputDll $protectedInputDll `
