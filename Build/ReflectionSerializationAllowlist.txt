@@ -22,6 +22,11 @@ Core\AvatarRecoveryValidators.cs|Serialization|SerializedContract|*
 Core\ComponentDependencyResolver.cs|Reflection|TypeCache\.|*
 Core\ComponentDependencyResolver.cs|Reflection|typeof\s*\(|*
 
+# Face animation classification inspects Unity/VRC expression-like ScriptableObject references without direct VRC SDK type references.
+Core\FaceAnimationClipOrganizer.cs|Reflection|\.GetType\s*\(|*
+Core\FaceAnimationClipOrganizer.cs|Reflection|typeof\s*\(|*
+Core\FaceAnimationClipOrganizer.cs|Serialization|SerializedContract|*
+
 # VRCAvatarDescriptor animation layer fields are Unity/VRC serialized property paths.
 Core\GestureLayerMaskFixer.cs|Reflection|\.GetType\s*\(|*
 Core\GestureLayerMaskFixer.cs|Reflection|FindProperty\s*\(|*
