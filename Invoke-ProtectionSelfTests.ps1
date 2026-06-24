@@ -425,6 +425,7 @@ $dllPath = Get-PackagedDllPath
 if ($SkipPrivateProtectionReports) {
     [void]$results.Add((Assert-Skipped "K Cecil string encryption report covers allowlist" "Private protection reports are not available in CI checkout."))
     [void]$results.Add((Assert-Skipped "L HideStrings disabled impact scan is managed" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "M runtime integrity JSON fields are preserved" "Private protection reports are not available in CI checkout."))
 }
 else {
     [void]$results.Add((Assert-Passes "K Cecil string encryption report covers allowlist" {
@@ -454,6 +455,9 @@ else {
         if ([int]$report.InlineByteArrayThreshold -le 0) {
             throw "Cecil string encryption inline threshold is not recorded"
         }
+        if ([int]$report.InlineByteArrayStringCount -gt 0 -and [int]$report.ExpandedShortBranchCount -le 0) {
+            throw "Cecil string encryption did not expand short branches after inline byte-array rewriting"
+        }
 
         foreach ($entry in $allowlist) {
             if ($encryptedOriginalMethods -notcontains $entry) {
@@ -480,6 +484,27 @@ else {
         }
         if ([int]$report.EncryptedBlobLiteralCount -lt [int]$report.EncodedBlobStringCount) {
             throw "HideStrings impact report lost encrypted blob literals"
+        }
+    }))
+
+    [void]$results.Add((Assert-Passes "M runtime integrity JSON fields are preserved" {
+        $mappingPath = Get-PrivateProtectionReportPath -FileName "Mapping.txt"
+        $mappingText = Get-Content -LiteralPath $mappingPath -Raw
+        $jsonFields = @(
+            "format",
+            "algorithm",
+            "target",
+            "targetSha256",
+            "signerThumbprint",
+            "signerCertificateBase64",
+            "signatureBase64"
+        )
+
+        foreach ($fieldName in $jsonFields) {
+            $pattern = "AvatarRecoveryIntegrityGuard/RuntimeIntegritySignature::$([regex]::Escape($fieldName)).* -> "
+            if ($mappingText -match $pattern) {
+                throw "Runtime integrity JSON field was renamed: $fieldName"
+            }
         }
     }))
 }

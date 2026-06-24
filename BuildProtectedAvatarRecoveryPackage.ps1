@@ -70,6 +70,7 @@ $StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
 $SelfSignedCertificateSubject = "CN=Nickel-JP AvatarRecovery Self-Signed Code Signing"
 $RuntimeIntegrityGuardTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryIntegrityGuard"
 $RuntimeIntegrityGuardMethodName = "EnsureTrustedForRuntimeFeature"
+$RuntimeIntegritySignatureTypeName = "$RuntimeIntegrityGuardTypeName/RuntimeIntegritySignature"
 $RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
 $StringDecryptorTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryStringDecryptor"
 $StringDecryptorMethodName = "D"
@@ -171,6 +172,37 @@ function Write-TextUtf8NoBom {
     $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
     $normalizedValue = $Value -replace "`r`n", "`n" -replace "`r", "`n"
     [System.IO.File]::WriteAllText($Path, $normalizedValue, $utf8NoBom)
+}
+
+function Read-StringEncryptionKeyBytesFromSource {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "String decryptor source was not found: $Path"
+    }
+
+    $source = Get-Content -LiteralPath $Path -Raw
+    $match = [regex]::Match($source, '_key\s*=\s*new\s+byte\[\]\s*\{\s*(?<Bytes>[^}]*)\s*\}')
+    if (-not $match.Success) {
+        throw "String decryptor key literal was not found: $Path"
+    }
+
+    $tokens = @([regex]::Matches($match.Groups["Bytes"].Value, '0x[0-9A-Fa-f]{2}|\d+') | ForEach-Object { $_.Value })
+    if ($tokens.Count -le 0) {
+        throw "String decryptor key literal was empty: $Path"
+    }
+
+    $keyBytes = [byte[]]::new($tokens.Count)
+    for ($i = 0; $i -lt $tokens.Count; $i++) {
+        $token = $tokens[$i]
+        $keyBytes[$i] = if ($token.StartsWith("0x", [StringComparison]::OrdinalIgnoreCase)) {
+            [Convert]::ToByte($token.Substring(2), 16)
+        } else {
+            [Convert]::ToByte($token, 10)
+        }
+    }
+
+    return $keyBytes
 }
 
 function Install-ObfuscarIfNeeded {
@@ -1083,6 +1115,23 @@ function Ensure-StringDecryptorSource {
             SourcePath = ConvertTo-FullPath $sourcePath
             KeyLength = 0
             Reason = "DisabledBySwitch"
+        }
+    }
+
+    if ($SkipUnityCompile) {
+        $compiledSourcePath = Join-Path $CompileProjectRoot "Packages\$PackageId\Editor\Utils\AvatarRecoveryStringDecryptor.cs"
+        if (-not (Test-Path -LiteralPath $compiledSourcePath)) {
+            throw "SkipUnityCompile with Cecil string encryption requires an existing compiled string decryptor source. Rebuild without -SkipUnityCompile or use -DisableCecilStringEncryption."
+        }
+
+        $keyBytes = Read-StringEncryptionKeyBytesFromSource -Path $compiledSourcePath
+        $script:StringEncryptionKeyBytes = $keyBytes
+        Copy-Item -LiteralPath $compiledSourcePath -Destination $sourcePath -Force
+        return [PSCustomObject]@{
+            Enabled = $true
+            SourcePath = ConvertTo-FullPath $sourcePath
+            KeyLength = $keyBytes.Length
+            KeySource = "ExistingCompileProject"
         }
     }
 
@@ -2322,6 +2371,79 @@ function Get-ObfuscarMappedStringEncryptionTargets {
     return @($targets.ToArray())
 }
 
+function Expand-CecilShortBranches {
+    param(
+        [Parameter(Mandatory = $true)][object]$Method
+    )
+
+    if ($null -eq $Method.Body -or $Method.Body.Instructions.Count -le 0) {
+        return 0
+    }
+
+    $expanded = 0
+    foreach ($instruction in $Method.Body.Instructions) {
+        $code = $instruction.OpCode.Code
+        if ($code -eq [Mono.Cecil.Cil.Code]::Br_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Br
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Brfalse_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Brfalse
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Brtrue_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Brtrue
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Beq_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Beq
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Bge_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Bge
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Bge_Un_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Bge_Un
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Bgt_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Bgt
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Bgt_Un_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Bgt_Un
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Ble_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Ble
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Ble_Un_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Ble_Un
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Blt_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Blt
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Blt_Un_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Blt_Un
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Bne_Un_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Bne_Un
+            $expanded++
+        }
+        elseif ($code -eq [Mono.Cecil.Cil.Code]::Leave_S) {
+            $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Leave
+            $expanded++
+        }
+    }
+
+    return $expanded
+}
+
 function Invoke-CecilStringEncryption {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -2393,6 +2515,7 @@ function Invoke-CecilStringEncryption {
         $byteTypeReference = $module.TypeSystem.Byte
         $inlineByteArrayStringCount = 0
         $encodedBlobStringCount = 0
+        $expandedShortBranchCount = 0
 
         foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
             $typeName = $type.FullName -replace '/', '+'
@@ -2509,6 +2632,8 @@ function Invoke-CecilStringEncryption {
                 }
 
                 if ($encryptedStringCount -gt 0) {
+                    $methodExpandedShortBranchCount = Expand-CecilShortBranches -Method $method
+                    $expandedShortBranchCount += $methodExpandedShortBranchCount
                     $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 4)
                     [void]$encryptedMethods.Add([PSCustomObject]@{
                         Method = $methodKey
@@ -2516,6 +2641,7 @@ function Invoke-CecilStringEncryption {
                         EncryptedStringCount = $encryptedStringCount
                         InlineByteArrayStringCount = $methodInlineByteArrayStringCount
                         EncodedBlobStringCount = $methodEncodedBlobStringCount
+                        ExpandedShortBranchCount = $methodExpandedShortBranchCount
                     })
                     $changed = $true
                 }
@@ -2548,6 +2674,7 @@ function Invoke-CecilStringEncryption {
         InlineByteArrayThreshold = $StringEncryptionInlineByteArrayThreshold
         InlineByteArrayStringCount = $inlineByteArrayStringCount
         EncodedBlobStringCount = $encodedBlobStringCount
+        ExpandedShortBranchCount = $expandedShortBranchCount
         EncryptedBlobPrefix = $StringEncryptionBlobPrefix
         Source = $SourceReport
         EncryptedMethods = @($encryptedMethods.ToArray())
@@ -2690,6 +2817,8 @@ function New-ObfuscarConfig {
     foreach ($typeName in $Scan.EnumTypes) {
         [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $typeName)"" skipFields=""true"" />")
     }
+
+    [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $RuntimeIntegritySignatureTypeName)"" skipFields=""true"" />")
 
     if (-not $DisableCecilStringEncryption) {
         [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $StringDecryptorTypeName)"" skipMethods=""true"" skipProperties=""true"" skipFields=""true"" skipEvents=""true"" />")
