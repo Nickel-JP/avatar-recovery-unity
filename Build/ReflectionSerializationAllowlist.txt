@@ -59,6 +59,7 @@ Core\VrcaExtractor.cs|Serialization|SerializedContract|*
 # Main window menu entries and persisted UI/settings state are intentional Unity/EditorPrefs contracts.
 UI\AvatarRecoveryWindow.cs|AttributeContract|MenuItem|*
 UI\AvatarRecoveryWindow.cs|EditorPrefs|EditorPrefs|*
+UI\AvatarRecoveryHelpWindow.cs|AttributeContract|MenuItem|*
 
 # Localization language selection persists through EditorPrefs.
 UI\Localization.cs|EditorPrefs|EditorPrefs|*

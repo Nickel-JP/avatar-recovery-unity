@@ -1,6 +1,7 @@
 # AvatarRecovery 1.1.5 public API allowlist
 # EditorWindow entry points: Unity can open these by type/name and Obfuscar must preserve them.
 EditorTools.AvatarRecovery.AvatarRecoveryWindow
+EditorTools.AvatarRecovery.AvatarRecoveryHelpWindow
 EditorTools.AvatarRecovery.ShaderListViewerWindow
 EditorTools.AvatarRecovery.ViewAssetsInfoWindow
 
