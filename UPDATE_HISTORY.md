@@ -2,6 +2,53 @@
 
 The latest three release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## 2026-06-24 Releases
+
+### Version 1.1.14 — Script Report Output and Release Verification
+
+- Added `_ScriptReport/Scripts.md` output for restored assets.
+- The script report lists source file information, blueprint / Unity version summaries, detected script names, stub GUIDs, original `.cs.meta` relative paths, resolved MonoScript GUIDs, referring asset paths, fixed reference counts, and unresolved script entries.
+- Clarified that the script report identifies script references and metadata; it does not restore C# source code.
+- Added public verification steps for ZIP SHA-256 hashes and DLL Authenticode signer thumbprints.
+- Added lightweight GitHub Actions checks for PowerShell syntax, package self-tests, and published GitHub Pages artifacts.
+- Kept package ZIP, checksum, signature, and VPM index consistency checks aligned with the public release.
+
+### Version 1.1.13 — AvatarRecovery Help Window
+
+- Added `AvatarRecovery > AvatarRecovery説明書` to the Unity menu.
+- Added a scrollable Unity EditorWindow titled `AvatarRecovery の使い方`.
+- Rendered the maintainer help document in a Unity Editor-friendly layout with styled headings and readable body text.
+
+### Version 1.1.12 — Face_Emo AnimationClip Name Sanitization
+
+- Added `AnimationClipNameSanitizer` so Face_Emo can safely create assets from recovered clips.
+- Replaces `/`, `\`, Windows-invalid filename characters, and control characters in `AnimationClip.name`.
+- Shortens overly long clip names with a stable hash suffix.
+- Runs after animation binding restoration and before `Face_Anima` sorting.
+- Verified the sanitizer against existing output with `ClipCount=746`, `Renamed=705`, and `UnsafeAfter=0`.
+
+### Version 1.1.11 — Expression Animation Binding Restore
+
+- Added `AnimationClipBindingRestorer`.
+- Restores hashed Transform paths such as `path_0x...` to real prefab-relative paths where they can be resolved.
+- Restores `blendShape.<uint>` property names to real SkinnedMeshRenderer blendShape names where they can be resolved.
+- Runs before `Face_Anima` sorting so expression tools see the repaired bindings.
+
+### Version 1.1.10 — Face_Anima Automatic Sorting
+
+- Added automatic sorting for expression-like AnimationClips into `Face_Anima`.
+- Uses expression signals such as `blink`, `eye`, `mouth`, `viseme`, `vrc.v_`, and common Japanese expression terms.
+- Requires at least two expression signals before moving a clip, reducing false positives.
+- Keeps ambiguous clips in `Animations`.
+- Moves assets through Unity's `AssetDatabase` instead of manually moving files or `.meta` files.
+
+### Version 1.1.9 — AAO / Avatar Optimizer Safety
+
+- Added automatic detection for avatars that appear to use AAO / Avatar Optimizer.
+- Skips PoseResetter automatically when AAO / Avatar Optimizer usage is detected.
+- Added a manual file-menu checkbox to force PoseResetter skip when automatic detection is not enough.
+- Preserved the existing `.vrca` recovery flow when AAO / Avatar Optimizer is not detected.
+
 ## Older Releases
 
 ### Version 1.1.5 — Signed Release Artifacts
