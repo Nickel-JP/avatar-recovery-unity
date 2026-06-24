@@ -2,30 +2,7 @@
 
 The latest three release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
-## 2026-06-24 Releases
-
-### Version 1.1.14 — Script Report Output and Release Verification
-
-- Added `_ScriptReport/Scripts.md` output for restored assets.
-- The script report lists source file information, blueprint / Unity version summaries, detected script names, stub GUIDs, original `.cs.meta` relative paths, resolved MonoScript GUIDs, referring asset paths, fixed reference counts, and unresolved script entries.
-- Clarified that the script report identifies script references and metadata; it does not restore C# source code.
-- Added public verification steps for ZIP SHA-256 hashes and DLL Authenticode signer thumbprints.
-- Added lightweight GitHub Actions checks for PowerShell syntax, package self-tests, and published GitHub Pages artifacts.
-- Kept package ZIP, checksum, signature, and VPM index consistency checks aligned with the public release.
-
-### Version 1.1.13 — AvatarRecovery Help Window
-
-- Added `AvatarRecovery > AvatarRecovery説明書` to the Unity menu.
-- Added a scrollable Unity EditorWindow titled `AvatarRecovery の使い方`.
-- Rendered the maintainer help document in a Unity Editor-friendly layout with styled headings and readable body text.
-
-### Version 1.1.12 — Face_Emo AnimationClip Name Sanitization
-
-- Added `AnimationClipNameSanitizer` so Face_Emo can safely create assets from recovered clips.
-- Replaces `/`, `\`, Windows-invalid filename characters, and control characters in `AnimationClip.name`.
-- Shortens overly long clip names with a stable hash suffix.
-- Runs after animation binding restoration and before `Face_Anima` sorting.
-- Verified the sanitizer against existing output with `ClipCount=746`, `Renamed=705`, and `UnsafeAfter=0`.
+## Recent Older Releases
 
 ### Version 1.1.11 — Expression Animation Binding Restore
 
@@ -48,6 +25,23 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 - Skips PoseResetter automatically when AAO / Avatar Optimizer usage is detected.
 - Added a manual file-menu checkbox to force PoseResetter skip when automatic detection is not enough.
 - Preserved the existing `.vrca` recovery flow when AAO / Avatar Optimizer is not detected.
+
+### Version 1.1.8 — File Preview Button Label
+
+- Changed the per-file preview button label from Japanese `情報表示` / English `View Info` to `File Preview`.
+- Updated the VPM index so the active public package line points to 1.1.8.
+
+### Version 1.1.7 — Scene AssetBundle Info View Stability
+
+- Fixed `View Assets Info` so scene-only `.vrcw` AssetBundles do not call Unity's GameObject asset loading path.
+- Scene-only bundles now show scene paths and asset names without logging `This method cannot be used on a streamed scene AssetBundle`.
+- Updated the VPM index so the active public package line points to 1.1.7.
+
+### Version 1.1.6 — EditorWindow Serialization Stability
+
+- Fixed Unity EditorWindow serialized field-name collisions after release processing.
+- Added a build-time check that fails if EditorWindow fields collapse to duplicate names during release processing.
+- Updated the VPM index so the active public package line points to 1.1.6.
 
 ## Older Releases
 

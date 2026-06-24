@@ -71,22 +71,28 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Version 1.1.8 — File Preview Button Label
+### Version 1.1.14 — Script Report Output and Release Verification
 
-- Changed the per-file preview button label from Japanese `情報表示` / English `View Info` to `File Preview`.
-- Updated the VPM index so the active public package line points to 1.1.8.
+- Added `_ScriptReport/Scripts.md` output for restored assets.
+- The script report lists source file information, blueprint / Unity version summaries, detected script names, stub GUIDs, original `.cs.meta` relative paths, resolved MonoScript GUIDs, referring asset paths, fixed reference counts, and unresolved script entries.
+- Clarified that the script report identifies script references and metadata; it does not restore C# source code.
+- Added public verification steps for ZIP SHA-256 hashes and DLL Authenticode signer thumbprints.
+- Added lightweight GitHub Actions checks for PowerShell syntax, package self-tests, and published GitHub Pages artifacts.
+- Updated the VPM index so the active public package line points to 1.1.14.
 
-### Version 1.1.7 — Scene AssetBundle Info View Stability
+### Version 1.1.13 — AvatarRecovery Help Window
 
-- Fixed `View Assets Info` so scene-only `.vrcw` AssetBundles do not call Unity's GameObject asset loading path.
-- Scene-only bundles now show scene paths and asset names without logging `This method cannot be used on a streamed scene AssetBundle`.
-- Updated the VPM index so the active public package line points to 1.1.7.
+- Added `AvatarRecovery > AvatarRecovery説明書` to the Unity menu.
+- Added a scrollable Unity EditorWindow titled `AvatarRecovery の使い方`.
+- Rendered the maintainer help document in a Unity Editor-friendly layout with styled headings and readable body text.
 
-### Version 1.1.6 — EditorWindow Serialization Stability
+### Version 1.1.12 — Face_Emo AnimationClip Name Sanitization
 
-- Fixed Unity EditorWindow serialized field-name collisions after release processing.
-- Added a build-time check that fails if EditorWindow fields collapse to duplicate names during release processing.
-- Updated the VPM index so the active public package line points to 1.1.6.
+- Added `AnimationClipNameSanitizer` so Face_Emo can safely create assets from recovered clips.
+- Replaces `/`, `\`, Windows-invalid filename characters, and control characters in `AnimationClip.name`.
+- Shortens overly long clip names with a stable hash suffix.
+- Runs after animation binding restoration and before `Face_Anima` sorting.
+- Verified the sanitizer against existing output with `ClipCount=746`, `Renamed=705`, and `UnsafeAfter=0`.
 
 Older release notes are available in [UPDATE_HISTORY.md](UPDATE_HISTORY.md).
 
