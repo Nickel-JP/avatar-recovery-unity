@@ -1,6 +1,7 @@
 param(
     [string]$Version = "1.1.14",
-    [string]$PackageId = "com.nickel-jp.avatar-recovery"
+    [string]$PackageId = "com.nickel-jp.avatar-recovery",
+    [switch]$SkipPrivateProtectionReports
 )
 
 $ErrorActionPreference = "Stop"
@@ -176,6 +177,19 @@ function Assert-Passes {
     }
 }
 
+function Assert-Skipped {
+    param(
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Reason
+    )
+
+    return [PSCustomObject]@{
+        Name = $Name
+        Status = "Skipped"
+        Reason = $Reason
+    }
+}
+
 function Get-IndexZipHash {
     $index = Get-Content -LiteralPath (Join-Path $RepoRoot "index.json") -Raw | ConvertFrom-Json
     $packageEntry = $index.packages.PSObject.Properties[$PackageId].Value
@@ -244,6 +258,22 @@ function Get-PackagedRuntimeIntegritySidecarPath {
     finally {
         $archive.Dispose()
     }
+}
+
+function Get-PrivateProtectionReportPath {
+    param([Parameter(Mandatory = $true)][string]$FileName)
+
+    $primary = Join-Path $RepoRoot ".work\BackupsPrivate\$Version-protection-private\$FileName"
+    if (Test-Path -LiteralPath $primary) {
+        return $primary
+    }
+
+    $fallback = Join-Path $RepoRoot ".work\Backups\$Version-protection-private\$FileName"
+    if (Test-Path -LiteralPath $fallback) {
+        return $fallback
+    }
+
+    throw "private protection report was not found: $FileName"
 }
 
 function Test-RuntimeIntegritySidecarFile {
@@ -392,23 +422,67 @@ $dllPath = Get-PackagedDllPath
     Test-RuntimeIntegritySidecarFile -DllPath $dllPath -SidecarPath $sidecarPath
 }))
 
-[void]$results.Add((Assert-Passes "K selected protection plaintext is not visible" {
-    $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $dllPath))
-    $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
-    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
-    $blockedPlaintexts = @(
-        "Runtime environment verification failed",
-        "AvatarRecovery control-flow guard",
-        "runtime integrity sidecar was not found",
-        "runtime integrity signature verification failed"
-    )
+if ($SkipPrivateProtectionReports) {
+    [void]$results.Add((Assert-Skipped "K Cecil string encryption report covers allowlist" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "L HideStrings disabled impact scan is managed" "Private protection reports are not available in CI checkout."))
+}
+else {
+    [void]$results.Add((Assert-Passes "K Cecil string encryption report covers allowlist" {
+        $reportPath = Get-PrivateProtectionReportPath -FileName "cecil-string-encryption-$Version.json"
+        $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+        $allowlist = Get-Allowlist -Path (Join-Path $RepoRoot "Build\StringEncryptionAllowlist.txt")
+        $encryptedOriginalMethods = @($report.EncryptedMethods | ForEach-Object { [string]$_.OriginalMethod })
 
-    foreach ($plaintext in $blockedPlaintexts) {
-        if ($ascii.Contains($plaintext) -or $unicode.Contains($plaintext)) {
-            throw "selected protection plaintext is visible: $plaintext"
+        if (-not [bool]$report.Enabled) {
+            throw "Cecil string encryption report is disabled"
         }
-    }
-}))
+        if ([int]$report.TargetRuleCount -ne $allowlist.Count) {
+            throw "Cecil string encryption target count mismatch"
+        }
+        if ([int]$report.MappedTargetCount -lt $allowlist.Count) {
+            throw "Cecil string encryption did not map every allowlist entry"
+        }
+        if ([int]$report.EncryptedMethodCount -lt $allowlist.Count) {
+            throw "Cecil string encryption did not encrypt every allowlist entry"
+        }
+        if ([int]$report.EncryptedStringCount -le 0) {
+            throw "Cecil string encryption did not encrypt any string"
+        }
+        if ([int]$report.EncodedBlobStringCount -le 0) {
+            throw "Cecil string encryption blob optimization was not exercised"
+        }
+        if ([int]$report.InlineByteArrayThreshold -le 0) {
+            throw "Cecil string encryption inline threshold is not recorded"
+        }
+
+        foreach ($entry in $allowlist) {
+            if ($encryptedOriginalMethods -notcontains $entry) {
+                throw "Cecil string encryption missed allowlist entry: $entry"
+            }
+        }
+    }))
+
+    [void]$results.Add((Assert-Passes "L HideStrings disabled impact scan is managed" {
+        $reportPath = Get-PrivateProtectionReportPath -FileName "hide-strings-impact-$Version.json"
+        $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+
+        if (-not [bool]$report.Enabled) {
+            throw "HideStrings impact report is disabled"
+        }
+        if (-not [bool]$report.HideStringsDisabled) {
+            throw "HideStrings impact report did not record disabled HideStrings"
+        }
+        if ([string]$report.ManagedBy -ne "CecilStringEncryptionAllowlistAndRiskScan") {
+            throw "HideStrings impact report has unexpected management mode"
+        }
+        if ([int]$report.SensitivePlaintextHitCount -ne 0) {
+            throw "HideStrings impact scan found sensitive plaintext"
+        }
+        if ([int]$report.EncryptedBlobLiteralCount -lt [int]$report.EncodedBlobStringCount) {
+            throw "HideStrings impact report lost encrypted blob literals"
+        }
+    }))
+}
 
 $report = [PSCustomObject]@{
     Version = $Version

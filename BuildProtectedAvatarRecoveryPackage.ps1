@@ -73,6 +73,8 @@ $RuntimeIntegrityGuardMethodName = "EnsureTrustedForRuntimeFeature"
 $RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
 $StringDecryptorTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryStringDecryptor"
 $StringDecryptorMethodName = "D"
+$StringEncryptionInlineByteArrayThreshold = 32
+$StringEncryptionBlobPrefix = "ARX1:"
 $UnityMagicMethods = @(
     "OnGUI",
     "OnEnable",
@@ -1096,13 +1098,30 @@ function Ensure-StringDecryptorSource {
     $keyLiteral = ($keyBytes | ForEach-Object { "0x{0:X2}" -f $_ }) -join ", "
 
     $source = @"
+using System;
 using System.Text;
 
 namespace EditorTools.AvatarRecovery
 {
     internal static class AvatarRecoveryStringDecryptor
     {
+        private const string BlobPrefix = "$StringEncryptionBlobPrefix";
         private static readonly byte[] _key = new byte[] { $keyLiteral };
+
+        internal static string D(string encryptedBlob)
+        {
+            if (string.IsNullOrEmpty(encryptedBlob))
+            {
+                return string.Empty;
+            }
+
+            if (!encryptedBlob.StartsWith(BlobPrefix, StringComparison.Ordinal))
+            {
+                return string.Empty;
+            }
+
+            return D(Convert.FromBase64String(encryptedBlob.Substring(BlobPrefix.Length)));
+        }
 
         internal static string D(byte[] encrypted)
         {
@@ -2347,15 +2366,33 @@ function Invoke-CecilStringEncryption {
             throw "String decryptor type was not found in compiled DLL: $StringDecryptorTypeName"
         }
 
-        $decryptorMethod = $decryptorType.Methods |
-            Where-Object { $_.Name -eq $StringDecryptorMethodName -and $_.Parameters.Count -eq 1 } |
+        $decryptorByteArrayMethod = $decryptorType.Methods |
+            Where-Object {
+                $_.Name -eq $StringDecryptorMethodName -and
+                $_.Parameters.Count -eq 1 -and
+                $_.Parameters[0].ParameterType.FullName -eq "System.Byte[]"
+            } |
             Select-Object -First 1
-        if ($null -eq $decryptorMethod) {
-            throw "String decryptor method was not found: $StringDecryptorTypeName.$StringDecryptorMethodName"
+        if ($null -eq $decryptorByteArrayMethod) {
+            throw "String decryptor byte-array method was not found: $StringDecryptorTypeName.$StringDecryptorMethodName"
         }
 
-        $decryptorReference = $module.ImportReference($decryptorMethod)
+        $decryptorBlobMethod = $decryptorType.Methods |
+            Where-Object {
+                $_.Name -eq $StringDecryptorMethodName -and
+                $_.Parameters.Count -eq 1 -and
+                $_.Parameters[0].ParameterType.FullName -eq "System.String"
+            } |
+            Select-Object -First 1
+        if ($null -eq $decryptorBlobMethod) {
+            throw "String decryptor blob method was not found: $StringDecryptorTypeName.$StringDecryptorMethodName"
+        }
+
+        $decryptorByteArrayReference = $module.ImportReference($decryptorByteArrayMethod)
+        $decryptorBlobReference = $module.ImportReference($decryptorBlobMethod)
         $byteTypeReference = $module.TypeSystem.Byte
+        $inlineByteArrayStringCount = 0
+        $encodedBlobStringCount = 0
 
         foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
             $typeName = $type.FullName -replace '/', '+'
@@ -2398,7 +2435,8 @@ function Invoke-CecilStringEncryption {
                 foreach ($instruction in $method.Body.Instructions) {
                     if ($instruction.OpCode.Code -eq [Mono.Cecil.Cil.Code]::Call -and
                         $null -ne $instruction.Operand -and
-                        $instruction.Operand.FullName -eq $decryptorReference.FullName) {
+                        ($instruction.Operand.FullName -eq $decryptorByteArrayReference.FullName -or
+                            $instruction.Operand.FullName -eq $decryptorBlobReference.FullName)) {
                         $alreadyEncrypted = $true
                         break
                     }
@@ -2429,6 +2467,8 @@ function Invoke-CecilStringEncryption {
 
                 $processor = $method.Body.GetILProcessor()
                 $encryptedStringCount = 0
+                $methodInlineByteArrayStringCount = 0
+                $methodEncodedBlobStringCount = 0
                 foreach ($instruction in $ldstrInstructions) {
                     $plainText = [string]$instruction.Operand
                     $encryptedBytes = ConvertTo-EncryptedStringBytes -Value $plainText -Key $script:StringEncryptionKeyBytes
@@ -2436,18 +2476,29 @@ function Invoke-CecilStringEncryption {
                         continue
                     }
 
-                    $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Ldc_I4
-                    $instruction.Operand = [int]$encryptedBytes.Length
                     $cursor = $instruction
                     $tail = New-Object System.Collections.Generic.List[object]
-                    [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Newarr, $byteTypeReference))
-                    for ($i = 0; $i -lt $encryptedBytes.Length; $i++) {
-                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Dup))
-                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4, [int]$i))
-                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4, [int]$encryptedBytes[$i]))
-                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Stelem_I1))
+                    if ($encryptedBytes.Length -gt $StringEncryptionInlineByteArrayThreshold) {
+                        $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Ldstr
+                        $instruction.Operand = "$StringEncryptionBlobPrefix$([Convert]::ToBase64String($encryptedBytes))"
+                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $decryptorBlobReference))
+                        $encodedBlobStringCount++
+                        $methodEncodedBlobStringCount++
                     }
-                    [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $decryptorReference))
+                    else {
+                        $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Ldc_I4
+                        $instruction.Operand = [int]$encryptedBytes.Length
+                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Newarr, $byteTypeReference))
+                        for ($i = 0; $i -lt $encryptedBytes.Length; $i++) {
+                            [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Dup))
+                            [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4, [int]$i))
+                            [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4, [int]$encryptedBytes[$i]))
+                            [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Stelem_I1))
+                        }
+                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $decryptorByteArrayReference))
+                        $inlineByteArrayStringCount++
+                        $methodInlineByteArrayStringCount++
+                    }
 
                     foreach ($newInstruction in $tail) {
                         $processor.InsertAfter($cursor, $newInstruction)
@@ -2463,6 +2514,8 @@ function Invoke-CecilStringEncryption {
                         Method = $methodKey
                         OriginalMethod = $matchedOriginal
                         EncryptedStringCount = $encryptedStringCount
+                        InlineByteArrayStringCount = $methodInlineByteArrayStringCount
+                        EncodedBlobStringCount = $methodEncodedBlobStringCount
                     })
                     $changed = $true
                 }
@@ -2492,6 +2545,10 @@ function Invoke-CecilStringEncryption {
         MappedTargetCount = $mappedTargets.Count
         EncryptedMethodCount = $encryptedMethods.Count
         EncryptedStringCount = $totalCount
+        InlineByteArrayThreshold = $StringEncryptionInlineByteArrayThreshold
+        InlineByteArrayStringCount = $inlineByteArrayStringCount
+        EncodedBlobStringCount = $encodedBlobStringCount
+        EncryptedBlobPrefix = $StringEncryptionBlobPrefix
         Source = $SourceReport
         EncryptedMethods = @($encryptedMethods.ToArray())
         Skipped = @($skipped.ToArray())
@@ -2745,6 +2802,136 @@ function Test-StringHidingProbeAbsent {
     }
 }
 
+function ConvertTo-LiteralPreview {
+    param([Parameter(Mandatory = $true)][string]$Value)
+
+    $normalized = $Value.Replace("`r", "\r").Replace("`n", "\n").Replace("`t", "\t")
+    if ($normalized.Length -le 120) {
+        return $normalized
+    }
+
+    return $normalized.Substring(0, 120) + "..."
+}
+
+function Get-HideStringsImpactReport {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][object]$StringEncryptionReport
+    )
+
+    Ensure-MonoCecilLoaded
+
+    $sensitivePlaintexts = @(
+        $StringHidingProbe,
+        "runtime integrity sidecar was not found",
+        "runtime integrity signature verification failed",
+        "AVATAR_RECOVERY_CODE_SIGNING_PASSWORD",
+        "SIGNPATH_API_TOKEN",
+        "System.Private.CoreLib"
+    )
+    $sensitiveRegexRules = @(
+        [PSCustomObject]@{ Name = "PrivateKey"; Pattern = '-----BEGIN [A-Z ]*PRIVATE KEY-----' },
+        [PSCustomObject]@{ Name = "WindowsRepoPath"; Pattern = '(?i)[A-Z]:\\Users\\[^\\]+\\avatar-recovery-unity' },
+        [PSCustomObject]@{ Name = "PackageSourcePath"; Pattern = '\\Packages\\com\.nickel-jp\.avatar-recovery\\Editor\\' },
+        [PSCustomObject]@{ Name = "CredentialMarker"; Pattern = '(?i)(Password=|ApiKey=|Secret=|Token=)' }
+    )
+
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $uniqueLiterals = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $samples = New-Object System.Collections.Generic.List[object]
+    $sensitiveHits = New-Object System.Collections.Generic.List[object]
+    $literalCount = 0
+    $encryptedBlobLiteralCount = 0
+    $longPlaintextLiteralCount = 0
+
+    try {
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            $typeName = $type.FullName -replace '/', '+'
+            foreach ($method in $type.Methods) {
+                if (-not $method.HasBody) {
+                    continue
+                }
+
+                $methodKey = "$typeName|$($method.Name)"
+                foreach ($instruction in $method.Body.Instructions) {
+                    if ($instruction.OpCode.Code -ne [Mono.Cecil.Cil.Code]::Ldstr -or $null -eq $instruction.Operand) {
+                        continue
+                    }
+
+                    $literal = [string]$instruction.Operand
+                    if ([string]::IsNullOrEmpty($literal)) {
+                        continue
+                    }
+
+                    $literalCount++
+                    [void]$uniqueLiterals.Add($literal)
+                    $isEncryptedBlob = $literal.StartsWith($StringEncryptionBlobPrefix, [StringComparison]::Ordinal)
+                    if ($isEncryptedBlob) {
+                        $encryptedBlobLiteralCount++
+                        continue
+                    }
+
+                    if ($literal.Length -ge 80) {
+                        $longPlaintextLiteralCount++
+                    }
+                    if ($samples.Count -lt 25) {
+                        [void]$samples.Add([PSCustomObject]@{
+                            Method = $methodKey
+                            Length = $literal.Length
+                            Preview = ConvertTo-LiteralPreview -Value $literal
+                        })
+                    }
+
+                    foreach ($sensitivePlaintext in $sensitivePlaintexts) {
+                        if ($literal.Contains($sensitivePlaintext)) {
+                            [void]$sensitiveHits.Add([PSCustomObject]@{
+                                Rule = "Literal:$sensitivePlaintext"
+                                Method = $methodKey
+                                Length = $literal.Length
+                                Preview = ConvertTo-LiteralPreview -Value $literal
+                            })
+                        }
+                    }
+
+                    foreach ($rule in $sensitiveRegexRules) {
+                        if ([regex]::IsMatch($literal, $rule.Pattern)) {
+                            [void]$sensitiveHits.Add([PSCustomObject]@{
+                                Rule = $rule.Name
+                                Method = $methodKey
+                                Length = $literal.Length
+                                Preview = ConvertTo-LiteralPreview -Value $literal
+                            })
+                        }
+                    }
+                }
+            }
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($sensitiveHits.Count -gt 0) {
+        throw "HideStrings disabled impact scan found sensitive plaintext: $($sensitiveHits[0].Rule) in $($sensitiveHits[0].Method)"
+    }
+
+    return [PSCustomObject]@{
+        Enabled = $true
+        HideStringsDisabled = (-not [bool]$DisableCecilStringEncryption)
+        ManagedBy = if ($DisableCecilStringEncryption) { "ObfuscarHideStrings" } else { "CecilStringEncryptionAllowlistAndRiskScan" }
+        StringProtectionProvider = if ($DisableCecilStringEncryption) { "ObfuscarHideStrings" } else { "CecilStringEncryption" }
+        LdstrLiteralCount = $literalCount
+        UniqueLdstrLiteralCount = $uniqueLiterals.Count
+        EncryptedBlobLiteralCount = $encryptedBlobLiteralCount
+        PlaintextLiteralCount = ($literalCount - $encryptedBlobLiteralCount)
+        LongPlaintextLiteralCount = $longPlaintextLiteralCount
+        SensitivePlaintextHitCount = $sensitiveHits.Count
+        InlineByteArrayStringCount = if ($StringEncryptionReport.PSObject.Properties["InlineByteArrayStringCount"]) { [int]$StringEncryptionReport.InlineByteArrayStringCount } else { 0 }
+        EncodedBlobStringCount = if ($StringEncryptionReport.PSObject.Properties["EncodedBlobStringCount"]) { [int]$StringEncryptionReport.EncodedBlobStringCount } else { 0 }
+        Samples = @($samples.ToArray())
+    }
+}
+
 function ConvertTo-SafeDocumentName {
     param(
         [Parameter(Mandatory = $true)][string]$Original,
@@ -2977,6 +3164,7 @@ function Write-ProtectionBuildReport {
         [Parameter(Mandatory = $true)][object]$RuntimeIntegrityInjectionReport,
         [Parameter(Mandatory = $true)][object]$AntiDebugReport,
         [Parameter(Mandatory = $true)][object]$StringEncryptionReport,
+        [Parameter(Mandatory = $true)][object]$HideStringsImpactReport,
         [Parameter(Mandatory = $true)][object]$AntiDecompileReport,
         [Parameter(Mandatory = $true)][object]$RuntimeIntegritySidecarReport,
         [Parameter(Mandatory = $true)][object]$ControlFlowObfuscationReport,
@@ -3009,6 +3197,7 @@ function Write-ProtectionBuildReport {
             "AntiDecompileMetadata",
             "Obfuscar",
             "CecilStringEncryption",
+            "HideStringsImpactScan",
             "CoreLibReferenceRepair",
             "UnityEditorWindowFieldCollisionCheck",
             "LeakCheck",
@@ -3027,6 +3216,7 @@ function Write-ProtectionBuildReport {
             HidePrivateApi = $true
             HideStrings = [bool]$DisableCecilStringEncryption
             StringProtectionProvider = if ($DisableCecilStringEncryption) { "ObfuscarHideStrings" } else { "CecilStringEncryption" }
+            HideStringsImpactManagedBy = $HideStringsImpactReport.ManagedBy
             RenameProperties = $false
             RenameEvents = $false
             UseUnicodeNames = $false
@@ -3037,6 +3227,7 @@ function Write-ProtectionBuildReport {
         ControlFlowObfuscation = $ControlFlowObfuscationReport
         AntiDebug = $AntiDebugReport
         StringEncryption = $StringEncryptionReport
+        HideStringsImpact = $HideStringsImpactReport
         AntiDecompile = $AntiDecompileReport
         Metrics = [PSCustomObject]@{
             InputDllSize = (Get-Item -LiteralPath $InputDll).Length
@@ -3078,6 +3269,7 @@ function Write-ProtectionBuildReport {
         }
         LeakChecks = [PSCustomObject]@{
             StringHidingProbePlaintextAbsent = $true
+            HideStringsImpactSensitivePlaintextScan = "Passed"
             PfxOrP12PublicFileScan = "Passed"
             PrivateKeyPublicFileScan = "Passed"
             CodeSigningPasswordPublicFileScan = "Passed"
@@ -3263,6 +3455,13 @@ $stringEncryptionReportPath = Join-Path $PrivateBackupRoot "cecil-string-encrypt
 $stringEncryptionReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $stringEncryptionReportPath -Encoding UTF8
 Copy-Item -LiteralPath $stringEncryptionReportPath -Destination $LocalPrivateBackupRoot -Force
 
+$hideStringsImpactReport = Get-HideStringsImpactReport `
+    -Path $obfuscatedDll `
+    -StringEncryptionReport $stringEncryptionReport
+$hideStringsImpactReportPath = Join-Path $PrivateBackupRoot "hide-strings-impact-$Version.json"
+$hideStringsImpactReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $hideStringsImpactReportPath -Encoding UTF8
+Copy-Item -LiteralPath $hideStringsImpactReportPath -Destination $LocalPrivateBackupRoot -Force
+
 $repairedCoreLibReferences = Repair-SystemPrivateCoreLibReference -Path $obfuscatedDll
 Write-Host "System.Private.CoreLib references repaired after Obfuscar: $repairedCoreLibReferences"
 Test-ForbiddenAssemblyReferences -Path $obfuscatedDll
@@ -3338,6 +3537,7 @@ Write-ProtectionBuildReport `
     -RuntimeIntegrityInjectionReport $runtimeIntegrityInjectionReport `
     -AntiDebugReport $antiDebugReport `
     -StringEncryptionReport $stringEncryptionReport `
+    -HideStringsImpactReport $hideStringsImpactReport `
     -AntiDecompileReport $antiDecompileReport `
     -RuntimeIntegritySidecarReport $runtimeIntegritySidecarReport `
     -ControlFlowObfuscationReport $controlFlowObfuscationReport `

@@ -1,0 +1,70 @@
+name: Verify build and published artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - Build/**
+      - BuildProtectedAvatarRecoveryPackage.ps1
+      - Invoke-ProtectionSelfTests.ps1
+      - Invoke-PublishedReleaseAudit.ps1
+      - README.md
+      - index.json
+      - packages/**
+      - checksums/**
+      - certificates/**
+      - .github/workflows/verify-build.yml
+
+env:
+  VERSION: 1.1.14
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: PowerShell syntax check
+        shell: pwsh
+        run: |
+          $scripts = @(
+            ".\BuildProtectedAvatarRecoveryPackage.ps1",
+            ".\Invoke-ProtectionSelfTests.ps1",
+            ".\Invoke-PublishedReleaseAudit.ps1"
+          )
+
+          foreach ($script in $scripts) {
+            $tokens = $null
+            $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $script), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors -and $errors.Count -gt 0) {
+              $errors | Format-List * | Out-String | Write-Error
+              exit 1
+            }
+          }
+
+      - name: Protection self tests
+        shell: powershell
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Invoke-ProtectionSelfTests.ps1 `
+            -Version $env:VERSION `
+            -SkipPrivateProtectionReports
+
+      - name: Install ILSpy command line
+        shell: pwsh
+        run: |
+          dotnet tool install --global ilspycmd --version 8.2.0.7535
+          "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Audit published GitHub Pages artifacts
+        shell: powershell
+        env:
+          DOTNET_ROLL_FORWARD: Major
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File .\Invoke-PublishedReleaseAudit.ps1 `
+            -Version $env:VERSION `
+            -RetryCount 24 `
+            -RetryDelaySeconds 10

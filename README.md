@@ -27,6 +27,35 @@ https://nickel-jp.github.io/avatar-recovery-unity/index.json
 After adding the repository, install `Avatar Recovery` from the VCC package list.
 VCC can choose versions listed in this repository. The public index is currently limited to the active supported release.
 
+## Public Verification
+
+The current protected package is `com.nickel-jp.avatar-recovery-1.1.14.zip`.
+After downloading the ZIP, verify the published hash before importing it:
+
+```powershell
+# 1. ZIP のハッシュ検証
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.1.14.zip -Algorithm SHA256).Hash
+
+# checksums/com.nickel-jp.avatar-recovery-1.1.14.sha256.txt の
+# packages/com.nickel-jp.avatar-recovery-1.1.14.zip 行と一致すること
+```
+
+To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
+
+```powershell
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.1.14.zip -DestinationPath .\avatar-recovery-verify -Force
+$dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
+$cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
+
+# 2. DLL の Authenticode 署名検証
+$signature = Get-AuthenticodeSignature $dll
+$signature
+
+# SignerCertificate.Thumbprint が certificates/ の証明書と一致すること
+($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+($cert.Thumbprint -replace '\s', '').ToUpperInvariant()
+```
+
 ## Technical Specifications
 
 | Item | Details |
@@ -86,3 +115,18 @@ powershell -ExecutionPolicy Bypass -File .\BuildVpmRepository.ps1 `
 ```
 
 Rebuilding updates `index.json` and package metadata locally. Commit, push, and GitHub Pages publication are separate maintainer actions.
+
+## Maintainer Security
+
+Protected releases are built locally. GitHub Actions intentionally stays lightweight: `.github/workflows/verify-build.yml` performs PowerShell syntax checks, runs the protection self tests against the checked-in public package, and audits the GitHub Pages artifacts through `Invoke-PublishedReleaseAudit.ps1`. Full protected-build reproduction is not run in CI because it would require Unity licensing, VRChat SDK setup, private source workspace state, and signing material.
+
+Maintainers should use GitHub Vigilant Mode and signed commits for protection-pipeline changes. Configure either GPG or SSH commit signing with a key registered in GitHub's `SSH and GPG keys` settings, then enable signing:
+
+```powershell
+git config --global commit.gpgsign true
+# For SSH signing:
+git config --global gpg.format ssh
+git config --global user.signingkey "<path-to-your-public-ssh-key>"
+```
+
+Commits that modify `BuildProtectedAvatarRecoveryPackage.ps1`, `Build/`, `.github/workflows/`, or published package artifacts should show GitHub's `Verified` badge.
