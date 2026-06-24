@@ -15,6 +15,10 @@ Core\AnimationClipBindingRestorer.cs|Reflection|typeof\s*\(|*
 # Operation log auto-export setting is persisted through existing EditorPrefs keys.
 Core\AvatarRecoveryLogManager.cs|EditorPrefs|EditorPrefs|*
 
+# Recovery history persists successful restore entries through EditorPrefs JSON.
+Core\RecoveryHistoryStore.cs|EditorPrefs|EditorPrefs|*
+Core\RecoveryHistoryStore.cs|Reflection|JsonUtility|*
+
 # MenuItem and SerializedObject checks are Unity editor entry/serialized-field contracts.
 Core\AvatarRecoveryValidators.cs|AttributeContract|MenuItem|*
 Core\AvatarRecoveryValidators.cs|Reflection|\.GetType\s*\(|*

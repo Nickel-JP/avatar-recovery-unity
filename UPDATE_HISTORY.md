@@ -4,6 +4,12 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Recent Older Releases
 
+### Version 1.1.13 — AvatarRecovery Help Window
+
+- Added `AvatarRecovery > AvatarRecovery説明書` to the Unity menu.
+- Added a scrollable Unity EditorWindow titled `AvatarRecovery の使い方`.
+- Rendered the maintainer help document in a Unity Editor-friendly layout with styled headings and readable body text.
+
 ### Version 1.1.12 — Face_Emo AnimationClip Name Sanitization
 
 - Added `AnimationClipNameSanitizer` so Face_Emo can safely create assets from recovered clips.

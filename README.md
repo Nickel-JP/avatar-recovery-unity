@@ -29,21 +29,21 @@ VCC can choose versions listed in this repository. The public index is currently
 
 ## Public Verification
 
-The current protected package is `com.nickel-jp.avatar-recovery-1.1.15.zip`.
+The current protected package is `com.nickel-jp.avatar-recovery-1.1.16.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. ZIP のハッシュ検証
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.1.15.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.1.16.zip -Algorithm SHA256).Hash
 
-# checksums/com.nickel-jp.avatar-recovery-1.1.15.sha256.txt の
-# packages/com.nickel-jp.avatar-recovery-1.1.15.zip 行と一致すること
+# checksums/com.nickel-jp.avatar-recovery-1.1.16.sha256.txt の
+# packages/com.nickel-jp.avatar-recovery-1.1.16.zip 行と一致すること
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.1.15.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.1.16.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -71,6 +71,14 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
+### Version 1.1.16 — Restore History Foldout
+
+- Added a `復元履歴` / `Recovery History` foldout below the Avatar / World / Prop file groups in the File Select tab.
+- Successful restores are recorded with the restored name, original file extension, output location, file size, and restore time.
+- Added sorting by restore order, file size, and extension order `.vrca` / `.vrcw` / `.vrcp`.
+- Recovery history rows display labels such as `RestoredName [.vrca]` and jump to the restored asset or output folder when clicked.
+- Updated the VPM index so the active public package line points to 1.1.16.
+
 ### Version 1.1.15 — Unity Startup Verification Fix
 
 - Fixed a Unity startup failure where the packaged Editor DLL could throw `System.Security.VerificationException` with `Invalid instruction target ffffffb7`.
@@ -85,12 +93,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Added public verification steps for ZIP SHA-256 hashes and DLL Authenticode signer thumbprints.
 - Added lightweight GitHub Actions checks for PowerShell syntax, package self-tests, and published GitHub Pages artifacts.
 - Updated the VPM index so the active public package line points to 1.1.14.
-
-### Version 1.1.13 — AvatarRecovery Help Window
-
-- Added `AvatarRecovery > AvatarRecovery説明書` to the Unity menu.
-- Added a scrollable Unity EditorWindow titled `AvatarRecovery の使い方`.
-- Rendered the maintainer help document in a Unity Editor-friendly layout with styled headings and readable body text.
 
 Older release notes are available in [UPDATE_HISTORY.md](UPDATE_HISTORY.md).
 
