@@ -86,6 +86,9 @@ UI\VrcaBackupPanel.cs|EditorPrefs|EditorPrefs|*
 Utils\AvatarRecoveryIntegrityGuard.cs|AttributeContract|InitializeOnLoad|*
 Utils\AvatarRecoveryIntegrityGuard.cs|Reflection|JsonUtility|*
 Utils\AvatarRecoveryConsoleLogColorizer.cs|AttributeContract|InitializeOnLoad|*
+Utils\AvatarRecoveryConsoleLogColorizer.cs|Reflection|\.GetField\s*\(|*
+Utils\AvatarRecoveryConsoleLogColorizer.cs|Reflection|\.GetType\s*\(|*
+Utils\AvatarRecoveryConsoleLogColorizer.cs|Reflection|typeof\s*\(|*
 Utils\AvatarRecoveryEnvChecker.cs|Reflection|\.GetType\s*\(|*
 
 # Central settings helper owns all existing EditorPrefs key compatibility.

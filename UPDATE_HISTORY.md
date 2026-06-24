@@ -4,6 +4,15 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Recent Older Releases
 
+### Version 1.1.14 — Script Report Output and Release Verification
+
+- Added `_ScriptReport/Scripts.md` output for restored assets.
+- The script report lists source file information, blueprint / Unity version summaries, detected script names, stub GUIDs, original `.cs.meta` relative paths, resolved MonoScript GUIDs, referring asset paths, fixed reference counts, and unresolved script entries.
+- Clarified that the script report identifies script references and metadata; it does not restore C# source code.
+- Added public verification steps for ZIP SHA-256 hashes and DLL Authenticode signer thumbprints.
+- Added lightweight GitHub Actions checks for PowerShell syntax, package self-tests, and published GitHub Pages artifacts.
+- Updated the VPM index so the active public package line points to 1.1.14.
+
 ### Version 1.1.13 — AvatarRecovery Help Window
 
 - Added `AvatarRecovery > AvatarRecovery説明書` to the Unity menu.
