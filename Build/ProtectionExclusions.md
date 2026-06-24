@@ -48,6 +48,8 @@ The following non-entry types were changed from public to internal because they 
 - VRC SDK callback classes are skipped as whole types, including members, because VRC SDK discovers callback implementers through TypeCache.
 - Enum fields are skipped so stored/displayed enum names remain stable when `ToString()` or inspector names are used.
 - Protected DLL builds fail if an EditorWindow type contains duplicate field names after obfuscation. This guards `AvatarRecoveryWindow`, `ShaderListViewerWindow`, and `ViewAssetsInfoWindow` against Unity's `The same field name is serialized multiple times` warning.
+- Runtime integrity guard calls are injected only into `Build/RuntimeIntegrityGuardTargets.txt` entries before Obfuscar. The generated guard source is internal and uses Unity `InitializeOnLoad` to cache trust state without making a public API.
+- Cecil control-flow obfuscation is intentionally limited to `Build/ControlFlowObfuscationAllowlist.txt` entries and skips constructors, native/abstract methods, and methods with exception handlers. Problem methods should be removed from the allowlist rather than patched around ad hoc.
 
 ## Reflection And Serialization Contracts
 

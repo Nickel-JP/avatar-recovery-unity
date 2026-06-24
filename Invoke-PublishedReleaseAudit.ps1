@@ -1,8 +1,9 @@
 param(
-    [string]$Version = "1.1.5",
+    [string]$Version = "1.1.14",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$OutputRoot = "",
+    [string]$ExpectedCodeSigningCertificateThumbprint = $env:AVATAR_RECOVERY_PUBLISHED_CERTIFICATE_THUMBPRINT,
     [int]$RetryCount = 18,
     [int]$RetryDelaySeconds = 10,
     [switch]$TrustPublishedCertificateForAuthenticode
@@ -16,14 +17,50 @@ if ([string]::IsNullOrWhiteSpace($OutputRoot)) {
 }
 
 $AssemblyFileName = "EditorTools.AvatarRecovery.Editor.dll"
+$RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
 $CertificateFileName = "avatar-recovery-self-signed-code-signing.cer"
 $CertificatePemFileName = "avatar-recovery-self-signed-code-signing.cer.pem"
 $StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
+$TrustedCertificatePath = Join-Path $RepoRoot "certificates\$CertificateFileName"
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     return [System.IO.Path]::GetFullPath($Path)
+}
+
+function Normalize-Thumbprint {
+    param([AllowNull()][string]$Thumbprint)
+
+    if ([string]::IsNullOrWhiteSpace($Thumbprint)) {
+        return ""
+    }
+
+    return ($Thumbprint -replace '\s', '').ToUpperInvariant()
+}
+
+function Get-CertificateThumbprintFromFile {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new((ConvertTo-FullPath $Path))
+    try {
+        return (Normalize-Thumbprint $certificate.Thumbprint)
+    }
+    finally {
+        $certificate.Dispose()
+    }
+}
+
+function Get-ExpectedCodeSigningCertificateThumbprint {
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedCodeSigningCertificateThumbprint)) {
+        return (Normalize-Thumbprint $ExpectedCodeSigningCertificateThumbprint)
+    }
+
+    if (Test-Path -LiteralPath $TrustedCertificatePath) {
+        return (Get-CertificateThumbprintFromFile -Path $TrustedCertificatePath)
+    }
+
+    throw "Expected code signing certificate thumbprint is required. Set -ExpectedCodeSigningCertificateThumbprint or keep the trusted certificate at: $TrustedCertificatePath"
 }
 
 function Assert-UnderPath {
@@ -126,25 +163,30 @@ function Test-DetachedSignatureFile {
     }
 
     $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new((ConvertTo-FullPath $CertificatePath))
-    $certificateThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
-    if ($certificateThumbprint -ne (($signature.signerThumbprint -replace '\s', '').ToUpperInvariant())) {
-        throw "Detached signature signer mismatch: $SignaturePath"
-    }
+    try {
+        $certificateThumbprint = Normalize-Thumbprint $certificate.Thumbprint
+        if ($certificateThumbprint -ne (Normalize-Thumbprint $signature.signerThumbprint)) {
+            throw "Detached signature signer mismatch: $SignaturePath"
+        }
 
-    $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
-    if ($null -eq $publicKey) {
-        throw "Public key was not available: $CertificatePath"
-    }
+        $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
+        if ($null -eq $publicKey) {
+            throw "Public key was not available: $CertificatePath"
+        }
 
-    $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
-    $signatureBytes = [Convert]::FromBase64String($signature.signatureBase64)
-    $verified = $publicKey.VerifyData(
-        $targetBytes,
-        $signatureBytes,
-        [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-        [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-    if (-not $verified) {
-        throw "Detached signature verification failed: $SignaturePath"
+        $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
+        $signatureBytes = [Convert]::FromBase64String($signature.signatureBase64)
+        $verified = $publicKey.VerifyData(
+            $targetBytes,
+            $signatureBytes,
+            [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+            [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+        if (-not $verified) {
+            throw "Detached signature verification failed: $SignaturePath"
+        }
+    }
+    finally {
+        $certificate.Dispose()
     }
 }
 
@@ -245,6 +287,14 @@ function Test-ZipPackage {
         Ensure-Directory $ExtractRoot
         $dllPath = Join-Path $ExtractRoot $AssemblyFileName
         [System.IO.Compression.ZipFileExtensions]::ExtractToFile($dllEntry, $dllPath, $true)
+
+        $sidecarEntry = $archive.Entries |
+            Where-Object { ($_.FullName -replace '\\', '/') -eq "Editor/$RuntimeIntegritySidecarFileName" } |
+            Select-Object -First 1
+        if ($null -ne $sidecarEntry) {
+            $sidecarPath = Join-Path $ExtractRoot $RuntimeIntegritySidecarFileName
+            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($sidecarEntry, $sidecarPath, $true)
+        }
 
         foreach ($entry in $archive.Entries) {
             if ($entry.Length -gt 1048576 -or [string]::IsNullOrWhiteSpace($entry.Name)) {
@@ -361,6 +411,69 @@ function Test-DllAuthenticodeIdentity {
     return $signature
 }
 
+function Test-RuntimeIntegritySidecarFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)][string]$SidecarPath,
+        [Parameter(Mandatory = $true)][string]$ExpectedThumbprint
+    )
+
+    if ([string]::IsNullOrWhiteSpace($SidecarPath) -or -not (Test-Path -LiteralPath $SidecarPath)) {
+        throw "Runtime integrity sidecar was not found: $SidecarPath"
+    }
+
+    $sidecar = Get-Content -LiteralPath $SidecarPath -Raw | ConvertFrom-Json
+    if ($sidecar.format -ne "AvatarRecovery runtime integrity signature v1") {
+        throw "Unsupported runtime integrity sidecar format: $SidecarPath"
+    }
+    if ($sidecar.algorithm -ne "RSA-SHA256-PKCS1") {
+        throw "Unsupported runtime integrity sidecar algorithm: $SidecarPath"
+    }
+
+    $actualHash = (Get-FileHash -LiteralPath $DllPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne $sidecar.targetSha256) {
+        throw "Runtime integrity sidecar target hash mismatch: $SidecarPath"
+    }
+
+    $certificateBytes = [Convert]::FromBase64String($sidecar.signerCertificateBase64)
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certificateBytes)
+    try {
+        $certificateThumbprint = Normalize-Thumbprint $certificate.Thumbprint
+        if ($certificateThumbprint -ne (Normalize-Thumbprint $sidecar.signerThumbprint)) {
+            throw "Runtime integrity sidecar signer mismatch: $SidecarPath"
+        }
+        if ($certificateThumbprint -ne (Normalize-Thumbprint $ExpectedThumbprint)) {
+            throw "Runtime integrity sidecar signer does not match published certificate: $certificateThumbprint"
+        }
+
+        $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
+        if ($null -eq $publicKey) {
+            throw "Runtime integrity public key was not available: $SidecarPath"
+        }
+
+        $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
+        $signatureBytes = [Convert]::FromBase64String($sidecar.signatureBase64)
+        $verified = $publicKey.VerifyData(
+            $targetBytes,
+            $signatureBytes,
+            [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+            [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+        if (-not $verified) {
+            throw "Runtime integrity sidecar signature verification failed: $SidecarPath"
+        }
+    }
+    finally {
+        $certificate.Dispose()
+    }
+
+    return [PSCustomObject]@{
+        Status = "Passed"
+        SidecarPath = $SidecarPath
+        TargetSHA256 = $actualHash
+        SignerThumbprint = $certificateThumbprint
+    }
+}
+
 function Test-DllTamperDetection {
     param(
         [Parameter(Mandatory = $true)][string]$DllPath,
@@ -466,6 +579,12 @@ function Invoke-AuditOnce {
         $certificatePemPath
     )
 
+    $expectedCertificateThumbprint = Get-ExpectedCodeSigningCertificateThumbprint
+    $certificateThumbprint = Get-CertificateThumbprintFromFile -Path $certificatePath
+    if ($certificateThumbprint -ne $expectedCertificateThumbprint) {
+        throw "Published certificate thumbprint mismatch. Expected $expectedCertificateThumbprint but got $certificateThumbprint."
+    }
+
     Test-DetachedSignatureFile -TargetPath $indexPath -SignaturePath $indexSignaturePath -CertificatePath $certificatePath
     Test-DetachedSignatureFile -TargetPath $zipPath -SignaturePath $zipSignaturePath -CertificatePath $certificatePath
     Test-DetachedSignatureFile -TargetPath $checksumPath -SignaturePath $checksumSignaturePath -CertificatePath $certificatePath
@@ -504,13 +623,15 @@ function Invoke-AuditOnce {
 
     Test-BinaryLeak -Path $dllPath
 
-    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new((ConvertTo-FullPath $certificatePath))
-    $certificateThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
     $signature = Test-DllAuthenticodeIdentity `
         -DllPath $dllPath `
         -CertificatePath $certificatePath `
         -ExpectedThumbprint $certificateThumbprint
     $signerThumbprint = ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+    $runtimeIntegrityResult = Test-RuntimeIntegritySidecarFile `
+        -DllPath $dllPath `
+        -SidecarPath (Join-Path $extractRoot $RuntimeIntegritySidecarFileName) `
+        -ExpectedThumbprint $certificateThumbprint
     $tamperResult = Test-DllTamperDetection `
         -DllPath $dllPath `
         -TamperedPath (Join-Path $OutputRoot "tampered-$AssemblyFileName")
@@ -528,10 +649,12 @@ function Invoke-AuditOnce {
         BaseUrl = $normalizedBaseUrl
         ZipSHA256 = $zipHash
         CertificateSHA256 = $certificateHash
+        ExpectedCertificateThumbprint = $expectedCertificateThumbprint
         DetachedSignatures = "Valid"
         DllAuthenticode = [string]$signature.Status
         DllAuthenticodeTrustMode = if ($TrustPublishedCertificateForAuthenticode) { "TrustedStoreRequired" } else { "ThumbprintOnlyAcceptedWhenUntrusted" }
         DllSignerThumbprint = $signerThumbprint
+        RuntimeIntegritySidecar = $runtimeIntegrityResult
         TamperedDllAuthenticode = $tamperResult
         TamperedZip = $zipTamperResult
         IlSpy = $ilspyResult

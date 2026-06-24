@@ -79,6 +79,8 @@ UI\TermsConsentPanel.cs|EditorPrefs|EditorPrefs|*
 UI\VrcaBackupPanel.cs|EditorPrefs|EditorPrefs|*
 
 # Unity initialize hook and VRC SDK reflection type discovery.
+Utils\AvatarRecoveryIntegrityGuard.cs|AttributeContract|InitializeOnLoad|*
+Utils\AvatarRecoveryIntegrityGuard.cs|Reflection|JsonUtility|*
 Utils\AvatarRecoveryConsoleLogColorizer.cs|AttributeContract|InitializeOnLoad|*
 Utils\AvatarRecoveryEnvChecker.cs|Reflection|\.GetType\s*\(|*
 

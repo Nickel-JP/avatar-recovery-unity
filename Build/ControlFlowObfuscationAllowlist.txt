@@ -1,0 +1,11 @@
+# AvatarRecovery Cecil control-flow obfuscation allowlist
+# Format: TypeFullName|MethodName
+# The pass intentionally skips constructors, abstract/native methods, and methods with exception handlers.
+
+EditorTools.AvatarRecovery.RecoveryNameUtility|BuildShortBlueprintId
+EditorTools.AvatarRecovery.RecoveryNameUtility|IsWeakName
+EditorTools.AvatarRecovery.RecoveryNameUtility|SanitizeFileName
+EditorTools.AvatarRecovery.VrcaLoader|StartsWithMagic
+EditorTools.AvatarRecovery.VrcaLoader|ParseUnityVersion
+EditorTools.AvatarRecovery.ShaderRemapper|FindBestShader
+EditorTools.AvatarRecovery.ShaderRemapper|GetAvailableShaders

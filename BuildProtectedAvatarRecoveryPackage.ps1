@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.1.5",
-    [string]$PreviousVersion = "1.1.4",
+    [string]$Version = "1.1.14",
+    [string]$PreviousVersion = "1.1.13",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -16,8 +16,11 @@
     [string]$CodeSigningCertificateStoreName = "My",
     [string]$TimestampUrl = "http://timestamp.digicert.com",
     [switch]$DisableSelfSignedCertificate,
+    [switch]$TrustSelfSignedCertificateForAuthenticode,
     [switch]$SkipUnityCompile,
-    [switch]$AllowUnsignedPackage
+    [switch]$AllowUnsignedPackage,
+    [switch]$DisableRuntimeIntegrityGuard,
+    [switch]$DisableCecilControlFlowObfuscation
 )
 
 $ErrorActionPreference = "Stop"
@@ -48,8 +51,13 @@ $AssemblyFileName = "$AssemblyName.dll"
 $PublicApiAllowlistPath = Join-Path $RepoRoot "Build\PublicApiAllowlist.txt"
 $ReflectionSerializationAllowlistPath = Join-Path $RepoRoot "Build\ReflectionSerializationAllowlist.txt"
 $BinaryLeakAllowlistPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
+$RuntimeIntegrityGuardTargetsPath = Join-Path $RepoRoot "Build\RuntimeIntegrityGuardTargets.txt"
+$ControlFlowObfuscationAllowlistPath = Join-Path $RepoRoot "Build\ControlFlowObfuscationAllowlist.txt"
 $StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
 $SelfSignedCertificateSubject = "CN=Nickel-JP AvatarRecovery Self-Signed Code Signing"
+$RuntimeIntegrityGuardTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryIntegrityGuard"
+$RuntimeIntegrityGuardMethodName = "EnsureTrustedForRuntimeFeature"
+$RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
 $UnityMagicMethods = @(
     "OnGUI",
     "OnEnable",
@@ -326,9 +334,11 @@ function Ensure-SelfSignedCodeSigningCertificate {
     Export-Certificate -Cert $certificate -FilePath $publicCertificatePath -Force | Out-Null
     Write-CertificatePem -Certificate $certificate -Path (Get-PublicCertificatePemPath)
 
-    # CurrentUser のみへ登録し、ビルド時の Authenticode 検証を Valid にする。
-    Import-PublicCertificateIfMissing -CertificatePath $publicCertificatePath -StoreName "Root" -Thumbprint $thumbprint
-    Import-PublicCertificateIfMissing -CertificatePath $publicCertificatePath -StoreName "TrustedPublisher" -Thumbprint $thumbprint
+    if ($TrustSelfSignedCertificateForAuthenticode) {
+        # 明示指定された場合だけ CurrentUser の信頼ストアへ登録する。
+        Import-PublicCertificateIfMissing -CertificatePath $publicCertificatePath -StoreName "Root" -Thumbprint $thumbprint
+        Import-PublicCertificateIfMissing -CertificatePath $publicCertificatePath -StoreName "TrustedPublisher" -Thumbprint $thumbprint
+    }
 
     $script:CodeSigningMode = "SelfSigned"
     return $thumbprint
@@ -470,8 +480,8 @@ function Test-CodeSignature {
     }
 
     $signature = Get-AuthenticodeSignature -LiteralPath $Path
-    if ($signature.Status -ne "Valid") {
-        throw "Authenticode signature is not valid for ${Path}: $($signature.Status) $($signature.StatusMessage)"
+    if ($signature.Status -eq "NotSigned" -or $signature.Status -eq "HashMismatch" -or $signature.Status -eq "NotSupportedFileFormat") {
+        throw "Authenticode signature is broken for ${Path}: $($signature.Status) $($signature.StatusMessage)"
     }
 
     if ($null -eq $signature.SignerCertificate) {
@@ -481,6 +491,10 @@ function Test-CodeSignature {
     $actualThumbprint = ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
     if ($actualThumbprint -ne $Context.ExpectedThumbprint) {
         throw "Unexpected signer certificate for ${Path}: $actualThumbprint"
+    }
+
+    if ($signature.Status -ne "Valid") {
+        Write-Warning "Authenticode trust chain is not Valid for ${Path}: $($signature.Status). The signer thumbprint was verified instead."
     }
 }
 
@@ -606,11 +620,9 @@ function Write-DetachedSignatureFile {
         throw "Detached signature certificate does not have a private key."
     }
 
-    Write-CertificatePem -Certificate $certificate -Path (Get-PublicCertificatePemPath)
     $publicCertificatePath = Get-PublicCertificatePath
-    if (-not (Test-Path -LiteralPath $publicCertificatePath)) {
-        Export-Certificate -Cert $certificate -FilePath $publicCertificatePath -Force | Out-Null
-    }
+    Export-Certificate -Cert $certificate -FilePath $publicCertificatePath -Force | Out-Null
+    Write-CertificatePem -Certificate $certificate -Path (Get-PublicCertificatePemPath)
 
     $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($certificate)
     if ($null -eq $privateKey) {
@@ -676,6 +688,7 @@ function Write-PublicChecksumManifest {
     param(
         [Parameter(Mandatory = $true)][string]$ZipPath,
         [Parameter(Mandatory = $true)][string]$DllPath,
+        [AllowNull()][string]$RuntimeIntegritySidecarPath = "",
         [Parameter(Mandatory = $true)]$Context
     )
 
@@ -698,8 +711,11 @@ function Write-PublicChecksumManifest {
     [void]$lines.Add("# SignerThumbprint: $(($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant())")
     [void]$lines.Add("# SignatureStatus: $($signature.Status)")
 
-    if ($Context.Mode -eq "SelfSigned") {
+    if ($Context.Required) {
+        $certificate = Get-CodeSigningCertificateFromContext -Context $Context
         $publicCertificatePath = Get-PublicCertificatePath
+        Export-Certificate -Cert $certificate -FilePath $publicCertificatePath -Force | Out-Null
+        Write-CertificatePem -Certificate $certificate -Path (Get-PublicCertificatePemPath)
         $certificateRelativePath = "certificates/avatar-recovery-self-signed-code-signing.cer"
         $certificateHash = (Get-FileHash -LiteralPath $publicCertificatePath -Algorithm SHA256).Hash.ToLowerInvariant()
         [void]$lines.Add("$certificateHash  $certificateRelativePath")
@@ -714,9 +730,361 @@ function Write-PublicChecksumManifest {
 
     [void]$lines.Add("$zipHash  $zipRelativePath")
     [void]$lines.Add("$dllHash  $dllRelativePath")
+    if (-not [string]::IsNullOrWhiteSpace($RuntimeIntegritySidecarPath) -and
+        (Test-Path -LiteralPath $RuntimeIntegritySidecarPath)) {
+        $sidecarHash = (Get-FileHash -LiteralPath $RuntimeIntegritySidecarPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        [void]$lines.Add("$sidecarHash  packages/$PackageId-$Version.zip!/Editor/$RuntimeIntegritySidecarFileName")
+    }
 
     Write-TextUtf8NoBom -Path $manifestPath -Value (($lines -join "`n") + "`n")
     Write-Host "Created public checksum manifest: $manifestPath"
+}
+
+function Get-CSharpBoolLiteral {
+    param([bool]$Value)
+
+    if ($Value) {
+        return "true"
+    }
+
+    return "false"
+}
+
+function Ensure-RuntimeIntegrityGuardSource {
+    param([Parameter(Mandatory = $true)]$Context)
+
+    $utilsDir = Join-Path $SourcePackageRoot "Editor\Utils"
+    Ensure-Directory $utilsDir
+
+    $sourcePath = Join-Path $utilsDir "AvatarRecoveryIntegrityGuard.cs"
+    $required = -not $DisableRuntimeIntegrityGuard -and $Context.Required
+    $expectedThumbprint = if ($required) { ($Context.ExpectedThumbprint -replace '\s', '').ToUpperInvariant() } else { "" }
+    $requiredLiteral = Get-CSharpBoolLiteral -Value $required
+
+    $source = @"
+using System;
+using System.IO;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+
+using UnityEditor;
+using UnityEngine;
+
+namespace EditorTools.AvatarRecovery
+{
+    [InitializeOnLoad]
+    internal static class AvatarRecoveryIntegrityGuard
+    {
+        private const bool RuntimeIntegrityRequired = $requiredLiteral;
+        private const string SidecarFileName = "$RuntimeIntegritySidecarFileName";
+        private const string ExpectedSignerThumbprint = "$expectedThumbprint";
+        private const string ExpectedFormat = "AvatarRecovery runtime integrity signature v1";
+        private const string ExpectedAlgorithm = "RSA-SHA256-PKCS1";
+
+        private static bool _verified;
+        private static bool _trusted;
+        private static string _failureReason = string.Empty;
+
+        static AvatarRecoveryIntegrityGuard()
+        {
+            RefreshTrustCache();
+        }
+
+        internal static bool IsTrusted
+        {
+            get
+            {
+                RefreshTrustCache();
+                return _trusted;
+            }
+        }
+
+        internal static string FailureReason
+        {
+            get
+            {
+                RefreshTrustCache();
+                return _failureReason ?? string.Empty;
+            }
+        }
+
+        internal static void EnsureTrustedForRuntimeFeature()
+        {
+            RefreshTrustCache();
+            if (_trusted) return;
+
+            throw new InvalidOperationException(
+                "[AvatarRecovery] Runtime integrity check failed: " +
+                (string.IsNullOrEmpty(_failureReason) ? "unknown" : _failureReason));
+        }
+
+        private static void RefreshTrustCache()
+        {
+            if (_verified) return;
+            _verified = true;
+
+            if (!RuntimeIntegrityRequired)
+            {
+                _trusted = true;
+                _failureReason = string.Empty;
+                return;
+            }
+
+            try
+            {
+                var assemblyPath = Assembly.GetExecutingAssembly().Location;
+                if (string.IsNullOrEmpty(assemblyPath) || !File.Exists(assemblyPath))
+                {
+                    Fail("assembly path was not available");
+                    return;
+                }
+
+                var directory = Path.GetDirectoryName(assemblyPath) ?? string.Empty;
+                var sidecarPath = Path.Combine(directory, SidecarFileName);
+                if (!File.Exists(sidecarPath))
+                {
+                    Fail("runtime integrity sidecar was not found");
+                    return;
+                }
+
+                var sidecarText = File.ReadAllText(sidecarPath);
+                var sidecar = JsonUtility.FromJson<RuntimeIntegritySignature>(sidecarText);
+                if (sidecar == null)
+                {
+                    Fail("runtime integrity sidecar could not be parsed");
+                    return;
+                }
+
+                if (!string.Equals(sidecar.format, ExpectedFormat, StringComparison.Ordinal))
+                {
+                    Fail("runtime integrity sidecar format mismatch");
+                    return;
+                }
+
+                if (!string.Equals(sidecar.algorithm, ExpectedAlgorithm, StringComparison.Ordinal))
+                {
+                    Fail("runtime integrity sidecar algorithm mismatch");
+                    return;
+                }
+
+                var assemblyBytes = File.ReadAllBytes(assemblyPath);
+                var actualHash = ComputeSha256Hex(assemblyBytes);
+                if (!string.Equals(actualHash, sidecar.targetSha256, StringComparison.OrdinalIgnoreCase))
+                {
+                    Fail("assembly SHA-256 mismatch");
+                    return;
+                }
+
+                var certificateBytes = Convert.FromBase64String(sidecar.signerCertificateBase64);
+                using (var certificate = new X509Certificate2(certificateBytes))
+                {
+                    var actualThumbprint = NormalizeThumbprint(certificate.Thumbprint);
+                    if (!string.Equals(actualThumbprint, ExpectedSignerThumbprint, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Fail("signer certificate thumbprint mismatch");
+                        return;
+                    }
+
+                    var signatureBytes = Convert.FromBase64String(sidecar.signatureBase64);
+                    using (var publicKey = certificate.GetRSAPublicKey())
+                    {
+                        if (publicKey == null ||
+                            !publicKey.VerifyData(
+                                assemblyBytes,
+                                signatureBytes,
+                                HashAlgorithmName.SHA256,
+                                RSASignaturePadding.Pkcs1))
+                        {
+                            Fail("runtime integrity signature verification failed");
+                            return;
+                        }
+                    }
+                }
+
+                _trusted = true;
+                _failureReason = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                Fail("Exception: " + ex.Message);
+            }
+        }
+
+        private static string ComputeSha256Hex(byte[] bytes)
+        {
+            using (var sha256 = SHA256.Create())
+            {
+                var hash = sha256.ComputeHash(bytes);
+                var chars = new char[hash.Length * 2];
+                for (int i = 0; i < hash.Length; i++)
+                {
+                    var b = hash[i];
+                    chars[i * 2] = GetHexChar(b >> 4);
+                    chars[i * 2 + 1] = GetHexChar(b & 0x0F);
+                }
+
+                return new string(chars);
+            }
+        }
+
+        private static char GetHexChar(int value)
+        {
+            return (char)(value < 10 ? '0' + value : 'a' + value - 10);
+        }
+
+        private static string NormalizeThumbprint(string thumbprint)
+        {
+            return string.IsNullOrEmpty(thumbprint)
+                ? string.Empty
+                : thumbprint.Replace(" ", string.Empty).ToUpperInvariant();
+        }
+
+        private static void Fail(string reason)
+        {
+            _trusted = false;
+            _failureReason = reason ?? string.Empty;
+            Debug.LogError("[AvatarRecovery] Runtime integrity check failed: " + _failureReason);
+        }
+
+        [Serializable]
+        private sealed class RuntimeIntegritySignature
+        {
+            public string format;
+            public string algorithm;
+            public string target;
+            public string targetSha256;
+            public string signerThumbprint;
+            public string signerCertificateBase64;
+            public string signatureBase64;
+        }
+    }
+}
+"@
+
+    Write-TextUtf8NoBom -Path $sourcePath -Value $source
+    return [PSCustomObject]@{
+        Enabled = $required
+        SourcePath = ConvertTo-FullPath $sourcePath
+        ExpectedThumbprint = $expectedThumbprint
+        SidecarFileName = $RuntimeIntegritySidecarFileName
+    }
+}
+
+function Test-RuntimeIntegritySidecarFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)][string]$SidecarPath,
+        [Parameter(Mandatory = $true)][string]$ExpectedThumbprint
+    )
+
+    if (-not (Test-Path -LiteralPath $DllPath)) {
+        throw "Runtime integrity DLL target was not found: $DllPath"
+    }
+    if (-not (Test-Path -LiteralPath $SidecarPath)) {
+        throw "Runtime integrity sidecar was not found: $SidecarPath"
+    }
+
+    $sidecar = Get-Content -LiteralPath $SidecarPath -Raw | ConvertFrom-Json
+    if ($sidecar.format -ne "AvatarRecovery runtime integrity signature v1") {
+        throw "Unsupported runtime integrity sidecar format: $SidecarPath"
+    }
+    if ($sidecar.algorithm -ne "RSA-SHA256-PKCS1") {
+        throw "Unsupported runtime integrity sidecar algorithm: $SidecarPath"
+    }
+
+    $actualHash = (Get-FileHash -LiteralPath $DllPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne $sidecar.targetSha256) {
+        throw "Runtime integrity sidecar target hash mismatch: $SidecarPath"
+    }
+
+    $certificateBytes = [Convert]::FromBase64String($sidecar.signerCertificateBase64)
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certificateBytes)
+    try {
+        $actualThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+        if ($actualThumbprint -ne (($ExpectedThumbprint -replace '\s', '').ToUpperInvariant())) {
+            throw "Runtime integrity signer thumbprint mismatch: $SidecarPath"
+        }
+        if ($actualThumbprint -ne (($sidecar.signerThumbprint -replace '\s', '').ToUpperInvariant())) {
+            throw "Runtime integrity sidecar signer mismatch: $SidecarPath"
+        }
+
+        $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
+        if ($null -eq $publicKey) {
+            throw "Runtime integrity public key was not available: $SidecarPath"
+        }
+
+        $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
+        $signatureBytes = [Convert]::FromBase64String($sidecar.signatureBase64)
+        $verified = $publicKey.VerifyData(
+            $targetBytes,
+            $signatureBytes,
+            [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+            [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+        if (-not $verified) {
+            throw "Runtime integrity sidecar signature verification failed: $SidecarPath"
+        }
+    }
+    finally {
+        $certificate.Dispose()
+    }
+}
+
+function Write-RuntimeIntegritySidecar {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)][string]$SidecarPath,
+        [Parameter(Mandatory = $true)]$Context
+    )
+
+    if ($DisableRuntimeIntegrityGuard -or -not $Context.Required) {
+        return [PSCustomObject]@{
+            Enabled = $false
+            Created = $false
+            SidecarPath = ""
+            Reason = if ($DisableRuntimeIntegrityGuard) { "DisabledBySwitch" } else { "UnsignedBuild" }
+        }
+    }
+
+    $certificate = Get-CodeSigningCertificateFromContext -Context $Context
+    if ($null -eq $certificate -or -not $certificate.HasPrivateKey) {
+        throw "Runtime integrity sidecar certificate does not have a private key."
+    }
+
+    $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($certificate)
+    if ($null -eq $privateKey) {
+        throw "Runtime integrity private key was not available."
+    }
+
+    $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
+    $signatureBytes = $privateKey.SignData(
+        $targetBytes,
+        [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+        [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+    $targetHash = (Get-FileHash -LiteralPath $DllPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $certificateBytes = $certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+
+    $sidecar = [ordered]@{
+        format = "AvatarRecovery runtime integrity signature v1"
+        algorithm = "RSA-SHA256-PKCS1"
+        signedAtUtc = [DateTime]::UtcNow.ToString("o")
+        target = "Editor/$AssemblyFileName"
+        targetSha256 = $targetHash
+        signerThumbprint = (($certificate.Thumbprint -replace '\s', '').ToUpperInvariant())
+        signerCertificateBase64 = [Convert]::ToBase64String($certificateBytes)
+        signatureBase64 = [Convert]::ToBase64String($signatureBytes)
+    }
+
+    Write-TextUtf8NoBom -Path $SidecarPath -Value (($sidecar | ConvertTo-Json -Depth 10) + [Environment]::NewLine)
+    Test-RuntimeIntegritySidecarFile -DllPath $DllPath -SidecarPath $SidecarPath -ExpectedThumbprint $Context.ExpectedThumbprint
+
+    return [PSCustomObject]@{
+        Enabled = $true
+        Created = $true
+        SidecarPath = ConvertTo-FullPath $SidecarPath
+        TargetSHA256 = $targetHash
+        SignerThumbprint = (($certificate.Thumbprint -replace '\s', '').ToUpperInvariant())
+    }
 }
 
 function Get-XmlEscaped {
@@ -1263,6 +1631,294 @@ function Test-UnityEditorWindowFieldNameCollisions {
     }
 }
 
+function Get-ProtectionTargetRules {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) {
+        throw "Protection target allowlist was not found: $Path"
+    }
+
+    $rules = New-Object System.Collections.Generic.List[object]
+    Get-Content -LiteralPath $Path |
+        ForEach-Object {
+            $line = $_.Trim()
+            if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith("#")) {
+                return
+            }
+
+            $parts = $line.Split("|")
+            if ($parts.Count -ne 2 -or
+                [string]::IsNullOrWhiteSpace($parts[0]) -or
+                [string]::IsNullOrWhiteSpace($parts[1])) {
+                throw "Invalid protection target allowlist entry: $line"
+            }
+
+            [void]$rules.Add([PSCustomObject]@{
+                Type = $parts[0].Trim()
+                Method = $parts[1].Trim()
+                Raw = $line
+            })
+        }
+
+    return @($rules.ToArray())
+}
+
+function Test-ProtectionTargetRuleMatch {
+    param(
+        [Parameter(Mandatory = $true)]$Rule,
+        [Parameter(Mandatory = $true)][string]$TypeName,
+        [Parameter(Mandatory = $true)][string]$MethodName
+    )
+
+    $typeMatches = if ($Rule.Type.Contains("*")) {
+        $TypeName -like $Rule.Type
+    } else {
+        [string]::Equals($TypeName, $Rule.Type, [StringComparison]::Ordinal)
+    }
+
+    if (-not $typeMatches) {
+        return $false
+    }
+
+    if ($Rule.Method.Contains("*")) {
+        return $MethodName -like $Rule.Method
+    }
+
+    return [string]::Equals($MethodName, $Rule.Method, [StringComparison]::Ordinal)
+}
+
+function Test-CecilMethodIsInjectable {
+    param([Parameter(Mandatory = $true)]$Method)
+
+    if (-not $Method.HasBody) {
+        return $false
+    }
+    if ($Method.IsConstructor -or $Method.IsAbstract -or $Method.IsPInvokeImpl) {
+        return $false
+    }
+    if ($Method.Body.Instructions.Count -eq 0) {
+        return $false
+    }
+
+    return $true
+}
+
+function Inject-RuntimeIntegrityGuardCalls {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$TargetListPath
+    )
+
+    if ($DisableRuntimeIntegrityGuard) {
+        return [PSCustomObject]@{
+            Enabled = $false
+            InjectedMethodCount = 0
+            Skipped = @()
+            Reason = "DisabledBySwitch"
+        }
+    }
+
+    Ensure-MonoCecilLoaded
+    $rules = Get-ProtectionTargetRules -Path $TargetListPath
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $changed = $false
+    $tempPath = "$Path.runtime-integrity.tmp"
+    $injected = New-Object System.Collections.Generic.List[string]
+    $skipped = New-Object System.Collections.Generic.List[object]
+
+    try {
+        $module = $assembly.MainModule
+        $guardType = Get-CecilTypeDefinitions -Assembly $assembly |
+            Where-Object { ($_.FullName -replace '/', '+') -eq $RuntimeIntegrityGuardTypeName } |
+            Select-Object -First 1
+        if ($null -eq $guardType) {
+            throw "Runtime integrity guard type was not found in compiled DLL. Rebuild without -SkipUnityCompile: $RuntimeIntegrityGuardTypeName"
+        }
+
+        $guardMethod = $guardType.Methods |
+            Where-Object { $_.Name -eq $RuntimeIntegrityGuardMethodName -and $_.Parameters.Count -eq 0 } |
+            Select-Object -First 1
+        if ($null -eq $guardMethod) {
+            throw "Runtime integrity guard method was not found: $RuntimeIntegrityGuardTypeName.$RuntimeIntegrityGuardMethodName"
+        }
+
+        $guardReference = $module.ImportReference($guardMethod)
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            $typeName = $type.FullName -replace '/', '+'
+            foreach ($method in $type.Methods) {
+                $matched = $false
+                foreach ($rule in $rules) {
+                    if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
+                        $matched = $true
+                        break
+                    }
+                }
+                if (-not $matched) {
+                    continue
+                }
+
+                $methodKey = "$typeName|$($method.Name)"
+                if (-not (Test-CecilMethodIsInjectable -Method $method)) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "NotInjectable"
+                    })
+                    continue
+                }
+
+                $alreadyInjected = $false
+                foreach ($instruction in $method.Body.Instructions) {
+                    if ($instruction.OpCode.Code -eq [Mono.Cecil.Cil.Code]::Call -and
+                        $instruction.Operand -ne $null -and
+                        $instruction.Operand.FullName -eq $guardReference.FullName) {
+                        $alreadyInjected = $true
+                        break
+                    }
+                }
+                if ($alreadyInjected) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "AlreadyInjected"
+                    })
+                    continue
+                }
+
+                $processor = $method.Body.GetILProcessor()
+                $first = $method.Body.Instructions[0]
+                $processor.InsertBefore(
+                    $first,
+                    [Mono.Cecil.Cil.Instruction]::Create(
+                        [Mono.Cecil.Cil.OpCodes]::Call,
+                        $guardReference))
+                $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 1)
+                [void]$injected.Add($methodKey)
+                $changed = $true
+            }
+        }
+
+        if ($changed) {
+            $assembly.Write((ConvertTo-FullPath $tempPath))
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($changed) {
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    }
+
+    return [PSCustomObject]@{
+        Enabled = $true
+        TargetRuleCount = $rules.Count
+        InjectedMethodCount = $injected.Count
+        InjectedMethods = @($injected.ToArray())
+        Skipped = @($skipped.ToArray())
+    }
+}
+
+function Invoke-CecilControlFlowObfuscation {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$TargetListPath
+    )
+
+    if ($DisableCecilControlFlowObfuscation) {
+        return [PSCustomObject]@{
+            Enabled = $false
+            ObfuscatedMethodCount = 0
+            Skipped = @()
+            Reason = "DisabledBySwitch"
+        }
+    }
+
+    Ensure-MonoCecilLoaded
+    $rules = Get-ProtectionTargetRules -Path $TargetListPath
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $changed = $false
+    $tempPath = "$Path.control-flow.tmp"
+    $obfuscated = New-Object System.Collections.Generic.List[string]
+    $skipped = New-Object System.Collections.Generic.List[object]
+
+    try {
+        $module = $assembly.MainModule
+        $processorCountGetter = $module.ImportReference([Environment].GetProperty("ProcessorCount").GetGetMethod())
+        $invalidOperationCtor = $module.ImportReference([InvalidOperationException].GetConstructor([type[]]@([string])))
+
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            $typeName = $type.FullName -replace '/', '+'
+            foreach ($method in $type.Methods) {
+                $matched = $false
+                foreach ($rule in $rules) {
+                    if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
+                        $matched = $true
+                        break
+                    }
+                }
+                if (-not $matched) {
+                    continue
+                }
+
+                $methodKey = "$typeName|$($method.Name)"
+                if (-not (Test-CecilMethodIsInjectable -Method $method)) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "NotInjectable"
+                    })
+                    continue
+                }
+                if ($method.Body.ExceptionHandlers.Count -gt 0) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "HasExceptionHandlers"
+                    })
+                    continue
+                }
+
+                $processor = $method.Body.GetILProcessor()
+                $first = $method.Body.Instructions[0]
+                $stateStart = [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Nop)
+                $switchTargets = [Mono.Cecil.Cil.Instruction[]]@($first)
+
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $processorCountGetter))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Clt))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Brfalse, $stateStart))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldstr, "AvatarRecovery control-flow guard"))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Newobj, $invalidOperationCtor))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Throw))
+                $processor.InsertBefore($first, $stateStart)
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Switch, $switchTargets))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Br, $first))
+
+                $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 2)
+                [void]$obfuscated.Add($methodKey)
+                $changed = $true
+            }
+        }
+
+        if ($changed) {
+            $assembly.Write((ConvertTo-FullPath $tempPath))
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($changed) {
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    }
+
+    return [PSCustomObject]@{
+        Enabled = $true
+        TargetRuleCount = $rules.Count
+        ObfuscatedMethodCount = $obfuscated.Count
+        ObfuscatedMethods = @($obfuscated.ToArray())
+        Skipped = @($skipped.ToArray())
+    }
+}
+
 function New-ObfuscarConfig {
     param(
         [Parameter(Mandatory = $true)][string]$InputDll,
@@ -1598,6 +2254,10 @@ function Write-ProtectionBuildReport {
     param(
         [Parameter(Mandatory = $true)][object]$Scan,
         [Parameter(Mandatory = $true)][object]$PublicApiReport,
+        [Parameter(Mandatory = $true)][object]$RuntimeIntegritySourceReport,
+        [Parameter(Mandatory = $true)][object]$RuntimeIntegrityInjectionReport,
+        [Parameter(Mandatory = $true)][object]$RuntimeIntegritySidecarReport,
+        [Parameter(Mandatory = $true)][object]$ControlFlowObfuscationReport,
         [Parameter(Mandatory = $true)][string]$InputDll,
         [Parameter(Mandatory = $true)][string]$ObfuscatedDll,
         [Parameter(Mandatory = $true)][string]$SignedDll,
@@ -1621,12 +2281,15 @@ function Write-ProtectionBuildReport {
         Pipeline = @(
             "UnityCompile",
             "PublicApiAllowlist",
+            "RuntimeIntegrityGuardInjection",
+            "CecilControlFlowObfuscation",
             "Obfuscar",
             "CoreLibReferenceRepair",
             "UnityEditorWindowFieldCollisionCheck",
             "LeakCheck",
             "AuthenticodeSign",
             "SignatureVerify",
+            "RuntimeIntegritySidecar",
             "Zip",
             "ZipContentCheck",
             "Checksum",
@@ -1644,6 +2307,7 @@ function Write-ProtectionBuildReport {
             SuppressIldasm = $true
             ExclusionRuleCount = $skipRuleCount
         }
+        ControlFlowObfuscation = $ControlFlowObfuscationReport
         Metrics = [PSCustomObject]@{
             InputDllSize = (Get-Item -LiteralPath $InputDll).Length
             ObfuscatedDllSize = (Get-Item -LiteralPath $ObfuscatedDll).Length
@@ -1673,6 +2337,11 @@ function Write-ProtectionBuildReport {
             SignerSubject = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { "" }
             SignerThumbprint = if ($signature.SignerCertificate) { ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant() } else { "" }
             ExpectedThumbprint = $CodeSigningContext.ExpectedThumbprint
+        }
+        RuntimeIntegrity = [PSCustomObject]@{
+            Source = $RuntimeIntegritySourceReport
+            Injection = $RuntimeIntegrityInjectionReport
+            Sidecar = $RuntimeIntegritySidecarReport
         }
         LeakChecks = [PSCustomObject]@{
             StringHidingProbePlaintextAbsent = $true
@@ -1764,6 +2433,7 @@ Ensure-Directory $ProtectionRoot
 Ensure-Directory $PrivateBackupRoot
 Ensure-Directory $LocalPrivateBackupRoot
 $codeSigningContext = Get-CodeSigningContext
+$runtimeIntegritySourceReport = Ensure-RuntimeIntegrityGuardSource -Context $codeSigningContext
 
 $scan = Get-SourceScan -SourceRoot (Join-Path $SourcePackageRoot "Editor")
 $scanPath = Join-Path $PrivateBackupRoot "static-scan-$Version.json"
@@ -1804,6 +2474,21 @@ $publicApiReport = Test-PublicApiAllowlist `
     -DllPath $protectedInputDll `
     -AllowlistPath $PublicApiAllowlistPath `
     -AssemblySearchPaths $assemblySearchPaths
+$runtimeIntegrityInjectionReport = Inject-RuntimeIntegrityGuardCalls `
+    -Path $protectedInputDll `
+    -TargetListPath $RuntimeIntegrityGuardTargetsPath
+$runtimeIntegrityInjectionPath = Join-Path $PrivateBackupRoot "runtime-integrity-injection-$Version.json"
+$runtimeIntegrityInjectionReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $runtimeIntegrityInjectionPath -Encoding UTF8
+Copy-Item -LiteralPath $runtimeIntegrityInjectionPath -Destination $LocalPrivateBackupRoot -Force
+
+$controlFlowObfuscationReport = Invoke-CecilControlFlowObfuscation `
+    -Path $protectedInputDll `
+    -TargetListPath $ControlFlowObfuscationAllowlistPath
+$controlFlowReportPath = Join-Path $PrivateBackupRoot "cecil-control-flow-$Version.json"
+$controlFlowObfuscationReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $controlFlowReportPath -Encoding UTF8
+Copy-Item -LiteralPath $controlFlowReportPath -Destination $LocalPrivateBackupRoot -Force
+Test-BinaryLeak -Path $protectedInputDll
+
 $configPath = Join-Path $PrivateBackupRoot "obfuscar-$Version.xml"
 New-ObfuscarConfig -InputDll $protectedInputDll -OutputDir $outputDir -Scan $scan -AssemblySearchPaths $assemblySearchPaths -ConfigPath $configPath
 Copy-Item -LiteralPath $configPath -Destination $LocalPrivateBackupRoot -Force
@@ -1831,6 +2516,11 @@ Test-StringHidingProbeAbsent -Path $obfuscatedDll
 Invoke-CodeSign -Path $obfuscatedDll -Context $codeSigningContext
 Test-CodeSignature -Path $obfuscatedDll -Context $codeSigningContext
 Save-CodeSignatureReport -Path $obfuscatedDll -ReportName "signature-obfuscated-$Version.json" -Context $codeSigningContext
+$runtimeIntegritySidecarPath = Join-Path $outputDir $RuntimeIntegritySidecarFileName
+$runtimeIntegritySidecarReport = Write-RuntimeIntegritySidecar `
+    -DllPath $obfuscatedDll `
+    -SidecarPath $runtimeIntegritySidecarPath `
+    -Context $codeSigningContext
 Test-BinaryLeak -Path $obfuscatedDll
 Test-StringHidingProbeAbsent -Path $obfuscatedDll
 
@@ -1844,6 +2534,17 @@ Get-ChildItem -LiteralPath $outputDir -Force |
 Initialize-ProjectPackage
 $packagedDll = Join-Path $ProjectPackageRoot "Editor\$AssemblyFileName"
 Copy-Item -LiteralPath $obfuscatedDll -Destination $packagedDll -Force
+$packagedRuntimeIntegritySidecar = Join-Path $ProjectPackageRoot "Editor\$RuntimeIntegritySidecarFileName"
+if ($runtimeIntegritySidecarReport.Created) {
+    Copy-Item -LiteralPath $runtimeIntegritySidecarPath -Destination $packagedRuntimeIntegritySidecar -Force
+    Test-RuntimeIntegritySidecarFile `
+        -DllPath $packagedDll `
+        -SidecarPath $packagedRuntimeIntegritySidecar `
+        -ExpectedThumbprint $codeSigningContext.ExpectedThumbprint
+}
+elseif (Test-Path -LiteralPath $packagedRuntimeIntegritySidecar) {
+    Remove-Item -LiteralPath $packagedRuntimeIntegritySidecar -Force
+}
 Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Test-ForbiddenAssemblyReferences -Path $packagedDll
 Test-UnityEditorWindowFieldNameCollisions -Path $packagedDll -Scan $scan
@@ -1859,7 +2560,11 @@ Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Save-CodeSignatureReport -Path $packagedDll -ReportName "signature-packaged-$Version.json" -Context $codeSigningContext
 Test-BinaryLeak -Path $packagedDll
 Test-StringHidingProbeAbsent -Path $packagedDll
-Write-PublicChecksumManifest -ZipPath $zipPath -DllPath $packagedDll -Context $codeSigningContext
+Write-PublicChecksumManifest `
+    -ZipPath $zipPath `
+    -DllPath $packagedDll `
+    -RuntimeIntegritySidecarPath $packagedRuntimeIntegritySidecar `
+    -Context $codeSigningContext
 Write-PublicDetachedSignatures `
     -ZipPath $zipPath `
     -ChecksumPath (Join-Path $RepoRoot "checksums\$PackageId-$Version.sha256.txt") `
@@ -1869,6 +2574,10 @@ Test-PublicReleaseSecrets
 Write-ProtectionBuildReport `
     -Scan $scan `
     -PublicApiReport $publicApiReport `
+    -RuntimeIntegritySourceReport $runtimeIntegritySourceReport `
+    -RuntimeIntegrityInjectionReport $runtimeIntegrityInjectionReport `
+    -RuntimeIntegritySidecarReport $runtimeIntegritySidecarReport `
+    -ControlFlowObfuscationReport $controlFlowObfuscationReport `
     -InputDll $protectedInputDll `
     -ObfuscatedDll $obfuscatedDll `
     -SignedDll $packagedDll `

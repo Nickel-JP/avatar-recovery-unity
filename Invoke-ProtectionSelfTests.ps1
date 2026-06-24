@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.1.5",
+    [string]$Version = "1.1.14",
     [string]$PackageId = "com.nickel-jp.avatar-recovery"
 )
 
@@ -9,6 +9,7 @@ $RepoRoot = $PSScriptRoot
 $WorkRoot = Join-Path $RepoRoot ".work"
 $OutputRoot = Join-Path $WorkRoot "ProtectionSelfTests$($Version.Replace('.', ''))"
 $AssemblyFileName = "EditorTools.AvatarRecovery.Editor.dll"
+$RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
 $StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
 
 function ConvertTo-FullPath {
@@ -213,6 +214,90 @@ function Get-PackagedDllPath {
     }
 }
 
+function Get-PackagedRuntimeIntegritySidecarPath {
+    $candidate = Join-Path $RepoRoot ".work\Release$($Version.Replace('.', ''))\ProjectRoot\Packages\$PackageId\Editor\$RuntimeIntegritySidecarFileName"
+    if (Test-Path -LiteralPath $candidate) {
+        return $candidate
+    }
+
+    $zipPath = Join-Path $RepoRoot "packages\$PackageId-$Version.zip"
+    if (-not (Test-Path -LiteralPath $zipPath)) {
+        return ""
+    }
+
+    $extractRoot = Join-Path $OutputRoot "extract"
+    Ensure-Directory $extractRoot
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($zipPath)
+    try {
+        $entry = $archive.Entries |
+            Where-Object { ($_.FullName -replace '\\', '/') -eq "Editor/$RuntimeIntegritySidecarFileName" } |
+            Select-Object -First 1
+        if ($null -eq $entry) {
+            return ""
+        }
+
+        $sidecarPath = Join-Path $extractRoot $RuntimeIntegritySidecarFileName
+        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($entry, $sidecarPath, $true)
+        return $sidecarPath
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
+function Test-RuntimeIntegritySidecarFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)][string]$SidecarPath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($SidecarPath) -or -not (Test-Path -LiteralPath $SidecarPath)) {
+        throw "runtime integrity sidecar not found"
+    }
+
+    $sidecar = Get-Content -LiteralPath $SidecarPath -Raw | ConvertFrom-Json
+    if ($sidecar.format -ne "AvatarRecovery runtime integrity signature v1") {
+        throw "unsupported runtime integrity sidecar format"
+    }
+    if ($sidecar.algorithm -ne "RSA-SHA256-PKCS1") {
+        throw "unsupported runtime integrity sidecar algorithm"
+    }
+
+    $actualHash = (Get-FileHash -LiteralPath $DllPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ($actualHash -ne $sidecar.targetSha256) {
+        throw "runtime integrity sidecar target hash mismatch"
+    }
+
+    $certificateBytes = [Convert]::FromBase64String($sidecar.signerCertificateBase64)
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new($certificateBytes)
+    try {
+        $certificateThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+        if ($certificateThumbprint -ne (($sidecar.signerThumbprint -replace '\s', '').ToUpperInvariant())) {
+            throw "runtime integrity sidecar signer mismatch"
+        }
+
+        $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
+        if ($null -eq $publicKey) {
+            throw "runtime integrity public key was not available"
+        }
+
+        $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
+        $signatureBytes = [Convert]::FromBase64String($sidecar.signatureBase64)
+        $verified = $publicKey.VerifyData(
+            $targetBytes,
+            $signatureBytes,
+            [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+            [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+        if (-not $verified) {
+            throw "runtime integrity sidecar signature verification failed"
+        }
+    }
+    finally {
+        $certificate.Dispose()
+    }
+}
+
 function Flip-OneByte {
     param([Parameter(Mandatory = $true)][string]$Path)
     $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $Path))
@@ -300,6 +385,11 @@ $dllPath = Get-PackagedDllPath
     if ($ascii.Contains($StringHidingProbe) -or $unicode.Contains($StringHidingProbe)) {
         throw "string hiding marker is visible"
     }
+}))
+
+[void]$results.Add((Assert-Passes "J runtime integrity sidecar verifies when present" {
+    $sidecarPath = Get-PackagedRuntimeIntegritySidecarPath
+    Test-RuntimeIntegritySidecarFile -DllPath $dllPath -SidecarPath $sidecarPath
 }))
 
 $report = [PSCustomObject]@{
