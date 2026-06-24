@@ -1,11 +1,11 @@
 {
     "format":  "AvatarRecovery detached signature v1",
     "algorithm":  "RSA-SHA256-PKCS1",
-    "signedAtUtc":  "2026-06-24T09:12:54.5479516Z",
+    "signedAtUtc":  "2026-06-24T10:13:25.9257030Z",
     "target":  "packages/com.nickel-jp.avatar-recovery-1.1.14.zip",
-    "targetSha256":  "78e56e864524265a48546c9eeb9d098cd87245341c75a5105cda78acce6a0ac0",
+    "targetSha256":  "577143b76ca13b66cf2a442d2a1bcf337a32a6f71bbabd0514882ee14b62ca62",
     "signerCertificate":  "certificates/avatar-recovery-self-signed-code-signing.cer",
     "signerCertificatePem":  "certificates/avatar-recovery-self-signed-code-signing.cer.pem",
     "signerThumbprint":  "960260D2C8E24599FD3BC639F393733DE07997E2",
-    "signatureBase64":  "uNv+x2nAKEnmlAIRQc2iF6EZFAPgRjxLAM2UveeHvOx9jw3zvAdMEZKJRZLzzQa7UZ5VnWRr0kcCSvYPpLTM1sSj9HvDYXraZV6I/yU8o2Ya4/2IRpwaCdH/pRaMBtVQYxb1DyvRDGAsWhB0oinU+YpHPwYfsIerpjfRgQJAQkt3Zf8khBnexUiWXqGFK9JZFSPUmD7mr5AHvmkefY9GLXFa+gbvim40p48v+sSqb+16P04h1/DgBJRyjogcyuFoD2HlhgRHgnr5W+G1EmNrIRGaToTP1xNcj0XJz1Fhg5aFKo5qnAaVuPESfhOV6sMIOcF9UZXIZAtO4EgUV1voeNsJvwHsUfxu/10rgwBDAVG41bfMsToNMQPT8xq7t4mj1ncdBV8PRQXD7mLZAZpmsIau/LBWshKeqYUUE/c+jRJjLDgBy/qiKaFHTfmJG/Euz+lAUiV3847uQqwHun3Oj6FZGuNa861yqaQMu9lEIkUEoc/1ibmUgDGhBn67T6Rf"
+    "signatureBase64":  "r7lt8wy2tjXYarkiR51au9DtB7SNkQeaIWIs5CB2H4/Drb3Apf7nQ9wzEDDHNJQ+2GjqwYWfvYbQsRyv6xD7P7Plb7OiWKy44fEAJnyK90FUwWrH+Gaw2ILidkRyP+oDzMvxCQZrpcC43gWDJYo2a3qFvm1SQcvAbiRxI1Ed6aIiQFBk9gpbuSBcNrj0nZ7vsWompHXtYGyB5CsH3hlp8njaog1bI1vZtaYnHG1SkDCVjpD3Hwz0StmfFwKJAD0qNfR0fytUQzP8Fd8EENzxm2XzTsS/DvFZhlI8ZhEuJAiniD6G88krSX1N1WH8tLMHDJRgyh6Z/zzmN4MvG5TFHa4nwzk+aIv+VYyroIa2QUWpumd1B0EhbV8O1oapXpK4HlOIhEKSmR8ws52PtADyHShZwryMpjtl4JKa5mb1gnQtZxfgUGtJqo4Jruw7k0/tTcTul2vRDb2zUS4Spib1zR5n1d3HY05O6gb/m3mOFqUi5JYXT68XSz+Q3eYbAsWH"
 }

@@ -1,0 +1,8 @@
+# AvatarRecovery Cecil string encryption allowlist
+# Format: TypeFullName|MethodName
+# The pass runs after Obfuscar and resolves original names through Mapping.txt.
+
+EditorTools.AvatarRecovery.VrcaExtractor|Extract
+EditorTools.AvatarRecovery.VrcaLoader|TryLoadBundle
+EditorTools.AvatarRecovery.AvatarRecoveryIntegrityGuard|RefreshTrustCache
+EditorTools.AvatarRecovery.AvatarRecoveryEnvChecker|TouchStringHidingProbe

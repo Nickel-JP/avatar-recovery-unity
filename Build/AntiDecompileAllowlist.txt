@@ -1,0 +1,11 @@
+# AvatarRecovery anti-decompile metadata targets
+# Format: TypeFullName|MethodName (* = all methods in type)
+# This pass currently adjusts MaxStack only and runs before Obfuscar so original names can be matched.
+
+EditorTools.AvatarRecovery.RecoveryNameUtility|*
+EditorTools.AvatarRecovery.VrcaLoader|*
+EditorTools.AvatarRecovery.ShaderRemapper|*
+EditorTools.AvatarRecovery.VrcaExtractor|*
+EditorTools.AvatarRecovery.ScriptGuidFixer|*
+EditorTools.AvatarRecovery.ShaderGuidFixer|*
+EditorTools.AvatarRecovery.MissingScriptCleaner|*

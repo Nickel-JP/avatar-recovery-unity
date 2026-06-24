@@ -49,7 +49,13 @@ The following non-entry types were changed from public to internal because they 
 - Enum fields are skipped so stored/displayed enum names remain stable when `ToString()` or inspector names are used.
 - Protected DLL builds fail if an EditorWindow type contains duplicate field names after obfuscation. This guards `AvatarRecoveryWindow`, `ShaderListViewerWindow`, and `ViewAssetsInfoWindow` against Unity's `The same field name is serialized multiple times` warning.
 - Runtime integrity guard calls are injected only into `Build/RuntimeIntegrityGuardTargets.txt` entries before Obfuscar. The generated guard source is internal and uses Unity `InitializeOnLoad` to cache trust state without making a public API.
+- Anti-debug checks are injected only into `Build/AntiDebugTargets.txt` entries before Obfuscar. The injected exception message must stay generic and must not reveal that debugger detection occurred.
+- Cecil string encryption is limited to `Build/StringEncryptionAllowlist.txt` entries after Obfuscar and resolves original names through `Mapping.txt`. Obfuscar `HideStrings` is disabled when this pass is enabled so Obfuscar does not consume `ldstr` operands before the Cecil pass can encrypt them.
+- `AssetRipperBridge.Extract` is intentionally excluded from Cecil string encryption because its large literal set previously expanded IL enough to trigger an Obfuscar string-hiding null-reference failure in the pre-Obfuscar ordering. It remains protected by runtime integrity and anti-debug checks.
 - Cecil control-flow obfuscation is intentionally limited to `Build/ControlFlowObfuscationAllowlist.txt` entries and skips constructors, native/abstract methods, and methods with exception handlers. Problem methods should be removed from the allowlist rather than patched around ad hoc.
+- Anti-decompile metadata hardening is limited to `Build/AntiDecompileAllowlist.txt` entries and currently adjusts method MaxStack only. It runs before Obfuscar so original source type names can be matched safely.
+- `AssetRipperBridge` is intentionally excluded from anti-decompile MaxStack hardening because its large generated-style method graph triggers a Mono.Cecil metadata write failure after other IL protection passes. It still receives runtime integrity, anti-debug, and selected string encryption protection.
+- SignPath signing is opt-in through `-SigningMode SignPath` and requires external SignPath approval plus secrets. Self-signed signing remains the default fallback until that external chain is ready.
 
 ## Reflection And Serialization Contracts
 

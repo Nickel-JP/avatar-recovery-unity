@@ -1,0 +1,10 @@
+# AvatarRecovery anti-debug injection targets
+# Format: TypeFullName|MethodName
+# These entries are injected before Obfuscar, so names are original source names.
+
+EditorTools.AvatarRecovery.VrcaExtractor|Extract
+EditorTools.AvatarRecovery.AssetRipperBridge|Extract
+EditorTools.AvatarRecovery.VrcaLoader|TryLoadBundle
+EditorTools.AvatarRecovery.VrcaLoader|LoadAllGameObjects
+EditorTools.AvatarRecovery.ScriptGuidFixer|FixFolder
+EditorTools.AvatarRecovery.ShaderGuidFixer|FixFolder

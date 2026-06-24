@@ -392,6 +392,24 @@ $dllPath = Get-PackagedDllPath
     Test-RuntimeIntegritySidecarFile -DllPath $dllPath -SidecarPath $sidecarPath
 }))
 
+[void]$results.Add((Assert-Passes "K selected protection plaintext is not visible" {
+    $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $dllPath))
+    $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $blockedPlaintexts = @(
+        "Runtime environment verification failed",
+        "AvatarRecovery control-flow guard",
+        "runtime integrity sidecar was not found",
+        "runtime integrity signature verification failed"
+    )
+
+    foreach ($plaintext in $blockedPlaintexts) {
+        if ($ascii.Contains($plaintext) -or $unicode.Contains($plaintext)) {
+            throw "selected protection plaintext is visible: $plaintext"
+        }
+    }
+}))
+
 $report = [PSCustomObject]@{
     Version = $Version
     GeneratedAt = (Get-Date).ToString("o")

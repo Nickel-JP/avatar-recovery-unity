@@ -15,12 +15,22 @@
     [string]$CodeSigningCertificateStoreLocation = "CurrentUser",
     [string]$CodeSigningCertificateStoreName = "My",
     [string]$TimestampUrl = "http://timestamp.digicert.com",
+    [ValidateSet("SelfSigned", "SignPath", "Manual")]
+    [string]$SigningMode = "SelfSigned",
+    [string]$SignPathOrganizationId = $env:SIGNPATH_ORGANIZATION_ID,
+    [string]$SignPathProjectSlug = $env:SIGNPATH_PROJECT_SLUG,
+    [string]$SignPathSigningPolicySlug = $env:SIGNPATH_SIGNING_POLICY_SLUG,
+    [string]$SignPathApiToken = $env:SIGNPATH_API_TOKEN,
+    [string]$SignPathExpectedCertificateThumbprint = $env:SIGNPATH_CERTIFICATE_THUMBPRINT,
     [switch]$DisableSelfSignedCertificate,
     [switch]$TrustSelfSignedCertificateForAuthenticode,
     [switch]$SkipUnityCompile,
     [switch]$AllowUnsignedPackage,
     [switch]$DisableRuntimeIntegrityGuard,
-    [switch]$DisableCecilControlFlowObfuscation
+    [switch]$DisableAntiDebug,
+    [switch]$DisableCecilStringEncryption,
+    [switch]$DisableCecilControlFlowObfuscation,
+    [switch]$DisableAntiDecompile
 )
 
 $ErrorActionPreference = "Stop"
@@ -52,12 +62,17 @@ $PublicApiAllowlistPath = Join-Path $RepoRoot "Build\PublicApiAllowlist.txt"
 $ReflectionSerializationAllowlistPath = Join-Path $RepoRoot "Build\ReflectionSerializationAllowlist.txt"
 $BinaryLeakAllowlistPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
 $RuntimeIntegrityGuardTargetsPath = Join-Path $RepoRoot "Build\RuntimeIntegrityGuardTargets.txt"
+$AntiDebugTargetsPath = Join-Path $RepoRoot "Build\AntiDebugTargets.txt"
+$StringEncryptionAllowlistPath = Join-Path $RepoRoot "Build\StringEncryptionAllowlist.txt"
 $ControlFlowObfuscationAllowlistPath = Join-Path $RepoRoot "Build\ControlFlowObfuscationAllowlist.txt"
+$AntiDecompileAllowlistPath = Join-Path $RepoRoot "Build\AntiDecompileAllowlist.txt"
 $StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
 $SelfSignedCertificateSubject = "CN=Nickel-JP AvatarRecovery Self-Signed Code Signing"
 $RuntimeIntegrityGuardTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryIntegrityGuard"
 $RuntimeIntegrityGuardMethodName = "EnsureTrustedForRuntimeFeature"
 $RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
+$StringDecryptorTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryStringDecryptor"
+$StringDecryptorMethodName = "D"
 $UnityMagicMethods = @(
     "OnGUI",
     "OnEnable",
@@ -345,6 +360,24 @@ function Ensure-SelfSignedCodeSigningCertificate {
 }
 
 function Get-ConfiguredCertificateThumbprint {
+    if (-not [string]::IsNullOrWhiteSpace($CodeSigningCertificateThumbprint)) {
+        $script:CodeSigningMode = "CertificateStore"
+        $thumbprint = ($CodeSigningCertificateThumbprint -replace '\s', '').ToUpperInvariant()
+        $certPath = "Cert:\$CodeSigningCertificateStoreLocation\$CodeSigningCertificateStoreName\$thumbprint"
+        $cert = Get-Item -LiteralPath $certPath -ErrorAction SilentlyContinue
+        if ($null -eq $cert) {
+            throw "Code signing certificate was not found in ${CodeSigningCertificateStoreLocation}\${CodeSigningCertificateStoreName}: $thumbprint"
+        }
+        if (-not $cert.HasPrivateKey) {
+            throw "Code signing certificate does not have a private key: $thumbprint"
+        }
+        if (-not (Test-CertificateHasCodeSigningUsage -Certificate $cert)) {
+            throw "Certificate is not valid for code signing: $thumbprint"
+        }
+
+        return $thumbprint
+    }
+
     if (-not [string]::IsNullOrWhiteSpace($CodeSigningCertificatePath)) {
         $script:CodeSigningMode = "CertificateFile"
         if (-not (Test-Path $CodeSigningCertificatePath)) {
@@ -369,7 +402,38 @@ function Get-ConfiguredCertificateThumbprint {
             throw "Certificate is not valid for code signing."
         }
 
-        return $cert.Thumbprint
+        $thumbprint = ($cert.Thumbprint -replace '\s', '').ToUpperInvariant()
+        $storePath = "Cert:\$CodeSigningCertificateStoreLocation\$CodeSigningCertificateStoreName"
+        try {
+            $securePassword = if ([string]::IsNullOrEmpty($password)) {
+                $null
+            } else {
+                ConvertTo-SecureString -String $password -AsPlainText -Force
+            }
+
+            if ($null -eq $securePassword) {
+                Import-PfxCertificate `
+                    -FilePath (ConvertTo-FullPath $CodeSigningCertificatePath) `
+                    -CertStoreLocation $storePath | Out-Null
+            }
+            else {
+                Import-PfxCertificate `
+                    -FilePath (ConvertTo-FullPath $CodeSigningCertificatePath) `
+                    -CertStoreLocation $storePath `
+                    -Password $securePassword | Out-Null
+            }
+
+            $imported = Get-Item -LiteralPath (Join-Path $storePath $thumbprint) -ErrorAction SilentlyContinue
+            if ($null -ne $imported -and $imported.HasPrivateKey) {
+                $script:CodeSigningMode = "CertificateStore"
+            }
+        }
+        catch {
+            Write-Warning "PFX certificate could not be imported into the certificate store. Falling back to signtool /f mode: $($_.Exception.Message)"
+            $script:CodeSigningMode = "CertificateFile"
+        }
+
+        return $thumbprint
     }
 
     if ([string]::IsNullOrWhiteSpace($CodeSigningCertificateThumbprint)) {
@@ -379,22 +443,6 @@ function Get-ConfiguredCertificateThumbprint {
 
         throw "Code signing is required. Set -CodeSigningCertificateThumbprint or -CodeSigningCertificatePath, or set AVATAR_RECOVERY_CODE_SIGNING_THUMBPRINT / AVATAR_RECOVERY_CODE_SIGNING_CERT_PATH."
     }
-
-    $script:CodeSigningMode = "CertificateStore"
-    $thumbprint = ($CodeSigningCertificateThumbprint -replace '\s', '').ToUpperInvariant()
-    $certPath = "Cert:\$CodeSigningCertificateStoreLocation\$CodeSigningCertificateStoreName\$thumbprint"
-    $cert = Get-Item -LiteralPath $certPath -ErrorAction SilentlyContinue
-    if ($null -eq $cert) {
-        throw "Code signing certificate was not found in ${CodeSigningCertificateStoreLocation}\${CodeSigningCertificateStoreName}: $thumbprint"
-    }
-    if (-not $cert.HasPrivateKey) {
-        throw "Code signing certificate does not have a private key: $thumbprint"
-    }
-    if (-not (Test-CertificateHasCodeSigningUsage -Certificate $cert)) {
-        throw "Certificate is not valid for code signing: $thumbprint"
-    }
-
-    return $thumbprint
 }
 
 function Get-CodeSigningContext {
@@ -416,6 +464,7 @@ function Get-CodeSigningContext {
         SignTool = $signTool
         ExpectedThumbprint = $expectedThumbprint
         Mode = $script:CodeSigningMode
+        UseStore = ($script:CodeSigningMode -ne "CertificateFile")
     }
 }
 
@@ -426,6 +475,34 @@ function Invoke-CodeSign {
     )
 
     if (-not $Context.Required) {
+        return
+    }
+
+    if ($SigningMode -eq "SignPath") {
+        foreach ($requiredValue in @(
+            @{ Name = "SignPathOrganizationId"; Value = $SignPathOrganizationId },
+            @{ Name = "SignPathProjectSlug"; Value = $SignPathProjectSlug },
+            @{ Name = "SignPathSigningPolicySlug"; Value = $SignPathSigningPolicySlug },
+            @{ Name = "SignPathApiToken"; Value = $SignPathApiToken }
+        )) {
+            if ([string]::IsNullOrWhiteSpace($requiredValue.Value)) {
+                throw "SignPath signing requires -$($requiredValue.Name) or the matching SIGNPATH_* environment variable."
+            }
+        }
+
+        $command = Get-Command -Name Submit-SigningRequest -ErrorAction SilentlyContinue
+        if ($null -eq $command) {
+            throw "SignPath PowerShell command Submit-SigningRequest was not found. Install and import the SignPath module before using -SigningMode SignPath."
+        }
+
+        Submit-SigningRequest `
+            -OrganizationId $SignPathOrganizationId `
+            -ProjectSlug $SignPathProjectSlug `
+            -SigningPolicySlug $SignPathSigningPolicySlug `
+            -ApiToken $SignPathApiToken `
+            -InputArtifactPath (ConvertTo-FullPath $Path) `
+            -OutputArtifactPath (ConvertTo-FullPath $Path) `
+            -WaitForCompletion
         return
     }
 
@@ -442,7 +519,16 @@ function Invoke-CodeSign {
         [void]$arguments.Add("SHA256")
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($CodeSigningCertificatePath)) {
+    if ($Context.UseStore) {
+        [void]$arguments.Add("/s")
+        [void]$arguments.Add($CodeSigningCertificateStoreName)
+        if ($CodeSigningCertificateStoreLocation -eq "LocalMachine") {
+            [void]$arguments.Add("/sm")
+        }
+        [void]$arguments.Add("/sha1")
+        [void]$arguments.Add($Context.ExpectedThumbprint)
+    }
+    elseif (-not [string]::IsNullOrWhiteSpace($CodeSigningCertificatePath)) {
         [void]$arguments.Add("/f")
         [void]$arguments.Add((ConvertTo-FullPath $CodeSigningCertificatePath))
         $password = Get-CodeSigningPassword
@@ -489,8 +575,17 @@ function Test-CodeSignature {
     }
 
     $actualThumbprint = ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
-    if ($actualThumbprint -ne $Context.ExpectedThumbprint) {
+    $expectedAuthenticodeThumbprint = if ($SigningMode -eq "SignPath" -and -not [string]::IsNullOrWhiteSpace($SignPathExpectedCertificateThumbprint)) {
+        ($SignPathExpectedCertificateThumbprint -replace '\s', '').ToUpperInvariant()
+    } else {
+        $Context.ExpectedThumbprint
+    }
+    if (-not [string]::IsNullOrWhiteSpace($expectedAuthenticodeThumbprint) -and $actualThumbprint -ne $expectedAuthenticodeThumbprint) {
         throw "Unexpected signer certificate for ${Path}: $actualThumbprint"
+    }
+
+    if ($SigningMode -eq "SignPath" -and $signature.Status -ne "Valid") {
+        throw "SignPath certificate requires a full trust chain for ${Path}: $($signature.Status) $($signature.StatusMessage)"
     }
 
     if ($signature.Status -ne "Valid") {
@@ -968,6 +1063,71 @@ namespace EditorTools.AvatarRecovery
         SourcePath = ConvertTo-FullPath $sourcePath
         ExpectedThumbprint = $expectedThumbprint
         SidecarFileName = $RuntimeIntegritySidecarFileName
+    }
+}
+
+function Ensure-StringDecryptorSource {
+    $utilsDir = Join-Path $SourcePackageRoot "Editor\Utils"
+    Ensure-Directory $utilsDir
+
+    $sourcePath = Join-Path $utilsDir "AvatarRecoveryStringDecryptor.cs"
+    if ($DisableCecilStringEncryption) {
+        if (Test-Path -LiteralPath $sourcePath) {
+            Remove-Item -LiteralPath $sourcePath -Force
+        }
+        $script:StringEncryptionKeyBytes = $null
+        return [PSCustomObject]@{
+            Enabled = $false
+            SourcePath = ConvertTo-FullPath $sourcePath
+            KeyLength = 0
+            Reason = "DisabledBySwitch"
+        }
+    }
+
+    $keyBytes = [byte[]]::new(32)
+    $rngProvider = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $rngProvider.GetBytes($keyBytes)
+    }
+    finally {
+        $rngProvider.Dispose()
+    }
+    $script:StringEncryptionKeyBytes = $keyBytes
+    $keyLiteral = ($keyBytes | ForEach-Object { "0x{0:X2}" -f $_ }) -join ", "
+
+    $source = @"
+using System.Text;
+
+namespace EditorTools.AvatarRecovery
+{
+    internal static class AvatarRecoveryStringDecryptor
+    {
+        private static readonly byte[] _key = new byte[] { $keyLiteral };
+
+        internal static string D(byte[] encrypted)
+        {
+            if (encrypted == null || encrypted.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var result = new byte[encrypted.Length];
+            for (int i = 0; i < encrypted.Length; i++)
+            {
+                result[i] = (byte)((encrypted[i] ^ _key[i % _key.Length]) - (i & 0xFF));
+            }
+
+            return Encoding.UTF8.GetString(result);
+        }
+    }
+}
+"@
+
+    Write-TextUtf8NoBom -Path $sourcePath -Value $source
+    return [PSCustomObject]@{
+        Enabled = $true
+        SourcePath = ConvertTo-FullPath $sourcePath
+        KeyLength = $keyBytes.Length
     }
 }
 
@@ -1817,6 +1977,111 @@ function Inject-RuntimeIntegrityGuardCalls {
     }
 }
 
+function Inject-AntiDebugChecks {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$TargetListPath
+    )
+
+    if ($DisableAntiDebug) {
+        return [PSCustomObject]@{
+            Enabled = $false
+            InjectedMethodCount = 0
+            Skipped = @()
+            Reason = "DisabledBySwitch"
+        }
+    }
+
+    Ensure-MonoCecilLoaded
+    $rules = Get-ProtectionTargetRules -Path $TargetListPath
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $changed = $false
+    $tempPath = "$Path.anti-debug.tmp"
+    $injected = New-Object System.Collections.Generic.List[string]
+    $skipped = New-Object System.Collections.Generic.List[object]
+
+    try {
+        $module = $assembly.MainModule
+        $isAttachedGetter = $module.ImportReference([System.Diagnostics.Debugger].GetProperty("IsAttached").GetGetMethod())
+        $invalidOperationCtor = $module.ImportReference([InvalidOperationException].GetConstructor([System.Type]::EmptyTypes))
+
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            $typeName = $type.FullName -replace '/', '+'
+            foreach ($method in $type.Methods) {
+                $matched = $false
+                foreach ($rule in $rules) {
+                    if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
+                        $matched = $true
+                        break
+                    }
+                }
+                if (-not $matched) {
+                    continue
+                }
+
+                $methodKey = "$typeName|$($method.Name)"
+                if (-not (Test-CecilMethodIsInjectable -Method $method)) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "NotInjectable"
+                    })
+                    continue
+                }
+
+                $alreadyInjected = $false
+                foreach ($instruction in $method.Body.Instructions) {
+                    if ($instruction.OpCode.Code -eq [Mono.Cecil.Cil.Code]::Call -and
+                        $null -ne $instruction.Operand -and
+                        $instruction.Operand.ToString().Contains("System.Diagnostics.Debugger::get_IsAttached")) {
+                        $alreadyInjected = $true
+                        break
+                    }
+                }
+                if ($alreadyInjected) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "AlreadyInjected"
+                    })
+                    continue
+                }
+
+                $processor = $method.Body.GetILProcessor()
+                $first = $method.Body.Instructions[0]
+                $skipLabel = [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Nop)
+
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $isAttachedGetter))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Brfalse, $skipLabel))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Newobj, $invalidOperationCtor))
+                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Throw))
+                $processor.InsertBefore($first, $skipLabel)
+
+                $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 2)
+                [void]$injected.Add($methodKey)
+                $changed = $true
+            }
+        }
+
+        if ($changed) {
+            $assembly.Write((ConvertTo-FullPath $tempPath))
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($changed) {
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    }
+
+    return [PSCustomObject]@{
+        Enabled = $true
+        TargetRuleCount = $rules.Count
+        InjectedMethodCount = $injected.Count
+        InjectedMethods = @($injected.ToArray())
+        Skipped = @($skipped.ToArray())
+    }
+}
+
 function Invoke-CecilControlFlowObfuscation {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -1837,13 +2102,30 @@ function Invoke-CecilControlFlowObfuscation {
     $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
     $changed = $false
     $tempPath = "$Path.control-flow.tmp"
-    $obfuscated = New-Object System.Collections.Generic.List[string]
+    $obfuscated = New-Object System.Collections.Generic.List[object]
     $skipped = New-Object System.Collections.Generic.List[object]
 
     try {
         $module = $assembly.MainModule
         $processorCountGetter = $module.ImportReference([Environment].GetProperty("ProcessorCount").GetGetMethod())
-        $invalidOperationCtor = $module.ImportReference([InvalidOperationException].GetConstructor([type[]]@([string])))
+        $tickCountGetter = $module.ImportReference([Environment].GetProperty("TickCount").GetGetMethod())
+        $threadIdGetter = $module.ImportReference([Environment].GetProperty("CurrentManagedThreadId").GetGetMethod())
+        $invalidOperationCtor = $module.ImportReference([InvalidOperationException].GetConstructor([System.Type]::EmptyTypes))
+        $predicatePatterns = @(
+            "ProcessorCountLtZero",
+            "TickCountEqMinValueAndProcessorCountLtZero",
+            "ProcessorCountMulZeroNeZero",
+            "ThreadIdLtZero"
+        )
+        $seedBytes = [byte[]]::new(4)
+        $rngProvider = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+        try {
+            $rngProvider.GetBytes($seedBytes)
+        }
+        finally {
+            $rngProvider.Dispose()
+        }
+        $rng = [System.Random]::new([BitConverter]::ToInt32($seedBytes, 0))
 
         foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
             $typeName = $type.FullName -replace '/', '+'
@@ -1877,23 +2159,62 @@ function Invoke-CecilControlFlowObfuscation {
 
                 $processor = $method.Body.GetILProcessor()
                 $first = $method.Body.Instructions[0]
+                $pattern = $predicatePatterns[$rng.Next($predicatePatterns.Count)]
                 $stateStart = [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Nop)
-                $switchTargets = [Mono.Cecil.Cil.Instruction[]]@($first)
+                $throwNew = [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Newobj, $invalidOperationCtor)
+                $throwInstruction = [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Throw)
+                $deadLabel1 = [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Br, $throwNew)
+                $deadLabel2 = [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Br, $throwNew)
+                $switchTargets = [Mono.Cecil.Cil.Instruction[]]@($first, $deadLabel1, $deadLabel2)
 
-                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $processorCountGetter))
-                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
-                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Clt))
+                switch ($pattern) {
+                    "ProcessorCountLtZero" {
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $processorCountGetter))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Clt))
+                    }
+                    "TickCountEqMinValueAndProcessorCountLtZero" {
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $tickCountGetter))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4, [int]::MinValue))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ceq))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $processorCountGetter))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Clt))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::And))
+                    }
+                    "ProcessorCountMulZeroNeZero" {
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $processorCountGetter))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Mul))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ceq))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ceq))
+                    }
+                    "ThreadIdLtZero" {
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $threadIdGetter))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
+                        $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Clt))
+                    }
+                    default {
+                        throw "Unknown control-flow predicate pattern: $pattern"
+                    }
+                }
                 $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Brfalse, $stateStart))
-                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldstr, "AvatarRecovery control-flow guard"))
-                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Newobj, $invalidOperationCtor))
-                $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Throw))
+                $processor.InsertBefore($first, $throwNew)
+                $processor.InsertBefore($first, $throwInstruction)
                 $processor.InsertBefore($first, $stateStart)
                 $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4_0))
                 $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Switch, $switchTargets))
                 $processor.InsertBefore($first, [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Br, $first))
+                $processor.InsertBefore($first, $deadLabel1)
+                $processor.InsertBefore($first, $deadLabel2)
 
-                $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 2)
-                [void]$obfuscated.Add($methodKey)
+                $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 3)
+                [void]$obfuscated.Add([PSCustomObject]@{
+                    Method = $methodKey
+                    PredicatePattern = $pattern
+                })
                 $changed = $true
             }
         }
@@ -1919,6 +2240,349 @@ function Invoke-CecilControlFlowObfuscation {
     }
 }
 
+function ConvertTo-EncryptedStringBytes {
+    param(
+        [Parameter(Mandatory = $true)][string]$Value,
+        [Parameter(Mandatory = $true)][byte[]]$Key
+    )
+
+    $plainBytes = [System.Text.Encoding]::UTF8.GetBytes($Value)
+    $encrypted = [byte[]]::new($plainBytes.Length)
+    for ($i = 0; $i -lt $plainBytes.Length; $i++) {
+        $encrypted[$i] = (($plainBytes[$i] + ($i -band 0xFF)) -band 0xFF) -bxor $Key[$i % $Key.Length]
+    }
+
+    return $encrypted
+}
+
+function Get-ObfuscarMappedStringEncryptionTargets {
+    param(
+        [Parameter(Mandatory = $true)][string]$MappingPath,
+        [Parameter(Mandatory = $true)][object[]]$Rules
+    )
+
+    $targets = New-Object System.Collections.Generic.List[object]
+    if ([string]::IsNullOrWhiteSpace($MappingPath) -or -not (Test-Path -LiteralPath $MappingPath)) {
+        return @($targets.ToArray())
+    }
+
+    $currentOriginalType = ""
+    $currentObfuscatedType = ""
+    foreach ($line in Get-Content -LiteralPath $MappingPath) {
+        $typeMatch = [regex]::Match($line, '^\[[^\]]+\](?<Original>[^ ]+) -> \[[^\]]+\](?<Obfuscated>[^ ]+)$')
+        if ($typeMatch.Success) {
+            $currentOriginalType = $typeMatch.Groups["Original"].Value -replace '/', '+'
+            $currentObfuscatedType = $typeMatch.Groups["Obfuscated"].Value -replace '/', '+'
+            continue
+        }
+
+        if ([string]::IsNullOrWhiteSpace($currentOriginalType) -or [string]::IsNullOrWhiteSpace($currentObfuscatedType)) {
+            continue
+        }
+
+        $methodMatch = [regex]::Match($line, '^\s+\[[^\]]+\](?<OriginalType>[^:]+)::(?<OriginalMethod>[^\[]+)\[(?<ParameterCount>\d+)\].* -> (?<ObfuscatedMethod>\S+)$')
+        if (-not $methodMatch.Success) {
+            continue
+        }
+
+        $originalType = $methodMatch.Groups["OriginalType"].Value -replace '/', '+'
+        $originalMethod = $methodMatch.Groups["OriginalMethod"].Value
+        foreach ($rule in $Rules) {
+            if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $originalType -MethodName $originalMethod) {
+                [void]$targets.Add([PSCustomObject]@{
+                    Type = $currentObfuscatedType
+                    Method = $methodMatch.Groups["ObfuscatedMethod"].Value
+                    ParameterCount = [int]$methodMatch.Groups["ParameterCount"].Value
+                    Original = "$originalType|$originalMethod"
+                })
+                break
+            }
+        }
+    }
+
+    return @($targets.ToArray())
+}
+
+function Invoke-CecilStringEncryption {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$TargetListPath,
+        [Parameter(Mandatory = $true)][object]$SourceReport,
+        [AllowNull()][string]$MappingPath = ""
+    )
+
+    if ($DisableCecilStringEncryption) {
+        return [PSCustomObject]@{
+            Enabled = $false
+            EncryptedStringCount = 0
+            Skipped = @()
+            Reason = "DisabledBySwitch"
+        }
+    }
+    if ($null -eq $script:StringEncryptionKeyBytes -or $script:StringEncryptionKeyBytes.Length -eq 0) {
+        throw "String encryption key was not initialized."
+    }
+
+    Ensure-MonoCecilLoaded
+    $rules = Get-ProtectionTargetRules -Path $TargetListPath
+    $mappedTargets = Get-ObfuscarMappedStringEncryptionTargets -MappingPath $MappingPath -Rules $rules
+    if (-not [string]::IsNullOrWhiteSpace($MappingPath) -and
+        (Test-Path -LiteralPath $MappingPath) -and
+        $rules.Count -gt 0 -and
+        $mappedTargets.Count -eq 0) {
+        throw "String encryption mapping produced no targets from allowlist: $MappingPath"
+    }
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $changed = $false
+    $tempPath = "$Path.string-encryption.tmp"
+    $encryptedMethods = New-Object System.Collections.Generic.List[object]
+    $skipped = New-Object System.Collections.Generic.List[object]
+
+    try {
+        $module = $assembly.MainModule
+        $decryptorType = Get-CecilTypeDefinitions -Assembly $assembly |
+            Where-Object { ($_.FullName -replace '/', '+') -eq $StringDecryptorTypeName } |
+            Select-Object -First 1
+        if ($null -eq $decryptorType) {
+            throw "String decryptor type was not found in compiled DLL: $StringDecryptorTypeName"
+        }
+
+        $decryptorMethod = $decryptorType.Methods |
+            Where-Object { $_.Name -eq $StringDecryptorMethodName -and $_.Parameters.Count -eq 1 } |
+            Select-Object -First 1
+        if ($null -eq $decryptorMethod) {
+            throw "String decryptor method was not found: $StringDecryptorTypeName.$StringDecryptorMethodName"
+        }
+
+        $decryptorReference = $module.ImportReference($decryptorMethod)
+        $byteTypeReference = $module.TypeSystem.Byte
+
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            $typeName = $type.FullName -replace '/', '+'
+            foreach ($method in $type.Methods) {
+                $matched = $false
+                $matchedOriginal = "$typeName|$($method.Name)"
+                if ($mappedTargets.Count -gt 0) {
+                    foreach ($target in $mappedTargets) {
+                        if ([string]::Equals($typeName, $target.Type, [StringComparison]::Ordinal) -and
+                            [string]::Equals($method.Name, $target.Method, [StringComparison]::Ordinal) -and
+                            $method.Parameters.Count -eq $target.ParameterCount) {
+                            $matched = $true
+                            $matchedOriginal = $target.Original
+                            break
+                        }
+                    }
+                }
+                else {
+                    foreach ($rule in $rules) {
+                        if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
+                            $matched = $true
+                            break
+                        }
+                    }
+                }
+                if (-not $matched) {
+                    continue
+                }
+
+                $methodKey = "$typeName|$($method.Name)"
+                if (-not (Test-CecilMethodIsInjectable -Method $method)) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "NotInjectable"
+                    })
+                    continue
+                }
+
+                $alreadyEncrypted = $false
+                foreach ($instruction in $method.Body.Instructions) {
+                    if ($instruction.OpCode.Code -eq [Mono.Cecil.Cil.Code]::Call -and
+                        $null -ne $instruction.Operand -and
+                        $instruction.Operand.FullName -eq $decryptorReference.FullName) {
+                        $alreadyEncrypted = $true
+                        break
+                    }
+                }
+                if ($alreadyEncrypted) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "AlreadyEncrypted"
+                    })
+                    continue
+                }
+
+                $ldstrInstructions = @(
+                    $method.Body.Instructions |
+                        Where-Object {
+                            $_.OpCode.Code -eq [Mono.Cecil.Cil.Code]::Ldstr -and
+                            $null -ne $_.Operand -and
+                            -not [string]::IsNullOrEmpty([string]$_.Operand)
+                        }
+                )
+                if ($ldstrInstructions.Count -eq 0) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "NoStringLiterals"
+                    })
+                    continue
+                }
+
+                $processor = $method.Body.GetILProcessor()
+                $encryptedStringCount = 0
+                foreach ($instruction in $ldstrInstructions) {
+                    $plainText = [string]$instruction.Operand
+                    $encryptedBytes = ConvertTo-EncryptedStringBytes -Value $plainText -Key $script:StringEncryptionKeyBytes
+                    if ($encryptedBytes.Length -eq 0) {
+                        continue
+                    }
+
+                    $instruction.OpCode = [Mono.Cecil.Cil.OpCodes]::Ldc_I4
+                    $instruction.Operand = [int]$encryptedBytes.Length
+                    $cursor = $instruction
+                    $tail = New-Object System.Collections.Generic.List[object]
+                    [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Newarr, $byteTypeReference))
+                    for ($i = 0; $i -lt $encryptedBytes.Length; $i++) {
+                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Dup))
+                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4, [int]$i))
+                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ldc_I4, [int]$encryptedBytes[$i]))
+                        [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Stelem_I1))
+                    }
+                    [void]$tail.Add([Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Call, $decryptorReference))
+
+                    foreach ($newInstruction in $tail) {
+                        $processor.InsertAfter($cursor, $newInstruction)
+                        $cursor = $newInstruction
+                    }
+
+                    $encryptedStringCount++
+                }
+
+                if ($encryptedStringCount -gt 0) {
+                    $method.Body.MaxStackSize = [Math]::Max($method.Body.MaxStackSize, 4)
+                    [void]$encryptedMethods.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        OriginalMethod = $matchedOriginal
+                        EncryptedStringCount = $encryptedStringCount
+                    })
+                    $changed = $true
+                }
+            }
+        }
+
+        if ($changed) {
+            $assembly.Write((ConvertTo-FullPath $tempPath))
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($changed) {
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    }
+
+    $totalCount = 0
+    foreach ($entry in $encryptedMethods) {
+        $totalCount += [int]$entry.EncryptedStringCount
+    }
+
+    return [PSCustomObject]@{
+        Enabled = $true
+        TargetRuleCount = $rules.Count
+        MappedTargetCount = $mappedTargets.Count
+        EncryptedMethodCount = $encryptedMethods.Count
+        EncryptedStringCount = $totalCount
+        Source = $SourceReport
+        EncryptedMethods = @($encryptedMethods.ToArray())
+        Skipped = @($skipped.ToArray())
+    }
+}
+
+function Invoke-CecilAntiDecompile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$TargetListPath
+    )
+
+    if ($DisableAntiDecompile) {
+        return [PSCustomObject]@{
+            Enabled = $false
+            ProcessedTypeCount = 0
+            Reason = "DisabledBySwitch"
+        }
+    }
+
+    Ensure-MonoCecilLoaded
+    $rules = Get-ProtectionTargetRules -Path $TargetListPath
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $changed = $false
+    $tempPath = "$Path.anti-decompile.tmp"
+    $processed = New-Object System.Collections.Generic.List[string]
+    $skipped = New-Object System.Collections.Generic.List[object]
+    $adjustedMethodCount = 0
+
+    try {
+        foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
+            $typeName = $type.FullName -replace '/', '+'
+            $typeMatched = $false
+            foreach ($rule in $rules) {
+                if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName "*") {
+                    $typeMatched = $true
+                    break
+                }
+            }
+            if (-not $typeMatched) {
+                continue
+            }
+
+            $methodCountForType = 0
+            foreach ($method in $type.Methods) {
+                if (-not $method.HasBody) {
+                    continue
+                }
+                if ($method.Body.Instructions.Count -eq 0) {
+                    continue
+                }
+
+                $method.Body.MaxStackSize = [Math]::Min([Math]::Max($method.Body.MaxStackSize + 2, 4), 16)
+                $methodCountForType++
+                $adjustedMethodCount++
+            }
+
+            if ($methodCountForType -gt 0) {
+                [void]$processed.Add($typeName)
+                $changed = $true
+            }
+            else {
+                [void]$skipped.Add([PSCustomObject]@{
+                    Type = $typeName
+                    Reason = "NoMethodBodies"
+                })
+            }
+        }
+
+        if ($changed) {
+            $assembly.Write((ConvertTo-FullPath $tempPath))
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($changed) {
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    }
+
+    return [PSCustomObject]@{
+        Enabled = $true
+        TargetRuleCount = $rules.Count
+        ProcessedTypeCount = $processed.Count
+        AdjustedMethodCount = $adjustedMethodCount
+        ProcessedTypes = @($processed.ToArray())
+        Skipped = @($skipped.ToArray())
+    }
+}
+
 function New-ObfuscarConfig {
     param(
         [Parameter(Mandatory = $true)][string]$InputDll,
@@ -1935,7 +2599,8 @@ function New-ObfuscarConfig {
     [void]$lines.Add("  <Var name=""OutPath"" value=""$(Get-XmlEscaped $OutputDir)"" />")
     [void]$lines.Add('  <Var name="KeepPublicApi" value="true" />')
     [void]$lines.Add('  <Var name="HidePrivateApi" value="true" />')
-    [void]$lines.Add('  <Var name="HideStrings" value="true" />')
+    $hideStrings = if ($DisableCecilStringEncryption) { "true" } else { "false" }
+    [void]$lines.Add("  <Var name=""HideStrings"" value=""$hideStrings"" />")
     [void]$lines.Add('  <Var name="RenameProperties" value="false" />')
     [void]$lines.Add('  <Var name="RenameEvents" value="false" />')
     [void]$lines.Add('  <Var name="ReuseNames" value="true" />')
@@ -1967,6 +2632,10 @@ function New-ObfuscarConfig {
 
     foreach ($typeName in $Scan.EnumTypes) {
         [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $typeName)"" skipFields=""true"" />")
+    }
+
+    if (-not $DisableCecilStringEncryption) {
+        [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $StringDecryptorTypeName)"" skipMethods=""true"" skipProperties=""true"" skipFields=""true"" skipEvents=""true"" />")
     }
 
     [void]$lines.Add('  </Module>')
@@ -2072,7 +2741,7 @@ function Test-StringHidingProbeAbsent {
     $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
     $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
     if ($ascii.Contains($StringHidingProbe) -or $unicode.Contains($StringHidingProbe)) {
-        throw "Obfuscar HideStrings が有効に機能していません。平文マーカーが残っています: $StringHidingProbe"
+        throw "String hiding protection did not remove the plaintext marker: $StringHidingProbe"
     }
 }
 
@@ -2250,12 +2919,65 @@ function Test-PublicReleaseSecrets {
     }
 }
 
+function Get-UnityVersionLabel {
+    $match = [regex]::Match($UnityExe, '\\Editor\\([^\\]+)\\Editor\\Unity\.exe$', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    if ($match.Success) {
+        return $match.Groups[1].Value
+    }
+
+    try {
+        $versionOutput = & $UnityExe -version 2>$null | Select-Object -First 1
+        if (-not [string]::IsNullOrWhiteSpace($versionOutput)) {
+            return [string]$versionOutput
+        }
+    }
+    catch {
+        return ""
+    }
+
+    return ""
+}
+
+function Get-BuildEnvironmentReport {
+    Ensure-MonoCecilLoaded
+
+    $gitCommit = git -C $RepoRoot rev-parse HEAD 2>$null
+    $gitBranch = git -C $RepoRoot rev-parse --abbrev-ref HEAD 2>$null
+    $gitDirty = ((git -C $RepoRoot status --porcelain 2>$null | Measure-Object).Count -gt 0)
+    $dotNetVersion = try {
+        [System.Runtime.InteropServices.RuntimeInformation]::FrameworkDescription
+    }
+    catch {
+        [Environment]::Version.ToString()
+    }
+
+    return [PSCustomObject]@{
+        MachineName = [Environment]::MachineName
+        OSVersion = [Environment]::OSVersion.VersionString
+        ProcessorArchitecture = [Environment]::GetEnvironmentVariable("PROCESSOR_ARCHITECTURE")
+        DotNetVersion = $dotNetVersion
+        PowerShellVersion = $PSVersionTable.PSVersion.ToString()
+        UnityVersion = Get-UnityVersionLabel
+        ObfuscarVersion = $ObfuscarToolVersion
+        MonoCecilVersion = ([Mono.Cecil.AssemblyDefinition].Assembly.GetName().Version.ToString())
+        BuildTimestampUtc = [DateTime]::UtcNow.ToString("o")
+        TimeZone = [TimeZoneInfo]::Local.Id
+        CI = if ($env:CI) { $true } else { $false }
+        GitCommit = if ($gitCommit) { [string]$gitCommit } else { "" }
+        GitBranch = if ($gitBranch) { [string]$gitBranch } else { "" }
+        GitDirty = $gitDirty
+    }
+}
+
 function Write-ProtectionBuildReport {
     param(
         [Parameter(Mandatory = $true)][object]$Scan,
         [Parameter(Mandatory = $true)][object]$PublicApiReport,
         [Parameter(Mandatory = $true)][object]$RuntimeIntegritySourceReport,
         [Parameter(Mandatory = $true)][object]$RuntimeIntegrityInjectionReport,
+        [Parameter(Mandatory = $true)][object]$AntiDebugReport,
+        [Parameter(Mandatory = $true)][object]$StringEncryptionReport,
+        [Parameter(Mandatory = $true)][object]$AntiDecompileReport,
         [Parameter(Mandatory = $true)][object]$RuntimeIntegritySidecarReport,
         [Parameter(Mandatory = $true)][object]$ControlFlowObfuscationReport,
         [Parameter(Mandatory = $true)][string]$InputDll,
@@ -2282,8 +3004,11 @@ function Write-ProtectionBuildReport {
             "UnityCompile",
             "PublicApiAllowlist",
             "RuntimeIntegrityGuardInjection",
+            "AntiDebugInjection",
             "CecilControlFlowObfuscation",
+            "AntiDecompileMetadata",
             "Obfuscar",
+            "CecilStringEncryption",
             "CoreLibReferenceRepair",
             "UnityEditorWindowFieldCollisionCheck",
             "LeakCheck",
@@ -2300,14 +3025,19 @@ function Write-ProtectionBuildReport {
         Obfuscar = [PSCustomObject]@{
             KeepPublicApi = $true
             HidePrivateApi = $true
-            HideStrings = $true
+            HideStrings = [bool]$DisableCecilStringEncryption
+            StringProtectionProvider = if ($DisableCecilStringEncryption) { "ObfuscarHideStrings" } else { "CecilStringEncryption" }
             RenameProperties = $false
             RenameEvents = $false
             UseUnicodeNames = $false
             SuppressIldasm = $true
             ExclusionRuleCount = $skipRuleCount
         }
+        BuildEnvironment = Get-BuildEnvironmentReport
         ControlFlowObfuscation = $ControlFlowObfuscationReport
+        AntiDebug = $AntiDebugReport
+        StringEncryption = $StringEncryptionReport
+        AntiDecompile = $AntiDecompileReport
         Metrics = [PSCustomObject]@{
             InputDllSize = (Get-Item -LiteralPath $InputDll).Length
             ObfuscatedDllSize = (Get-Item -LiteralPath $ObfuscatedDll).Length
@@ -2334,9 +3064,12 @@ function Write-ProtectionBuildReport {
         }
         Authenticode = [PSCustomObject]@{
             Status = [string]$signature.Status
+            SigningMode = $SigningMode
+            CertificateContextMode = $CodeSigningContext.Mode
             SignerSubject = if ($signature.SignerCertificate) { $signature.SignerCertificate.Subject } else { "" }
             SignerThumbprint = if ($signature.SignerCertificate) { ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant() } else { "" }
             ExpectedThumbprint = $CodeSigningContext.ExpectedThumbprint
+            SignPathExpectedThumbprint = if ($SigningMode -eq "SignPath") { (($SignPathExpectedCertificateThumbprint -replace '\s', '').ToUpperInvariant()) } else { "" }
         }
         RuntimeIntegrity = [PSCustomObject]@{
             Source = $RuntimeIntegritySourceReport
@@ -2434,6 +3167,7 @@ Ensure-Directory $PrivateBackupRoot
 Ensure-Directory $LocalPrivateBackupRoot
 $codeSigningContext = Get-CodeSigningContext
 $runtimeIntegritySourceReport = Ensure-RuntimeIntegrityGuardSource -Context $codeSigningContext
+$stringDecryptorSourceReport = Ensure-StringDecryptorSource
 
 $scan = Get-SourceScan -SourceRoot (Join-Path $SourcePackageRoot "Editor")
 $scanPath = Join-Path $PrivateBackupRoot "static-scan-$Version.json"
@@ -2481,12 +3215,26 @@ $runtimeIntegrityInjectionPath = Join-Path $PrivateBackupRoot "runtime-integrity
 $runtimeIntegrityInjectionReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $runtimeIntegrityInjectionPath -Encoding UTF8
 Copy-Item -LiteralPath $runtimeIntegrityInjectionPath -Destination $LocalPrivateBackupRoot -Force
 
+$antiDebugReport = Inject-AntiDebugChecks `
+    -Path $protectedInputDll `
+    -TargetListPath $AntiDebugTargetsPath
+$antiDebugReportPath = Join-Path $PrivateBackupRoot "anti-debug-$Version.json"
+$antiDebugReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $antiDebugReportPath -Encoding UTF8
+Copy-Item -LiteralPath $antiDebugReportPath -Destination $LocalPrivateBackupRoot -Force
+
 $controlFlowObfuscationReport = Invoke-CecilControlFlowObfuscation `
     -Path $protectedInputDll `
     -TargetListPath $ControlFlowObfuscationAllowlistPath
 $controlFlowReportPath = Join-Path $PrivateBackupRoot "cecil-control-flow-$Version.json"
 $controlFlowObfuscationReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $controlFlowReportPath -Encoding UTF8
 Copy-Item -LiteralPath $controlFlowReportPath -Destination $LocalPrivateBackupRoot -Force
+
+$antiDecompileReport = Invoke-CecilAntiDecompile `
+    -Path $protectedInputDll `
+    -TargetListPath $AntiDecompileAllowlistPath
+$antiDecompileReportPath = Join-Path $PrivateBackupRoot "anti-decompile-$Version.json"
+$antiDecompileReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $antiDecompileReportPath -Encoding UTF8
+Copy-Item -LiteralPath $antiDecompileReportPath -Destination $LocalPrivateBackupRoot -Force
 Test-BinaryLeak -Path $protectedInputDll
 
 $configPath = Join-Path $PrivateBackupRoot "obfuscar-$Version.xml"
@@ -2502,6 +3250,18 @@ $obfuscatedDll = Join-Path $outputDir $AssemblyFileName
 if (-not (Test-Path $obfuscatedDll)) {
     throw "Obfuscated DLL was not found: $obfuscatedDll"
 }
+
+$stringEncryptionReport = Invoke-CecilStringEncryption `
+    -Path $obfuscatedDll `
+    -TargetListPath $StringEncryptionAllowlistPath `
+    -SourceReport $stringDecryptorSourceReport `
+    -MappingPath (Join-Path $outputDir "Mapping.txt")
+if (-not $DisableCecilStringEncryption -and [int]$stringEncryptionReport.EncryptedStringCount -le 0) {
+    throw "Cecil string encryption did not encrypt any string literals."
+}
+$stringEncryptionReportPath = Join-Path $PrivateBackupRoot "cecil-string-encryption-$Version.json"
+$stringEncryptionReport | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $stringEncryptionReportPath -Encoding UTF8
+Copy-Item -LiteralPath $stringEncryptionReportPath -Destination $LocalPrivateBackupRoot -Force
 
 $repairedCoreLibReferences = Repair-SystemPrivateCoreLibReference -Path $obfuscatedDll
 Write-Host "System.Private.CoreLib references repaired after Obfuscar: $repairedCoreLibReferences"
@@ -2576,6 +3336,9 @@ Write-ProtectionBuildReport `
     -PublicApiReport $publicApiReport `
     -RuntimeIntegritySourceReport $runtimeIntegritySourceReport `
     -RuntimeIntegrityInjectionReport $runtimeIntegrityInjectionReport `
+    -AntiDebugReport $antiDebugReport `
+    -StringEncryptionReport $stringEncryptionReport `
+    -AntiDecompileReport $antiDecompileReport `
     -RuntimeIntegritySidecarReport $runtimeIntegritySidecarReport `
     -ControlFlowObfuscationReport $controlFlowObfuscationReport `
     -InputDll $protectedInputDll `
