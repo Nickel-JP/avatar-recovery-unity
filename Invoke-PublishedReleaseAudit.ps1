@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.1.19",
+    [string]$Version = "1.1.20",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$OutputRoot = "",

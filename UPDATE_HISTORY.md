@@ -4,6 +4,12 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Recent Older Releases
 
+### Version 1.1.17 — Unity Startup Domain Reload Fix
+
+- Restored AvatarRecovery's Unity Console log handler before assembly reload and Editor quit so old-domain handlers are not left behind.
+- Avoided caching a transient startup failure when Unity reports the packaged DLL path late during domain reload.
+- Updated the VPM index so the active public package line points to 1.1.17.
+
 ### Version 1.1.16 — Restore History Foldout
 
 - Added a `復元履歴` / `Recovery History` foldout below the Avatar / World / Prop file groups in the File Select tab.

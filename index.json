@@ -6,10 +6,10 @@
     "packages":  {
                      "com.nickel-jp.avatar-recovery":  {
                                                            "versions":  {
-                                                                            "1.1.19":  {
+                                                                            "1.1.20":  {
                                                                                            "name":  "com.nickel-jp.avatar-recovery",
                                                                                            "displayName":  "Avatar Recovery",
-                                                                                           "version":  "1.1.19",
+                                                                                           "version":  "1.1.20",
                                                                                            "unity":  "2022.3",
                                                                                            "description":  "Unity Editor tools for recovering VRChat avatar, world, and prop assets from VRCA/VRCW/VRCP files.",
                                                                                            "type":  "tool",
@@ -35,9 +35,9 @@
                                                                                            "legacyFolders":  {
                                                                                                                  "Assets\\Editor\\AvatarRecovery":  ""
                                                                                                              },
-                                                                                           "url":  "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.1.19.zip",
+                                                                                           "url":  "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.1.20.zip",
                                                                                            "repo":  "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
-                                                                                           "zipSHA256":  "5333f2812da0f3e936ebf674d0336e25b9e520a0ad7eb8c363994926a8b9d569"
+                                                                                           "zipSHA256":  "11cccc851db15dff54598cb8fc31f51ddbfce12d1fe6f98905854fc99c321ad0"
                                                                                        }
                                                                         }
                                                        }
