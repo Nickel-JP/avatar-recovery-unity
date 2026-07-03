@@ -19,6 +19,7 @@ The VCC button uses the `vcc://vpm/addRepo` repository link because most users i
 For ALCOM, open the instructions page and add the repository URL manually.
 
 [![Add to VCC](https://img.shields.io/badge/VCC-Add%20Repository-2563eb?style=for-the-badge&logo=unity&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/)
+
 [![When adding a package in ALCOM](assets/badges/when-adding-package-in-alcom.svg)](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
 
 The ALCOM page explains why this site prioritizes the VCC redirect and how to add the repository from ALCOM.
