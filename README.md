@@ -17,7 +17,7 @@ https://nickel-jp.github.io/avatar-recovery-unity/index.json
 Click one of the buttons below to add this repository to your VPM client:
 
 [![Add to VCC](https://img.shields.io/badge/VCC-Add%20Repository-2563eb?style=for-the-badge&logo=unity&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/)
-[![Add to ALCOM](https://img.shields.io/badge/ALCOM-Add%20Repository-16a34a?style=for-the-badge&logo=github&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
+[![Add to ALCOM](assets/badges/add-to-alcom.svg)](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
 
 The ALCOM button uses the same `vcc://vpm/addRepo` repository link.
 If VCC opens instead, enable ALCOM as the `vcc://` URL scheme handler in ALCOM settings and click the button again.
