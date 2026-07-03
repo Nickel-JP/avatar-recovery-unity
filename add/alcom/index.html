@@ -3,8 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="0; url=vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%2Findex.json">
-  <title>Add Avatar Recovery Unity to ALCOM</title>
+  <title>ALCOMでパッケージを追加する場合</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -42,7 +41,7 @@
       line-height: 1.65;
     }
 
-    a.button {
+    button.copy-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -52,26 +51,44 @@
       background: #16a34a;
       color: #ffffff;
       font-weight: 700;
-      text-decoration: none;
+      border: 0;
+      cursor: pointer;
     }
 
     code {
       color: #15803d;
       word-break: break-all;
     }
+
+    ul {
+      margin: 0 0 1.25rem 1.25rem;
+      padding: 0;
+      color: #475569;
+      line-height: 1.65;
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>Opening ALCOM...</h1>
-    <p>ALCOM uses the VCC-compatible <code>vcc://</code> repository link. If VCC opens instead, enable ALCOM as the <code>vcc://</code> URL scheme handler in ALCOM settings and try again.</p>
+    <h1>ALCOMでパッケージを追加する場合</h1>
+    <ul>
+      <li>VCCの利用人口が多いため、このリポジトリではVCCへのリダイレクトを優先しています。</li>
+      <li>技術的に、VCCとALCOMの両方へ確実に分岐する複数のリダイレクトは組めません。どちらも同じ<code>vcc://</code> URLスキームを使うためです。</li>
+      <li>ALCOMで使う場合は、ALCOM内から次のリポジトリURLを手動で追加してください。<br><code>https://nickel-jp.github.io/avatar-recovery-unity/index.json</code></li>
+      <li>一旦VCCに追加しても問題ありません。追加後はALCOMにも反映されるため、Unityプロジェクトを立ち上げる時にALCOM側から利用できます。</li>
+    </ul>
     <p>
-      <a class="button" href="vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%2Findex.json">Add Repository to ALCOM</a>
+      <button class="copy-button" type="button" onclick="copyRepositoryUrl()">Copy Repository URL</button>
     </p>
     <p>Manual repository URL:<br><code>https://nickel-jp.github.io/avatar-recovery-unity/index.json</code></p>
   </main>
   <script>
-    window.location.href = "vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%2Findex.json";
+    function copyRepositoryUrl() {
+      var url = "https://nickel-jp.github.io/avatar-recovery-unity/index.json";
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url);
+      }
+    }
   </script>
 </body>
 </html>

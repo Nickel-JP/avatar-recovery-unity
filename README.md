@@ -15,13 +15,13 @@ https://nickel-jp.github.io/avatar-recovery-unity/index.json
 ## Install
 
 Click one of the buttons below to add this repository to your VPM client.
-The VCC button opens a VCC-only manual add page and does not use the `vcc://` URL handler.
+The VCC button uses the `vcc://vpm/addRepo` repository link because most users install packages through VRChat Creator Companion.
+For ALCOM, open the instructions page and add the repository URL manually.
 
 [![Add to VCC](https://img.shields.io/badge/VCC-Add%20Repository-2563eb?style=for-the-badge&logo=unity&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/)
-[![Add to ALCOM](assets/badges/add-to-alcom.svg)](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
+[![When adding a package in ALCOM](assets/badges/when-adding-package-in-alcom.svg)](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
 
-The ALCOM button uses the `vcc://vpm/addRepo` repository link.
-If VCC opens instead, enable ALCOM as the `vcc://` URL scheme handler in ALCOM settings and click the button again.
+The ALCOM page explains why this site prioritizes the VCC redirect and how to add the repository from ALCOM.
 [ALCOM](https://booth.pm/ja/items/6448396) is a cross-platform open-source alternative to VRChat Creator Companion, built on [vrc-get/vrc-get](https://github.com/vrc-get/vrc-get).
 
 Manual repository URL:
