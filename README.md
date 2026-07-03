@@ -14,9 +14,14 @@ https://nickel-jp.github.io/avatar-recovery-unity/index.json
 
 ## Install
 
-Click the button below to add this repository to VRChat Creator Companion:
+Click one of the buttons below to add this repository to your VPM client:
 
 [![Add to VCC](https://img.shields.io/badge/VCC-Add%20Repository-2563eb?style=for-the-badge&logo=unity&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/)
+[![Add to ALCOM](https://img.shields.io/badge/ALCOM-Add%20Repository-16a34a?style=for-the-badge&logo=github&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
+
+The ALCOM button uses the same `vcc://vpm/addRepo` repository link.
+If VCC opens instead, enable ALCOM as the `vcc://` URL scheme handler in ALCOM settings and click the button again.
+[ALCOM](https://booth.pm/ja/items/6448396) is a cross-platform open-source alternative to VRChat Creator Companion, built on [vrc-get/vrc-get](https://github.com/vrc-get/vrc-get).
 
 Manual repository URL:
 
@@ -24,8 +29,14 @@ Manual repository URL:
 https://nickel-jp.github.io/avatar-recovery-unity/index.json
 ```
 
-After adding the repository, install `Avatar Recovery` from the VCC package list.
-VCC can choose versions listed in this repository. The public index is currently limited to the active supported release.
+For vrc-get CLI:
+
+```powershell
+vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
+```
+
+After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
+VCC and ALCOM can choose versions listed in this repository. The public index is currently limited to the active supported release.
 
 ## Public Verification
 
