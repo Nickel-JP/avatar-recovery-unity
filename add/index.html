@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="0; url=vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%2Findex.json">
   <title>Add Avatar Recovery Unity to VCC</title>
   <style>
     :root {
@@ -42,7 +41,7 @@
       line-height: 1.65;
     }
 
-    a.button {
+    button.copy-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -52,26 +51,44 @@
       background: #2563eb;
       color: #ffffff;
       font-weight: 700;
-      text-decoration: none;
+      border: 0;
+      cursor: pointer;
     }
 
     code {
       color: #1d4ed8;
       word-break: break-all;
     }
+
+    ol {
+      margin: 0 0 1.25rem 1.25rem;
+      padding: 0;
+      color: #475569;
+      line-height: 1.65;
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>Opening VCC...</h1>
-    <p>If VRChat Creator Companion does not open automatically, click the button below.</p>
+    <h1>Add to VCC</h1>
+    <p>This page does not use the <code>vcc://</code> URL handler because ALCOM can be registered for that scheme. Open VRChat Creator Companion manually and add the repository URL below.</p>
+    <ol>
+      <li>Open VRChat Creator Companion.</li>
+      <li>Go to Settings, then Packages.</li>
+      <li>Click Add Repository and paste the URL below.</li>
+    </ol>
     <p>
-      <a class="button" href="vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%2Findex.json">Add Repository to VCC</a>
+      <button class="copy-button" type="button" onclick="copyRepositoryUrl()">Copy Repository URL</button>
     </p>
     <p>Manual repository URL:<br><code>https://nickel-jp.github.io/avatar-recovery-unity/index.json</code></p>
   </main>
   <script>
-    window.location.href = "vcc://vpm/addRepo?url=https%3A%2F%2Fnickel-jp.github.io%2Favatar-recovery-unity%2Findex.json";
+    function copyRepositoryUrl() {
+      var url = "https://nickel-jp.github.io/avatar-recovery-unity/index.json";
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url);
+      }
+    }
   </script>
 </body>
 </html>
