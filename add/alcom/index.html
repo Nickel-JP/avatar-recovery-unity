@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ALCOMでパッケージを追加する場合</title>
+  <title>When adding a package in ALCOM</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -41,7 +41,25 @@
       line-height: 1.65;
     }
 
-    button.copy-button {
+    .repo-url {
+      display: flex;
+      gap: 0.75rem;
+      align-items: stretch;
+      margin: 0 0 1.25rem;
+      padding: 0.85rem;
+      border: 1px solid #d7dde8;
+      border-radius: 8px;
+      background: #f8fafc;
+    }
+
+    .repo-url code {
+      flex: 1 1 auto;
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .copy-button {
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -55,6 +73,13 @@
       cursor: pointer;
     }
 
+    .copy-status {
+      min-height: 1.5rem;
+      margin: -0.5rem 0 1.25rem;
+      color: #15803d;
+      font-weight: 700;
+    }
+
     code {
       color: #15803d;
       word-break: break-all;
@@ -66,28 +91,58 @@
       color: #475569;
       line-height: 1.65;
     }
+
+    @media (max-width: 40rem) {
+      .repo-url {
+        flex-direction: column;
+      }
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>ALCOMでパッケージを追加する場合</h1>
+    <h1>When adding a package in ALCOM</h1>
     <ul>
-      <li>VCCの利用人口が多いため、このリポジトリではVCCへのリダイレクトを優先しています。</li>
-      <li>技術的に、VCCとALCOMの両方へ確実に分岐する複数のリダイレクトは組めません。どちらも同じ<code>vcc://</code> URLスキームを使うためです。</li>
-      <li>ALCOMで使う場合は、ALCOM内から次のリポジトリURLを手動で追加してください。<br><code>https://nickel-jp.github.io/avatar-recovery-unity/index.json</code></li>
-      <li>一旦VCCに追加しても問題ありません。追加後はALCOMにも反映されるため、Unityプロジェクトを立ち上げる時にALCOM側から利用できます。</li>
+      <li>This repository prioritizes the VCC redirect because most users install VPM packages through VRChat Creator Companion.</li>
+      <li>A reliable dual redirect for both VCC and ALCOM is not technically possible because both clients use the same <code>vcc://</code> URL scheme.</li>
+      <li>To use ALCOM, add the repository URL manually from inside ALCOM.</li>
+      <li>You can also add the repository to VCC first. After it is added, ALCOM can read the same repository and use it when opening a Unity project.</li>
     </ul>
-    <p>
-      <button class="copy-button" type="button" onclick="copyRepositoryUrl()">Copy Repository URL</button>
-    </p>
-    <p>Manual repository URL:<br><code>https://nickel-jp.github.io/avatar-recovery-unity/index.json</code></p>
+    <p>Manual repository URL:</p>
+    <div class="repo-url">
+      <code id="repository-url">https://nickel-jp.github.io/avatar-recovery-unity/index.json</code>
+      <button class="copy-button" type="button" onclick="copyRepositoryUrl()">Copy URL</button>
+    </div>
+    <p class="copy-status" id="copy-status" aria-live="polite"></p>
   </main>
   <script>
     function copyRepositoryUrl() {
-      var url = "https://nickel-jp.github.io/avatar-recovery-unity/index.json";
+      var url = document.getElementById("repository-url").textContent;
+      var status = document.getElementById("copy-status");
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url);
+        navigator.clipboard.writeText(url).then(function () {
+          status.textContent = "Copied.";
+        }).catch(function () {
+          copyRepositoryUrlFallback(url, status);
+        });
+
+        return;
       }
+
+      copyRepositoryUrlFallback(url, status);
+    }
+
+    function copyRepositoryUrlFallback(url, status) {
+      var textarea = document.createElement("textarea");
+      textarea.value = url;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "absolute";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      status.textContent = "Copied.";
     }
   </script>
 </body>
