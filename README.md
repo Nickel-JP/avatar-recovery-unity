@@ -2,9 +2,9 @@
 
 VPM repository for `com.nickel-jp.avatar-recovery`.
 
-AvatarRecovery は、VRChat の `.vrca` / `.vrcw` / `.vrcp` AssetBundle を Unity Editor 内で確認し、許可された範囲で Unity プロジェクトへ復元するための Editor 拡張です。
+AvatarRecovery is a Unity Editor extension for inspecting VRChat `.vrca`, `.vrcw`, and `.vrcp` AssetBundles and recovering their contents into a Unity project when you have permission to do so.
 
-AssetRipper.exe を外部プロセスとして呼び出し、その後に AvatarRecovery 独自の C# 後処理で Script GUID、Shader GUID、Missing Script、Prefab 選択、Pose Reset の安全確認を補助します。AssetRipper 本体と SARS ソースコードは同梱していません。
+AvatarRecovery launches `AssetRipper.exe` as an external process, then applies its own C# post-processing to help safely restore script and shader GUIDs, handle missing scripts, select the appropriate prefab, and reset poses. AssetRipper itself and the SARS source code are not included.
 
 ## VPM Repository
 
@@ -111,13 +111,13 @@ Older release notes are available in [UPDATE_HISTORY.md](UPDATE_HISTORY.md).
 
 AvatarRecovery v1.1.0 and later are distributed under the AvatarRecovery Custom License. See `LICENSE`.
 
-Earlier AvatarRecovery versions that were already published with the MIT License remain governed by the license terms attached to those earlier published versions.
+Earlier AvatarRecovery releases published under the MIT License remain governed by their original license terms.
 
 AssetRipper and SARS are separate projects governed by their own licenses. AvatarRecovery does not bundle AssetRipper binaries or SARS source code.
 
 ## Ethical Use
 
-Use this tool only for files you have the right to inspect or recover, such as assets you created, legitimately purchased, own as backups, or are explicitly authorized to maintain.
+Use this tool only for files you have the right to inspect or recover, such as assets you created or legitimately purchased, assets you own as backups, or assets you are explicitly authorized to maintain.
 
 Do not use this tool to steal, clone, extract, modify, redistribute, resell, re-upload, or impersonate another creator's work.
 
