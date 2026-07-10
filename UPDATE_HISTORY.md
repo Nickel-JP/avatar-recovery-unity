@@ -4,6 +4,12 @@ The latest three release notes are shown in [README.md](README.md). This page ke
 
 ## Recent Older Releases
 
+### Version 1.1.18 — Recovery History Serialization Fix
+
+- Fixed a Unity Console warning where opening recovery history after a successful restore could report duplicate serialized field names.
+- Recovery history now loads safely after restore operations in protected package builds.
+- Updated the VPM index so the active public package line points to 1.1.18.
+
 ### Version 1.1.17 — Unity Startup Domain Reload Fix
 
 - Restored AvatarRecovery's Unity Console log handler before assembly reload and Editor quit so old-domain handlers are not left behind.

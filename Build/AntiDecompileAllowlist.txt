@@ -9,3 +9,20 @@ EditorTools.AvatarRecovery.VrcaExtractor|*
 EditorTools.AvatarRecovery.ScriptGuidFixer|*
 EditorTools.AvatarRecovery.ShaderGuidFixer|*
 EditorTools.AvatarRecovery.MissingScriptCleaner|*
+EditorTools.AvatarRecovery.RecoveryBundleFormatCore|*
+EditorTools.AvatarRecovery.RecoveryGuidConflictCore|*
+EditorTools.AvatarRecovery.RecoveryPrefabSelectionCore|*
+EditorTools.AvatarRecovery.RecoveryImportPathCore|*
+
+# AssetRipperBridge は巨大な Extract 全体を避け、主要な小メソッドだけを保護する。
+
+EditorTools.AvatarRecovery.AssetRipperBridge+AssetImportTransaction|*
+EditorTools.AvatarRecovery.AssetRipperBridge|RunAssetRipper
+EditorTools.AvatarRecovery.AssetRipperBridge|FindExportedAssetsDir
+EditorTools.AvatarRecovery.AssetRipperBridge|SearchAssetsFolderRecursive
+EditorTools.AvatarRecovery.AssetRipperBridge|BuildAssetCopyOperations
+EditorTools.AvatarRecovery.AssetRipperBridge|CollectAssetCopyOperations
+EditorTools.AvatarRecovery.AssetRipperBridge|FindBestPrefabPath
+EditorTools.AvatarRecovery.AssetRipperBridge|FindPrefabCandidatePaths
+EditorTools.AvatarRecovery.AssetRipperBridge|TryRenamePrefabToOriginalName
+EditorTools.AvatarRecovery.AssetRipperBridge|DetectGuidConflicts

@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.1.20",
-    [string]$PreviousVersion = "1.1.19",
+    [string]$Version = "1.2.0",
+    [string]$PreviousVersion = "1.1.20",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -2017,6 +2017,29 @@ function Test-CecilMethodIsInjectable {
     return $true
 }
 
+function Assert-ProtectionPassCoverage {
+    param(
+        [Parameter(Mandatory = $true)][string]$PassName,
+        [Parameter(Mandatory = $true)][object[]]$Rules,
+        [Parameter(Mandatory = $true)]$MatchedRules,
+        [Parameter(Mandatory = $true)]$Skipped
+    )
+
+    $unmatchedRules = @(
+        $Rules |
+            Where-Object { -not $MatchedRules.Contains([string]$_.Raw) } |
+            ForEach-Object { [string]$_.Raw }
+    )
+    if ($unmatchedRules.Count -gt 0) {
+        throw "$PassName target rules did not match compiled methods:`n$($unmatchedRules -join "`n")"
+    }
+
+    if ($Skipped.Count -gt 0) {
+        $firstSkipped = $Skipped[0]
+        throw "$PassName skipped a protected method: $($firstSkipped.Method) ($($firstSkipped.Reason))"
+    }
+}
+
 function Inject-RuntimeIntegrityGuardCalls {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -2039,6 +2062,7 @@ function Inject-RuntimeIntegrityGuardCalls {
     $tempPath = "$Path.runtime-integrity.tmp"
     $injected = New-Object System.Collections.Generic.List[string]
     $skipped = New-Object System.Collections.Generic.List[object]
+    $matchedRules = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 
     try {
         $module = $assembly.MainModule
@@ -2064,7 +2088,7 @@ function Inject-RuntimeIntegrityGuardCalls {
                 foreach ($rule in $rules) {
                     if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
                         $matched = $true
-                        break
+                        [void]$matchedRules.Add([string]$rule.Raw)
                     }
                 }
                 if (-not $matched) {
@@ -2111,6 +2135,12 @@ function Inject-RuntimeIntegrityGuardCalls {
             }
         }
 
+        Assert-ProtectionPassCoverage `
+            -PassName "Runtime integrity injection" `
+            -Rules $rules `
+            -MatchedRules $matchedRules `
+            -Skipped $skipped
+
         if ($changed) {
             $assembly.Write((ConvertTo-FullPath $tempPath))
         }
@@ -2154,6 +2184,7 @@ function Inject-AntiDebugChecks {
     $tempPath = "$Path.anti-debug.tmp"
     $injected = New-Object System.Collections.Generic.List[string]
     $skipped = New-Object System.Collections.Generic.List[object]
+    $matchedRules = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 
     try {
         $module = $assembly.MainModule
@@ -2167,7 +2198,7 @@ function Inject-AntiDebugChecks {
                 foreach ($rule in $rules) {
                     if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
                         $matched = $true
-                        break
+                        [void]$matchedRules.Add([string]$rule.Raw)
                     }
                 }
                 if (-not $matched) {
@@ -2217,6 +2248,12 @@ function Inject-AntiDebugChecks {
             }
         }
 
+        Assert-ProtectionPassCoverage `
+            -PassName "Anti-debug injection" `
+            -Rules $rules `
+            -MatchedRules $matchedRules `
+            -Skipped $skipped
+
         if ($changed) {
             $assembly.Write((ConvertTo-FullPath $tempPath))
         }
@@ -2260,6 +2297,7 @@ function Invoke-CecilControlFlowObfuscation {
     $tempPath = "$Path.control-flow.tmp"
     $obfuscated = New-Object System.Collections.Generic.List[object]
     $skipped = New-Object System.Collections.Generic.List[object]
+    $matchedRules = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
 
     try {
         $module = $assembly.MainModule
@@ -2290,7 +2328,7 @@ function Invoke-CecilControlFlowObfuscation {
                 foreach ($rule in $rules) {
                     if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
                         $matched = $true
-                        break
+                        [void]$matchedRules.Add([string]$rule.Raw)
                     }
                 }
                 if (-not $matched) {
@@ -2376,6 +2414,12 @@ function Invoke-CecilControlFlowObfuscation {
             }
         }
 
+        Assert-ProtectionPassCoverage `
+            -PassName "Control-flow obfuscation" `
+            -Rules $rules `
+            -MatchedRules $matchedRules `
+            -Skipped $skipped
+
         if ($changed) {
             $assembly.Write((ConvertTo-FullPath $tempPath))
         }
@@ -2423,9 +2467,19 @@ function Get-ObfuscarMappedStringEncryptionTargets {
         return @($targets.ToArray())
     }
 
+    $mappingLines = @(Get-Content -LiteralPath $MappingPath)
+    $typeMappings = @{}
+    foreach ($line in $mappingLines) {
+        $typeMatch = [regex]::Match($line, '^\[[^\]]+\](?<Original>[^ ]+) -> \[[^\]]+\](?<Obfuscated>[^ ]+)$')
+        if ($typeMatch.Success) {
+            $typeMappings[$typeMatch.Groups["Original"].Value] =
+                $typeMatch.Groups["Obfuscated"].Value
+        }
+    }
+
     $currentOriginalType = ""
     $currentObfuscatedType = ""
-    foreach ($line in Get-Content -LiteralPath $MappingPath) {
+    foreach ($line in $mappingLines) {
         $typeMatch = [regex]::Match($line, '^\[[^\]]+\](?<Original>[^ ]+) -> \[[^\]]+\](?<Obfuscated>[^ ]+)$')
         if ($typeMatch.Success) {
             $currentOriginalType = $typeMatch.Groups["Original"].Value -replace '/', '+'
@@ -2437,19 +2491,37 @@ function Get-ObfuscarMappedStringEncryptionTargets {
             continue
         }
 
-        $methodMatch = [regex]::Match($line, '^\s+\[[^\]]+\](?<OriginalType>[^:]+)::(?<OriginalMethod>[^\[]+)\[(?<ParameterCount>\d+)\].* -> (?<ObfuscatedMethod>\S+)$')
+        $methodMatch = [regex]::Match(
+            $line,
+            '^\s+\[[^\]]+\](?<OriginalType>[^:]+)::(?<OriginalMethod>[^\[]+)\[(?<ParameterCount>\d+)\]\(\s*(?<Parameters>.*?)\s*\)\s* -> (?<ObfuscatedMethod>\S+)$')
         if (-not $methodMatch.Success) {
             continue
         }
 
         $originalType = $methodMatch.Groups["OriginalType"].Value -replace '/', '+'
         $originalMethod = $methodMatch.Groups["OriginalMethod"].Value
+        $parameterSignature = [regex]::Replace(
+            $methodMatch.Groups["Parameters"].Value,
+            '\[[^\]]+\]',
+            '')
+        $typeMappingEntries = @(
+            $typeMappings.GetEnumerator() |
+                Sort-Object { ([string]$_.Key).Length } -Descending
+        )
+        foreach ($typeMappingEntry in $typeMappingEntries) {
+            $parameterSignature = $parameterSignature.Replace(
+                [string]$typeMappingEntry.Key,
+                [string]$typeMappingEntry.Value)
+        }
+        $parameterSignature = $parameterSignature -replace '\s+', ''
+
         foreach ($rule in $Rules) {
             if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $originalType -MethodName $originalMethod) {
                 [void]$targets.Add([PSCustomObject]@{
                     Type = $currentObfuscatedType
                     Method = $methodMatch.Groups["ObfuscatedMethod"].Value
                     ParameterCount = [int]$methodMatch.Groups["ParameterCount"].Value
+                    ParameterSignature = $parameterSignature
                     Original = "$originalType|$originalMethod"
                 })
                 break
@@ -2567,6 +2639,23 @@ function Invoke-CecilStringEncryption {
     $tempPath = "$Path.string-encryption.tmp"
     $encryptedMethods = New-Object System.Collections.Generic.List[object]
     $skipped = New-Object System.Collections.Generic.List[object]
+    $matchedRules = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+
+    foreach ($target in $mappedTargets) {
+        $targetParts = ([string]$target.Original).Split("|")
+        if ($targetParts.Count -ne 2) {
+            continue
+        }
+
+        foreach ($rule in $rules) {
+            if (Test-ProtectionTargetRuleMatch `
+                    -Rule $rule `
+                    -TypeName $targetParts[0] `
+                    -MethodName $targetParts[1]) {
+                [void]$matchedRules.Add([string]$rule.Raw)
+            }
+        }
+    }
 
     try {
         $module = $assembly.MainModule
@@ -2613,9 +2702,17 @@ function Invoke-CecilStringEncryption {
                 $matchedOriginal = "$typeName|$($method.Name)"
                 if ($mappedTargets.Count -gt 0) {
                     foreach ($target in $mappedTargets) {
+                        $methodParameterSignature = @(
+                            $method.Parameters |
+                                ForEach-Object { [string]$_.ParameterType.FullName }
+                        ) -join ','
                         if ([string]::Equals($typeName, $target.Type, [StringComparison]::Ordinal) -and
                             [string]::Equals($method.Name, $target.Method, [StringComparison]::Ordinal) -and
-                            $method.Parameters.Count -eq $target.ParameterCount) {
+                            $method.Parameters.Count -eq $target.ParameterCount -and
+                            [string]::Equals(
+                                $methodParameterSignature,
+                                $target.ParameterSignature,
+                                [StringComparison]::Ordinal)) {
                             $matched = $true
                             $matchedOriginal = $target.Original
                             break
@@ -2626,7 +2723,7 @@ function Invoke-CecilStringEncryption {
                     foreach ($rule in $rules) {
                         if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
                             $matched = $true
-                            break
+                            [void]$matchedRules.Add([string]$rule.Raw)
                         }
                     }
                 }
@@ -2737,6 +2834,12 @@ function Invoke-CecilStringEncryption {
             }
         }
 
+        Assert-ProtectionPassCoverage `
+            -PassName "String encryption" `
+            -Rules $rules `
+            -MatchedRules $matchedRules `
+            -Skipped $skipped
+
         if ($changed) {
             $assembly.Write((ConvertTo-FullPath $tempPath))
         }
@@ -2791,47 +2894,65 @@ function Invoke-CecilAntiDecompile {
     $changed = $false
     $tempPath = "$Path.anti-decompile.tmp"
     $processed = New-Object System.Collections.Generic.List[string]
+    $processedMethods = New-Object System.Collections.Generic.List[string]
     $skipped = New-Object System.Collections.Generic.List[object]
+    $matchedRules = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
     $adjustedMethodCount = 0
 
     try {
         foreach ($type in Get-CecilTypeDefinitions -Assembly $assembly) {
             $typeName = $type.FullName -replace '/', '+'
-            $typeMatched = $false
-            foreach ($rule in $rules) {
-                if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName "*") {
-                    $typeMatched = $true
-                    break
-                }
-            }
-            if (-not $typeMatched) {
-                continue
-            }
-
             $methodCountForType = 0
             foreach ($method in $type.Methods) {
+                $methodMatched = $false
+                foreach ($rule in $rules) {
+                    if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
+                        $methodMatched = $true
+                        [void]$matchedRules.Add([string]$rule.Raw)
+                    }
+                }
+                if (-not $methodMatched) {
+                    continue
+                }
+
+                $methodKey = "$typeName|$($method.Name)"
                 if (-not $method.HasBody) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "NoMethodBody"
+                    })
                     continue
                 }
                 if ($method.Body.Instructions.Count -eq 0) {
+                    [void]$skipped.Add([PSCustomObject]@{
+                        Method = $methodKey
+                        Reason = "NoInstructions"
+                    })
                     continue
                 }
 
                 $method.Body.MaxStackSize = [Math]::Min([Math]::Max($method.Body.MaxStackSize + 2, 4), 16)
                 $methodCountForType++
                 $adjustedMethodCount++
+                [void]$processedMethods.Add($methodKey)
             }
 
             if ($methodCountForType -gt 0) {
                 [void]$processed.Add($typeName)
                 $changed = $true
             }
-            else {
-                [void]$skipped.Add([PSCustomObject]@{
-                    Type = $typeName
-                    Reason = "NoMethodBodies"
-                })
-            }
+        }
+
+        $unmatchedRules = @(
+            $rules |
+                Where-Object { -not $matchedRules.Contains([string]$_.Raw) } |
+                ForEach-Object { [string]$_.Raw }
+        )
+        if ($unmatchedRules.Count -gt 0) {
+            throw "Anti-decompile target rules did not match compiled methods:`n$($unmatchedRules -join "`n")"
+        }
+        if ($skipped.Count -gt 0) {
+            throw "Anti-decompile skipped a protected method: $($skipped[0].Method) ($($skipped[0].Reason))"
         }
 
         if ($changed) {
@@ -2852,6 +2973,7 @@ function Invoke-CecilAntiDecompile {
         ProcessedTypeCount = $processed.Count
         AdjustedMethodCount = $adjustedMethodCount
         ProcessedTypes = @($processed.ToArray())
+        ProcessedMethods = @($processedMethods.ToArray())
         Skipped = @($skipped.ToArray())
     }
 }

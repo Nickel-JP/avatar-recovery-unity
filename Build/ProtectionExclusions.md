@@ -1,4 +1,4 @@
-# AvatarRecovery 1.1.5 Protection Exclusions
+# AvatarRecovery Protection Exclusions
 
 This document records why specific names or strings are preserved for the first protected 1.1.5 release.
 
@@ -57,6 +57,8 @@ The following non-entry types were changed from public to internal because they 
 - Cecil control-flow obfuscation is intentionally limited to `Build/ControlFlowObfuscationAllowlist.txt` entries and skips constructors, native/abstract methods, and methods with exception handlers. Problem methods should be removed from the allowlist rather than patched around ad hoc.
 - Anti-decompile metadata hardening is limited to `Build/AntiDecompileAllowlist.txt` entries and currently adjusts method MaxStack only. It runs before Obfuscar so original source type names can be matched safely.
 - `AssetRipperBridge` is intentionally excluded from anti-decompile MaxStack hardening because its large generated-style method graph triggers a Mono.Cecil metadata write failure after other IL protection passes. It still receives runtime integrity, anti-debug, and selected string encryption protection.
+- `AssetRipperBridge.Extract` remains excluded from whole-method string encryption and anti-decompile hardening. The GUID conflict guard, Prefab scoring, import path validation, AssetBundle format logic, and smaller AssetRipper helper methods are split into dedicated internal targets so they can be protected without expanding the large orchestration method.
+- Anti-decompile rules support both `Type|*` and individual `Type|Method` entries. This allows selected `AssetRipperBridge` helpers and the nested import transaction to be hardened without touching the oversized `Extract` body.
 - SignPath signing is opt-in through `-SigningMode SignPath` and requires external SignPath approval plus secrets. Self-signed signing remains the default fallback until that external chain is ready.
 
 ## Reflection And Serialization Contracts

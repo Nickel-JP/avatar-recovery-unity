@@ -10,3 +10,6 @@ EditorTools.AvatarRecovery.ScriptGuidFixer|FixFolder
 EditorTools.AvatarRecovery.ShaderGuidFixer|FixFolder
 EditorTools.AvatarRecovery.MissingScriptCleaner|CleanPrefabAsset
 EditorTools.AvatarRecovery.PoseResetter|ResetPrefabPose
+EditorTools.AvatarRecovery.RecoveryBundleFormatCore|PatchBundleVersion
+EditorTools.AvatarRecovery.RecoveryGuidConflictCore|Detect
+EditorTools.AvatarRecovery.RecoveryPrefabSelectionCore|ScoreCandidate

@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.1.20",
+    [string]$Version = "1.2.0",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [switch]$SkipPrivateProtectionReports
 )
@@ -426,6 +426,10 @@ if ($SkipPrivateProtectionReports) {
     [void]$results.Add((Assert-Skipped "K Cecil string encryption report covers allowlist" "Private protection reports are not available in CI checkout."))
     [void]$results.Add((Assert-Skipped "L HideStrings disabled impact scan is managed" "Private protection reports are not available in CI checkout."))
     [void]$results.Add((Assert-Skipped "M runtime integrity JSON fields are preserved" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "N Cecil control-flow report covers allowlist" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "O anti-decompile report covers allowlist" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "P runtime integrity injection covers allowlist" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "Q anti-debug injection covers allowlist" "Private protection reports are not available in CI checkout."))
 }
 else {
     [void]$results.Add((Assert-Passes "K Cecil string encryption report covers allowlist" {
@@ -504,6 +508,109 @@ else {
             $pattern = "AvatarRecoveryIntegrityGuard/RuntimeIntegritySignature::$([regex]::Escape($fieldName)).* -> "
             if ($mappingText -match $pattern) {
                 throw "Runtime integrity JSON field was renamed: $fieldName"
+            }
+        }
+    }))
+
+    [void]$results.Add((Assert-Passes "N Cecil control-flow report covers allowlist" {
+        $reportPath = Get-PrivateProtectionReportPath -FileName "cecil-control-flow-$Version.json"
+        $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+        $allowlist = Get-Allowlist -Path (Join-Path $RepoRoot "Build\ControlFlowObfuscationAllowlist.txt")
+        $protectedMethods = @($report.ObfuscatedMethods | ForEach-Object { [string]$_.Method })
+
+        if (-not [bool]$report.Enabled) {
+            throw "Cecil control-flow report is disabled"
+        }
+        if ([int]$report.TargetRuleCount -ne $allowlist.Count) {
+            throw "Cecil control-flow target count mismatch"
+        }
+        if (@($report.Skipped).Count -ne 0) {
+            throw "Cecil control-flow skipped a protected method"
+        }
+
+        foreach ($entry in $allowlist) {
+            if ($protectedMethods -notcontains $entry) {
+                throw "Cecil control-flow missed allowlist entry: $entry"
+            }
+        }
+    }))
+
+    [void]$results.Add((Assert-Passes "O anti-decompile report covers allowlist" {
+        $reportPath = Get-PrivateProtectionReportPath -FileName "anti-decompile-$Version.json"
+        $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+        $allowlist = Get-Allowlist -Path (Join-Path $RepoRoot "Build\AntiDecompileAllowlist.txt")
+        $processedTypes = @($report.ProcessedTypes | ForEach-Object { [string]$_ })
+        $processedMethods = @($report.ProcessedMethods | ForEach-Object { [string]$_ })
+
+        if (-not [bool]$report.Enabled) {
+            throw "Anti-decompile report is disabled"
+        }
+        if ([int]$report.TargetRuleCount -ne $allowlist.Count) {
+            throw "Anti-decompile target count mismatch"
+        }
+        if (@($report.Skipped).Count -ne 0) {
+            throw "Anti-decompile skipped a protected method"
+        }
+
+        foreach ($entry in $allowlist) {
+            $parts = $entry.Split("|")
+            if ($parts.Count -ne 2) {
+                throw "Invalid anti-decompile allowlist entry: $entry"
+            }
+
+            if ($parts[1] -eq "*") {
+                if ($processedTypes -notcontains $parts[0]) {
+                    throw "Anti-decompile missed allowlist type: $entry"
+                }
+            }
+            elseif ($processedMethods -notcontains $entry) {
+                throw "Anti-decompile missed allowlist method: $entry"
+            }
+        }
+    }))
+
+    [void]$results.Add((Assert-Passes "P runtime integrity injection covers allowlist" {
+        $reportPath = Get-PrivateProtectionReportPath -FileName "runtime-integrity-injection-$Version.json"
+        $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+        $allowlist = Get-Allowlist -Path (Join-Path $RepoRoot "Build\RuntimeIntegrityGuardTargets.txt")
+        $injectedMethods = @($report.InjectedMethods | ForEach-Object { [string]$_ })
+
+        if (-not [bool]$report.Enabled) {
+            throw "Runtime integrity injection report is disabled"
+        }
+        if ([int]$report.TargetRuleCount -ne $allowlist.Count) {
+            throw "Runtime integrity injection target count mismatch"
+        }
+        if (@($report.Skipped).Count -ne 0) {
+            throw "Runtime integrity injection skipped a protected method"
+        }
+
+        foreach ($entry in $allowlist) {
+            if ($injectedMethods -notcontains $entry) {
+                throw "Runtime integrity injection missed allowlist entry: $entry"
+            }
+        }
+    }))
+
+    [void]$results.Add((Assert-Passes "Q anti-debug injection covers allowlist" {
+        $reportPath = Get-PrivateProtectionReportPath -FileName "anti-debug-$Version.json"
+        $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+        $allowlist = Get-Allowlist -Path (Join-Path $RepoRoot "Build\AntiDebugTargets.txt")
+        $injectedMethods = @($report.InjectedMethods | ForEach-Object { [string]$_ })
+
+        if (-not [bool]$report.Enabled) {
+            throw "Anti-debug injection report is disabled"
+        }
+        if ([int]$report.TargetRuleCount -ne $allowlist.Count) {
+            throw "Anti-debug injection target count mismatch"
+        }
+        if (@($report.Skipped).Count -ne 0) {
+            throw "Anti-debug injection skipped a protected method"
+        }
+
+        foreach ($entry in $allowlist) {
+            if ($injectedMethods -notcontains $entry) {
+                throw "Anti-debug injection missed allowlist entry: $entry"
             }
         }
     }))
