@@ -84,12 +84,11 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Version 1.2.0 — Protected Recovery Core and Failure Guidance
+### Version 1.2.0 — Recovery Stability and Failure Guidance
 
-- Isolated the main AssetBundle parsing, GUID conflict detection, Prefab selection, and import path decisions into internal recovery-core classes while preserving the existing recovery workflow.
-- Expanded string encryption, control-flow obfuscation, anti-decompile hardening, and runtime-integrity coverage for the main recovery path.
+- Improved the reliability of the main recovery workflow while preserving its existing behavior.
 - Added failure dialogs that show the failure reason and a recommended resolution when extraction, recovery, or automatic backup processing cannot continue.
-- Stabilized runtime-integrity sidecar discovery during Unity startup and hardened the protection build so unmatched or skipped protection targets fail the release build.
+- Fixed a Unity startup issue that could incorrectly prevent AvatarRecovery from running.
 - Updated the VPM index so the active public package line points to 1.2.0.
 
 ### Version 1.1.20 — Shader Lists Selection and Match Sorting
