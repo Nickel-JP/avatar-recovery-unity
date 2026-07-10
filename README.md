@@ -46,11 +46,11 @@ The current protected package is `com.nickel-jp.avatar-recovery-1.2.0.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
-# 1. ZIP のハッシュ検証
+# 1. Calculate the ZIP SHA-256 hash.
 (Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.0.zip -Algorithm SHA256).Hash
 
-# checksums/com.nickel-jp.avatar-recovery-1.2.0.sha256.txt の
-# packages/com.nickel-jp.avatar-recovery-1.2.0.zip 行と一致すること
+# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.0.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.0.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
@@ -60,11 +60,11 @@ Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.0.zip -DestinationPath .\avat
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
-# 2. DLL の Authenticode 署名検証
+# 2. Verify the DLL's Authenticode signature.
 $signature = Get-AuthenticodeSignature $dll
 $signature
 
-# SignerCertificate.Thumbprint が certificates/ の証明書と一致すること
+# Confirm that SignerCertificate.Thumbprint matches the certificate in certificates/.
 ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
 ($cert.Thumbprint -replace '\s', '').ToUpperInvariant()
 ```
