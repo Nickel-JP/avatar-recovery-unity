@@ -4,6 +4,12 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.5 — GitHub Information Tab
+
+- Added a `GitHub` information tab inside the AvatarRecovery window.
+- Added English and Japanese guidance explaining that the GitHub page provides update release notes, the latest version, installation details, and usage information.
+- Added a direct link to the official AvatarRecovery GitHub repository.
+
 ### Version 1.2.4 — Language Menu Selection
 
 - Added `AvatarRecovery → Language → Japanese / English` to the Unity menu.
