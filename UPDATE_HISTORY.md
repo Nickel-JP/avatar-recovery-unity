@@ -4,6 +4,12 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.4 — Language Menu Selection
+
+- Added `AvatarRecovery → Language → Japanese / English` to the Unity menu.
+- Kept the `Language` menu label unchanged regardless of the selected language.
+- Synchronized menu selection with the language control inside the tool and persisted the selected language.
+
 ### Version 1.2.3 — Menu Visibility Cleanup
 
 - Streamlined the AvatarRecovery menu by hiding two maintenance entries.
