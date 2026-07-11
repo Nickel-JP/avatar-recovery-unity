@@ -42,21 +42,21 @@ VCC and ALCOM can choose versions listed in this repository. The public index is
 
 ## Public Verification
 
-The current protected package is `com.nickel-jp.avatar-recovery-1.2.2.zip`.
+The current protected package is `com.nickel-jp.avatar-recovery-1.2.3.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.2.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.3.zip -Algorithm SHA256).Hash
 
-# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.2.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.2.sha256.txt.
+# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.3.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.3.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.2.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.3.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -71,11 +71,9 @@ $signature
 
 ## Security Model and Limits
 
-The verification files protect distribution integrity, not the confidentiality of code inside the managed DLL. Verify hashes, detached signatures, Authenticode identity, and the external `.runtime.sig` sidecar before importing a package. Obtain the expected hash or signer thumbprint through an independently trusted channel; a DLL, sidecar, and self-signed certificate downloaded from the same compromised origin cannot establish trust by themselves.
+Published verification information supports distribution-integrity checks. Obtain expected values through an independently trusted channel; information downloaded only from the same compromised origin cannot establish trust by itself.
 
-The DLL does not use an in-process self-check or `Debugger.IsAttached` gate. Code running inside the same DLL can be patched together with the code it attempts to verify, and debugger checks interfere with legitimate Unity development without stopping static analysis. The historical `.runtime.sig` filename remains as an externally verified distribution-integrity artifact.
-
-Managed-code obfuscation is only a speed bump against casual copying or modification. It cannot keep client-side logic or keys secret. Sensitive logic must be kept on a controlled server; native code may raise reverse-engineering cost but is not an absolute confidentiality boundary.
+Code distributed to a client cannot guarantee confidentiality or immutability. Keep truly sensitive processing on a controlled server.
 
 ## Technical Specifications
 
@@ -91,6 +89,12 @@ Managed-code obfuscation is only a speed bump against casual copying or modifica
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.2.3 — Menu Visibility Cleanup
+
+- Streamlined the AvatarRecovery menu by hiding two maintenance entries.
+- Retained the underlying PhysBone・Contact reference check and Scene cleanup behavior for internal and automatic use.
+- Verified that the remaining menu entries stay available and the underlying functions remain in the package.
 
 ### Version 1.2.2 — Long Asset Path Fix
 
@@ -158,7 +162,7 @@ Rebuilding updates `index.json` and package metadata locally. Commit, push, and 
 
 Protected releases are built locally. GitHub Actions intentionally stays lightweight: `.github/workflows/verify-build.yml` performs PowerShell syntax checks, runs the protection self tests against the checked-in public package, and audits the GitHub Pages artifacts through `Invoke-PublishedReleaseAudit.ps1`. Full protected-build reproduction is not run in CI because it would require Unity licensing, VRChat SDK setup, private source workspace state, and signing material.
 
-The release build rejects original Unity MonoScript type/source dictionaries, legacy ARX1 decryptors, in-DLL integrity guards, debugger gates, local paths, credentials, and private-key material. Custom client-side string encryption is intentionally disabled because its key would ship in the same DLL.
+The release process validates distribution artifacts and rejects unintended sensitive data before publication. Implementation details are maintained in private audit records.
 
 Maintainers should use GitHub Vigilant Mode and signed commits for protection-pipeline changes. Configure either GPG or SSH commit signing with a key registered in GitHub's `SSH and GPG keys` settings, then enable signing:
 

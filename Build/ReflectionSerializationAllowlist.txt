@@ -23,8 +23,7 @@ Core\AvatarRecoveryLogManager.cs|EditorPrefs|EditorPrefs|*
 Core\RecoveryHistoryStore.cs|EditorPrefs|EditorPrefs|*
 Core\RecoveryHistoryStore.cs|Reflection|JsonUtility|*
 
-# MenuItem and SerializedObject checks are Unity editor entry/serialized-field contracts.
-Core\AvatarRecoveryValidators.cs|AttributeContract|MenuItem|*
+# SerializedObject checks are Unity serialized-field contracts.
 Core\AvatarRecoveryValidators.cs|Reflection|\.GetType\s*\(|*
 Core\AvatarRecoveryValidators.cs|Reflection|FindProperty\s*\(|*
 Core\AvatarRecoveryValidators.cs|Serialization|SerializedContract|*
@@ -57,8 +56,7 @@ Core\ShaderGuidFixer.cs|Reflection|\.GetType\s*\(|*
 Core\ShaderGuidFixer.cs|Reflection|\.Invoke\s*\(|*
 Core\ShaderGuidFixer.cs|Reflection|typeof\s*\(|*
 
-# Scene cleanup menu and m_Script redirects depend on Unity MenuItem/SerializedObject names.
-Core\VrcaExtractor.cs|AttributeContract|MenuItem|*
+# Scene cleanup and m_Script redirects depend on Unity SerializedObject names.
 Core\VrcaExtractor.cs|Reflection|\.GetType\s*\(|*
 Core\VrcaExtractor.cs|Reflection|FindProperty\s*\(|*
 Core\VrcaExtractor.cs|Reflection|typeof\s*\(|*

@@ -4,6 +4,12 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.3 — Menu Visibility Cleanup
+
+- Streamlined the AvatarRecovery menu by hiding two maintenance entries.
+- Retained the underlying PhysBone・Contact reference check and Scene cleanup behavior for internal and automatic use.
+- Verified that the remaining menu entries stay available and the underlying functions remain in the package.
+
 ### Version 1.2.2 — Long Asset Path Fix
 
 - Fixed AssetRipper transaction commits that appended a suffix to an already long asset filename and exceeded NTFS's 255-character component limit.

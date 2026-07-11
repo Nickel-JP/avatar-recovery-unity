@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.2.2",
+    [string]$Version = "1.2.3",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [switch]$SkipPrivateProtectionReports
 )
