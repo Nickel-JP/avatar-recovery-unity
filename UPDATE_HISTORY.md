@@ -4,6 +4,13 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.2 — Long Asset Path Fix
+
+- Fixed AssetRipper transaction commits that appended a suffix to an already long asset filename and exceeded NTFS's 255-character component limit.
+- Switched transaction and GUID-repair temporary files to short sibling names while preserving same-directory replacement semantics.
+- Extended long-path-safe handling to Script, AnimationClip, Material, and GUID-conflict `.meta` processing.
+- Verified the protected package against the original failing VRCA, including a 250-character `.anim` filename and its 255-character `.meta` file.
+
 ### Version 1.2.1 — Security Boundary Correction
 
 - Removed Unity-generated MonoScript type/source dictionaries from the distributed DLL after validating that the generated metadata has no managed references in the protected pipeline.
