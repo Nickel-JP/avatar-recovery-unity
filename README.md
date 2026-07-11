@@ -101,9 +101,9 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ### Version 1.2.1 — Security Boundary Correction
 
-- Removed generated original type/source dictionaries and retired ineffective in-DLL self-check, anti-debug, and reversible ARX1 string transforms.
-- Kept Authenticode, checksums, detached signatures, and external sidecar verification as distribution-integrity controls.
-- Added regression audits and documented the limits of managed-code obfuscation.
+- Clarified the security guarantees and limitations of the distributed package.
+- Removed protection behavior that did not provide the intended security value.
+- Strengthened release verification and regression coverage.
 
 ### Version 1.2.0 — Recovery Stability and Failure Guidance
 
