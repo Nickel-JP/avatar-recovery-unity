@@ -1,4 +1,6 @@
-# Legitimate Unity/VPM runtime strings. These are not local paths or secrets.
+# Binary leak rules.
+# Literal: entries are legitimate Unity/VPM runtime strings allowed by the leak scanner.
+# DenyLiteral: entries must never appear in the distributed DLL.
 Literal:Assets/
 Literal:Assets\
 Literal:Packages/
@@ -6,3 +8,11 @@ Literal:Packages\
 Literal:.vrca
 Literal:.vrcw
 Literal:.vrcp
+DenyLiteral:EditorTools.AvatarRecovery|
+DenyLiteral:AvatarRecoverySource/
+DenyLiteral:Unity.MonoScriptGenerator.MonoScriptInfoGenerator
+DenyLiteral:AvatarRecoveryIntegrityGuard
+DenyLiteral:get_IsAttached
+DenyLiteral:AvatarRecoveryStringDecryptor
+DenyLiteral:ARX1:
+DenyLiteral:AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55

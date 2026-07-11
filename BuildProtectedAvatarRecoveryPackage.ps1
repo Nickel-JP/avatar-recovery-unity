@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.2.0",
-    [string]$PreviousVersion = "1.1.20",
+    [string]$Version = "1.2.1",
+    [string]$PreviousVersion = "1.2.0",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -72,6 +72,8 @@ $RuntimeIntegrityGuardTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryInteg
 $RuntimeIntegrityGuardMethodName = "EnsureTrustedForRuntimeFeature"
 $RuntimeIntegritySignatureTypeName = "$RuntimeIntegrityGuardTypeName/RuntimeIntegritySignature"
 $RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
+$UnityMonoScriptMetadataTypeName = "UnitySourceGeneratedAssemblyMonoScriptTypes_v1"
+$UnityMonoScriptMetadataMethodName = "Get"
 $StringDecryptorTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryStringDecryptor"
 $StringDecryptorMethodName = "D"
 $StringEncryptionInlineByteArrayThreshold = 32
@@ -127,6 +129,13 @@ $AttributeContractPatterns = @(
 )
 $script:CodeSigningMode = "Configured"
 
+# DLL 内の自己検証と Debugger.IsAttached 注入はセキュリティ境界にならず、
+# 正規の Unity デバッグを妨げるため恒久的に無効化する。
+# 配布物の完全性は Authenticode と外部 .runtime.sig で検証する。
+$EnableInProcessRuntimeIntegrityGuard = $false
+$EnableAntiDebugInjection = $false
+$EnableCecilStringEncryption = $false
+
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
 
@@ -161,6 +170,69 @@ function Ensure-Directory {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     New-Item -ItemType Directory -Force -Path $Path | Out-Null
+}
+
+function Initialize-SourcePackage {
+    if (-not (Test-Path -LiteralPath $SourcePackageRoot)) {
+        $previousSourcePackageRoot = Join-Path $WorkRoot "Release$($PreviousVersion.Replace('.', ''))\SourcePackage\$PackageId"
+        if (-not (Test-Path -LiteralPath $previousSourcePackageRoot)) {
+            throw "Source package was not found for either current or previous version: $SourcePackageRoot / $previousSourcePackageRoot"
+        }
+
+        Ensure-Directory (Split-Path -Parent $SourcePackageRoot)
+        Copy-Item -LiteralPath $previousSourcePackageRoot -Destination $SourcePackageRoot -Recurse -Force
+    }
+
+    $manifestPath = Join-Path $SourcePackageRoot "package.json"
+    if (-not (Test-Path -LiteralPath $manifestPath)) {
+        throw "Source package manifest was not found: $manifestPath"
+    }
+
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
+    $manifest.version = $Version
+    $manifest.url = "$($BaseUrl.TrimEnd('/'))/packages/$PackageId-$Version.zip"
+    Write-TextUtf8NoBom -Path $manifestPath -Value (($manifest | ConvertTo-Json -Depth 50) + "`n")
+
+    $packageReadmePath = Join-Path $SourcePackageRoot "README.md"
+    if (-not (Test-Path -LiteralPath $packageReadmePath)) {
+        throw "Source package README was not found: $packageReadmePath"
+    }
+
+    # Windows PowerShell 5.1 は BOM なし UTF-8 を既定 ANSI として読むため明示する。
+    $packageReadme = Get-Content -LiteralPath $packageReadmePath -Raw -Encoding UTF8
+    $releaseHeading = "## v1.2.1 の主な変更"
+    $securityHeading = "## セキュリティモデルと限界"
+    $hasReleaseDisclosure = $packageReadme.Contains($releaseHeading)
+    $hasSecurityDisclosure = $packageReadme.Contains($securityHeading)
+    if ($hasReleaseDisclosure -xor $hasSecurityDisclosure) {
+        throw "Source package README contains a partial v1.2.1 security disclosure: $packageReadmePath"
+    }
+
+    if (-not $hasReleaseDisclosure) {
+        $anchor = "## v1.2.0 の主な変更"
+        if (-not $packageReadme.Contains($anchor)) {
+            throw "Source package README update anchor was not found: $anchor"
+        }
+
+        $securityDisclosure = @"
+## v1.2.1 の主な変更
+
+- Unity が生成した元の型名・ソースパス辞書を配布 DLL から削除
+- DLL 内自己検証、アンチデバッグ、可逆な ARX1 文字列変換を廃止
+- Authenticode、公開チェックサム、外部署名、外部 `.runtime.sig` 検証を配布物の完全性確認として維持
+
+## セキュリティモデルと限界
+
+公開ハッシュ、署名者証明書の thumbprint、外部署名、`.runtime.sig` は、独立して信頼できる経路から期待値を取得した場合に配布物の改変検知へ利用できます。同じ侵害済み配布元から DLL・sidecar・自己署名証明書をまとめて取得しただけでは、信頼の起点にはなりません。
+
+DLL 内の自己検証や `Debugger.IsAttached` 判定は使用しません。同じ DLL と Unity プロセスを制御できる攻撃者は検証コードも同時に変更でき、デバッガ判定は正当な Unity 開発を妨げても静的解析を防げないためです。`.runtime.sig` は外部ツールで検証する配布物です。
+
+マネージド DLL の難読化は、軽いコピーや解析の手間を増やすための速度低下策にすぎません。クライアントへ配布するロジックや鍵の秘匿境界にはならないため、真に秘密である必要がある処理は管理されたサーバー側へ置いてください。
+
+"@
+        $packageReadme = $packageReadme.Replace($anchor, "$securityDisclosure$anchor")
+        Write-TextUtf8NoBom -Path $packageReadmePath -Value $packageReadme
+    }
 }
 
 function Write-TextUtf8NoBom {
@@ -710,25 +782,34 @@ function Test-DetachedSignatureFile {
     }
 
     $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new((ConvertTo-FullPath $CertificatePath))
-    $actualThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
-    if ($actualThumbprint -ne (($signature.signerThumbprint -replace '\s', '').ToUpperInvariant())) {
-        throw "Detached signature certificate mismatch: $SignaturePath"
-    }
+    try {
+        $actualThumbprint = ($certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+        if ($actualThumbprint -ne (($signature.signerThumbprint -replace '\s', '').ToUpperInvariant())) {
+            throw "Detached signature certificate mismatch: $SignaturePath"
+        }
 
-    $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
-    if ($null -eq $publicKey) {
-        throw "Detached signature public key was not available: $CertificatePath"
+        $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
+        if ($null -eq $publicKey) {
+            throw "Detached signature public key was not available: $CertificatePath"
+        }
+        try {
+            $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
+            $signatureBytes = [Convert]::FromBase64String($signature.signatureBase64)
+            $verified = $publicKey.VerifyData(
+                $targetBytes,
+                $signatureBytes,
+                [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+            if (-not $verified) {
+                throw "Detached signature verification failed: $SignaturePath"
+            }
+        }
+        finally {
+            $publicKey.Dispose()
+        }
     }
-
-    $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
-    $signatureBytes = [Convert]::FromBase64String($signature.signatureBase64)
-    $verified = $publicKey.VerifyData(
-        $targetBytes,
-        $signatureBytes,
-        [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-        [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-    if (-not $verified) {
-        throw "Detached signature verification failed: $SignaturePath"
+    finally {
+        $certificate.Dispose()
     }
 }
 
@@ -750,34 +831,43 @@ function Write-DetachedSignatureFile {
     }
 
     $publicCertificatePath = Get-PublicCertificatePath
-    Export-Certificate -Cert $certificate -FilePath $publicCertificatePath -Force | Out-Null
-    Write-CertificatePem -Certificate $certificate -Path (Get-PublicCertificatePemPath)
+    try {
+        Export-Certificate -Cert $certificate -FilePath $publicCertificatePath -Force | Out-Null
+        Write-CertificatePem -Certificate $certificate -Path (Get-PublicCertificatePemPath)
 
-    $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($certificate)
-    if ($null -eq $privateKey) {
-        throw "Detached signature private key was not available."
+        $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($certificate)
+        if ($null -eq $privateKey) {
+            throw "Detached signature private key was not available."
+        }
+        try {
+            $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
+            $signatureBytes = $privateKey.SignData(
+                $targetBytes,
+                [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+        }
+        finally {
+            $privateKey.Dispose()
+        }
+        $targetHash = (Get-FileHash -LiteralPath $TargetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+
+        $signature = [ordered]@{
+            format = "AvatarRecovery detached signature v1"
+            algorithm = "RSA-SHA256-PKCS1"
+            signedAtUtc = [DateTime]::UtcNow.ToString("o")
+            target = $TargetRelativePath
+            targetSha256 = $targetHash
+            signerCertificate = "certificates/avatar-recovery-self-signed-code-signing.cer"
+            signerCertificatePem = "certificates/avatar-recovery-self-signed-code-signing.cer.pem"
+            signerThumbprint = (($certificate.Thumbprint -replace '\s', '').ToUpperInvariant())
+            signatureBase64 = [Convert]::ToBase64String($signatureBytes)
+        }
+
+        Write-TextUtf8NoBom -Path $SignaturePath -Value (($signature | ConvertTo-Json -Depth 10) + [Environment]::NewLine)
     }
-
-    $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
-    $signatureBytes = $privateKey.SignData(
-        $targetBytes,
-        [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-        [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-    $targetHash = (Get-FileHash -LiteralPath $TargetPath -Algorithm SHA256).Hash.ToLowerInvariant()
-
-    $signature = [ordered]@{
-        format = "AvatarRecovery detached signature v1"
-        algorithm = "RSA-SHA256-PKCS1"
-        signedAtUtc = [DateTime]::UtcNow.ToString("o")
-        target = $TargetRelativePath
-        targetSha256 = $targetHash
-        signerCertificate = "certificates/avatar-recovery-self-signed-code-signing.cer"
-        signerCertificatePem = "certificates/avatar-recovery-self-signed-code-signing.cer.pem"
-        signerThumbprint = (($certificate.Thumbprint -replace '\s', '').ToUpperInvariant())
-        signatureBase64 = [Convert]::ToBase64String($signatureBytes)
+    finally {
+        $certificate.Dispose()
     }
-
-    Write-TextUtf8NoBom -Path $SignaturePath -Value (($signature | ConvertTo-Json -Depth 10) + [Environment]::NewLine)
     Test-DetachedSignatureFile -TargetPath $TargetPath -SignaturePath $SignaturePath -CertificatePath $publicCertificatePath
     Write-Host "Created detached signature: $SignaturePath"
 }
@@ -886,6 +976,20 @@ function Ensure-RuntimeIntegrityGuardSource {
     Ensure-Directory $utilsDir
 
     $sourcePath = Join-Path $utilsDir "AvatarRecoveryIntegrityGuard.cs"
+    if (-not $EnableInProcessRuntimeIntegrityGuard) {
+        $removedLegacySource = Test-Path -LiteralPath $sourcePath
+        if ($removedLegacySource) {
+            Remove-Item -LiteralPath $sourcePath -Force
+        }
+
+        return [PSCustomObject]@{
+            Enabled = $false
+            SourcePath = ConvertTo-FullPath $sourcePath
+            RemovedLegacySource = $removedLegacySource
+            Reason = "ExternalSidecarOnly"
+        }
+    }
+
     $required = -not $DisableRuntimeIntegrityGuard -and $Context.Required
     $expectedThumbprint = if ($required) { ($Context.ExpectedThumbprint -replace '\s', '').ToUpperInvariant() } else { "" }
     $requiredLiteral = Get-CSharpBoolLiteral -Value $required
@@ -1105,7 +1209,7 @@ function Ensure-StringDecryptorSource {
     Ensure-Directory $utilsDir
 
     $sourcePath = Join-Path $utilsDir "AvatarRecoveryStringDecryptor.cs"
-    if ($DisableCecilStringEncryption) {
+    if (-not $EnableCecilStringEncryption -or $DisableCecilStringEncryption) {
         if (Test-Path -LiteralPath $sourcePath) {
             Remove-Item -LiteralPath $sourcePath -Force
         }
@@ -1114,7 +1218,7 @@ function Ensure-StringDecryptorSource {
             Enabled = $false
             SourcePath = ConvertTo-FullPath $sourcePath
             KeyLength = 0
-            Reason = "DisabledBySwitch"
+            Reason = if (-not $EnableCecilStringEncryption) { "RetiredIneffectiveLocalEncryption" } else { "DisabledBySwitch" }
         }
     }
 
@@ -1241,16 +1345,20 @@ function Test-RuntimeIntegritySidecarFile {
         if ($null -eq $publicKey) {
             throw "Runtime integrity public key was not available: $SidecarPath"
         }
-
-        $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
-        $signatureBytes = [Convert]::FromBase64String($sidecar.signatureBase64)
-        $verified = $publicKey.VerifyData(
-            $targetBytes,
-            $signatureBytes,
-            [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-            [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-        if (-not $verified) {
-            throw "Runtime integrity sidecar signature verification failed: $SidecarPath"
+        try {
+            $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
+            $signatureBytes = [Convert]::FromBase64String($sidecar.signatureBase64)
+            $verified = $publicKey.VerifyData(
+                $targetBytes,
+                $signatureBytes,
+                [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+            if (-not $verified) {
+                throw "Runtime integrity sidecar signature verification failed: $SidecarPath"
+            }
+        }
+        finally {
+            $publicKey.Dispose()
         }
     }
     finally {
@@ -1278,32 +1386,41 @@ function Write-RuntimeIntegritySidecar {
     if ($null -eq $certificate -or -not $certificate.HasPrivateKey) {
         throw "Runtime integrity sidecar certificate does not have a private key."
     }
+    try {
+        $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($certificate)
+        if ($null -eq $privateKey) {
+            throw "Runtime integrity private key was not available."
+        }
+        try {
+            $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
+            $signatureBytes = $privateKey.SignData(
+                $targetBytes,
+                [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+        }
+        finally {
+            $privateKey.Dispose()
+        }
+        $targetHash = (Get-FileHash -LiteralPath $DllPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        $certificateBytes = $certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
+        $signerThumbprint = (($certificate.Thumbprint -replace '\s', '').ToUpperInvariant())
 
-    $privateKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($certificate)
-    if ($null -eq $privateKey) {
-        throw "Runtime integrity private key was not available."
+        $sidecar = [ordered]@{
+            format = "AvatarRecovery runtime integrity signature v1"
+            algorithm = "RSA-SHA256-PKCS1"
+            signedAtUtc = [DateTime]::UtcNow.ToString("o")
+            target = "Editor/$AssemblyFileName"
+            targetSha256 = $targetHash
+            signerThumbprint = $signerThumbprint
+            signerCertificateBase64 = [Convert]::ToBase64String($certificateBytes)
+            signatureBase64 = [Convert]::ToBase64String($signatureBytes)
+        }
+
+        Write-TextUtf8NoBom -Path $SidecarPath -Value (($sidecar | ConvertTo-Json -Depth 10) + [Environment]::NewLine)
     }
-
-    $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
-    $signatureBytes = $privateKey.SignData(
-        $targetBytes,
-        [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-        [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-    $targetHash = (Get-FileHash -LiteralPath $DllPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    $certificateBytes = $certificate.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
-
-    $sidecar = [ordered]@{
-        format = "AvatarRecovery runtime integrity signature v1"
-        algorithm = "RSA-SHA256-PKCS1"
-        signedAtUtc = [DateTime]::UtcNow.ToString("o")
-        target = "Editor/$AssemblyFileName"
-        targetSha256 = $targetHash
-        signerThumbprint = (($certificate.Thumbprint -replace '\s', '').ToUpperInvariant())
-        signerCertificateBase64 = [Convert]::ToBase64String($certificateBytes)
-        signatureBase64 = [Convert]::ToBase64String($signatureBytes)
+    finally {
+        $certificate.Dispose()
     }
-
-    Write-TextUtf8NoBom -Path $SidecarPath -Value (($sidecar | ConvertTo-Json -Depth 10) + [Environment]::NewLine)
     Test-RuntimeIntegritySidecarFile -DllPath $DllPath -SidecarPath $SidecarPath -ExpectedThumbprint $Context.ExpectedThumbprint
 
     return [PSCustomObject]@{
@@ -1311,7 +1428,7 @@ function Write-RuntimeIntegritySidecar {
         Created = $true
         SidecarPath = ConvertTo-FullPath $SidecarPath
         TargetSHA256 = $targetHash
-        SignerThumbprint = (($certificate.Thumbprint -replace '\s', '').ToUpperInvariant())
+        SignerThumbprint = $signerThumbprint
     }
 }
 
@@ -1749,6 +1866,957 @@ function Get-CecilTypeDefinitions {
     return @($allTypes.ToArray())
 }
 
+function Test-CecilGeneratedCodeProducer {
+    param(
+        [Parameter(Mandatory = $true)][object]$Type,
+        [Parameter(Mandatory = $true)][string]$Producer
+    )
+
+    foreach ($attribute in $Type.CustomAttributes) {
+        if ($attribute.AttributeType.FullName -ne "System.CodeDom.Compiler.GeneratedCodeAttribute" -or
+            $attribute.ConstructorArguments.Count -lt 1) {
+            continue
+        }
+
+        if ([string]::Equals(
+                [string]$attribute.ConstructorArguments[0].Value,
+                $Producer,
+                [StringComparison]::Ordinal)) {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Get-CecilRemovedTypeReferenceName {
+    param(
+        [AllowNull()][object]$Reference,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [int]$Depth = 0
+    )
+
+    if ($null -eq $Reference) {
+        return $null
+    }
+    if ($Depth -gt 64) {
+        throw "Cecil type reference graph exceeded the fail-closed depth limit."
+    }
+
+    if ($Reference -is [Mono.Cecil.TypeReference]) {
+        $normalizedName = $Reference.FullName -replace '/', '+'
+        $isCandidate = $false
+        foreach ($rootName in $RemovalContext.RootNames) {
+            if ([string]::Equals($normalizedName, $rootName, [StringComparison]::Ordinal) -or
+                $normalizedName.StartsWith("$rootName+", [StringComparison]::Ordinal)) {
+                $isCandidate = $true
+                break
+            }
+        }
+
+        if ($isCandidate) {
+            $resolved = $null
+            try {
+                $resolved = $Reference.Resolve()
+            }
+            catch {
+                throw "Build-only type candidate could not be resolved safely: $normalizedName"
+            }
+            if ($null -eq $resolved) {
+                throw "Build-only type candidate resolved to null: $normalizedName"
+            }
+
+            $topLevelType = $resolved
+            while ($topLevelType.IsNested -and $null -ne $topLevelType.DeclaringType) {
+                $topLevelType = $topLevelType.DeclaringType
+            }
+            if ([object]::ReferenceEquals($topLevelType.Module, $RemovalContext.Module) -and
+                $RemovalContext.RootTokens.Contains($topLevelType.MetadataToken.ToInt32())) {
+                return $normalizedName
+            }
+        }
+
+        if ($Reference -is [Mono.Cecil.TypeSpecification] -and $null -ne $Reference.ElementType) {
+            $match = Get-CecilRemovedTypeReferenceName `
+                -Reference $Reference.ElementType `
+                -RemovalContext $RemovalContext `
+                -Depth ($Depth + 1)
+            if ($null -ne $match) {
+                return $match
+            }
+        }
+
+        if ($null -ne $Reference.PSObject.Properties["ModifierType"] -and
+            $null -ne $Reference.ModifierType) {
+            $match = Get-CecilRemovedTypeReferenceName `
+                -Reference $Reference.ModifierType `
+                -RemovalContext $RemovalContext `
+                -Depth ($Depth + 1)
+            if ($null -ne $match) {
+                return $match
+            }
+        }
+
+        if ($null -ne $Reference.PSObject.Properties["GenericArguments"]) {
+            foreach ($genericArgument in $Reference.GenericArguments) {
+                $match = Get-CecilRemovedTypeReferenceName `
+                    -Reference $genericArgument `
+                    -RemovalContext $RemovalContext `
+                    -Depth ($Depth + 1)
+                if ($null -ne $match) {
+                    return $match
+                }
+            }
+        }
+
+        if ($Reference -is [Mono.Cecil.FunctionPointerType]) {
+            $match = Get-CecilRemovedTypeReferenceName `
+                -Reference $Reference.ReturnType `
+                -RemovalContext $RemovalContext `
+                -Depth ($Depth + 1)
+            if ($null -ne $match) {
+                return $match
+            }
+            foreach ($parameter in $Reference.Parameters) {
+                $match = Get-CecilRemovedTypeReferenceName `
+                    -Reference $parameter.ParameterType `
+                    -RemovalContext $RemovalContext `
+                    -Depth ($Depth + 1)
+                if ($null -ne $match) {
+                    return $match
+                }
+            }
+        }
+    }
+
+    return $null
+}
+
+function Assert-CecilTypeReferenceDoesNotTargetRemovedType {
+    param(
+        [AllowNull()][object]$Reference,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][string]$ReferenceContext
+    )
+
+    $match = Get-CecilRemovedTypeReferenceName `
+        -Reference $Reference `
+        -RemovalContext $RemovalContext
+    if ($null -ne $match) {
+        throw "$ReferenceContext references build-only type $match."
+    }
+}
+
+function Assert-CecilMethodReferenceDoesNotTargetRemovedType {
+    param(
+        [AllowNull()][object]$MethodReference,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][string]$ReferenceContext
+    )
+
+    if ($null -eq $MethodReference) {
+        return
+    }
+    Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+        -Reference $MethodReference.DeclaringType `
+        -RemovalContext $RemovalContext `
+        -ReferenceContext "$ReferenceContext declaring type"
+    Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+        -Reference $MethodReference.ReturnType `
+        -RemovalContext $RemovalContext `
+        -ReferenceContext "$ReferenceContext return type"
+    foreach ($parameter in $MethodReference.Parameters) {
+        Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+            -Reference $parameter.ParameterType `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext "$ReferenceContext parameter"
+    }
+    if ($null -ne $MethodReference.PSObject.Properties["GenericArguments"]) {
+        foreach ($genericArgument in $MethodReference.GenericArguments) {
+            Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                -Reference $genericArgument `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$ReferenceContext generic argument"
+        }
+    }
+}
+
+function Assert-CecilFieldReferenceDoesNotTargetRemovedType {
+    param(
+        [AllowNull()][object]$FieldReference,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][string]$ReferenceContext
+    )
+
+    if ($null -eq $FieldReference) {
+        return
+    }
+    Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+        -Reference $FieldReference.DeclaringType `
+        -RemovalContext $RemovalContext `
+        -ReferenceContext "$ReferenceContext declaring type"
+    Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+        -Reference $FieldReference.FieldType `
+        -RemovalContext $RemovalContext `
+        -ReferenceContext "$ReferenceContext field type"
+
+    if (($FieldReference.DeclaringType.FullName -replace '/', '+') -eq "<PrivateImplementationDetails>") {
+        $resolvedField = $null
+        try {
+            $resolvedField = $FieldReference.Resolve()
+        }
+        catch {
+            throw "$ReferenceContext private data field could not be resolved safely."
+        }
+        if ($null -eq $resolvedField) {
+            throw "$ReferenceContext private data field resolved to null."
+        }
+        if ([object]::ReferenceEquals($resolvedField.Module, $RemovalContext.Module) -and
+            $RemovalContext.PrivateFieldNames.Contains($resolvedField.FullName)) {
+            throw "$ReferenceContext references removed private data field $($resolvedField.FullName)."
+        }
+    }
+}
+
+function Assert-CecilCallSiteDoesNotTargetRemovedType {
+    param(
+        [AllowNull()][object]$CallSite,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][string]$ReferenceContext
+    )
+
+    if ($null -eq $CallSite) {
+        return
+    }
+    Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+        -Reference $CallSite.ReturnType `
+        -RemovalContext $RemovalContext `
+        -ReferenceContext "$ReferenceContext return type"
+    foreach ($parameter in $CallSite.Parameters) {
+        Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+            -Reference $parameter.ParameterType `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext "$ReferenceContext parameter"
+    }
+}
+
+function Assert-CecilCustomAttributeArgumentDoesNotTargetRemovedType {
+    param(
+        [AllowNull()][object]$Argument,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][string]$ReferenceContext
+    )
+
+    if ($null -eq $Argument) {
+        return
+    }
+    if ($null -ne $Argument.PSObject.Properties["Type"]) {
+        Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+            -Reference $Argument.Type `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext "$ReferenceContext argument type"
+    }
+    if ($null -eq $Argument.PSObject.Properties["Value"]) {
+        return
+    }
+
+    $value = $Argument.Value
+    if ($value -is [Mono.Cecil.TypeReference]) {
+        Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+            -Reference $value `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext "$ReferenceContext type value"
+    }
+    elseif ($value -is [Array]) {
+        foreach ($item in $value) {
+            Assert-CecilCustomAttributeArgumentDoesNotTargetRemovedType `
+                -Argument $item `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext $ReferenceContext
+        }
+    }
+    elseif ($null -ne $value -and
+        $value.GetType().FullName -eq "Mono.Cecil.CustomAttributeArgument") {
+        Assert-CecilCustomAttributeArgumentDoesNotTargetRemovedType `
+            -Argument $value `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext $ReferenceContext
+    }
+}
+
+function Assert-CecilCustomAttributesDoNotTargetRemovedType {
+    param(
+        [AllowNull()][object]$Provider,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][string]$ReferenceContext
+    )
+
+    if ($null -eq $Provider -or
+        $null -eq $Provider.PSObject.Properties["CustomAttributes"]) {
+        return
+    }
+    foreach ($attribute in $Provider.CustomAttributes) {
+        Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+            -Reference $attribute.AttributeType `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext "$ReferenceContext custom attribute"
+        Assert-CecilMethodReferenceDoesNotTargetRemovedType `
+            -MethodReference $attribute.Constructor `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext "$ReferenceContext custom attribute constructor"
+        foreach ($argument in $attribute.ConstructorArguments) {
+            Assert-CecilCustomAttributeArgumentDoesNotTargetRemovedType `
+                -Argument $argument `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$ReferenceContext custom attribute"
+        }
+        foreach ($namedArgument in $attribute.Fields) {
+            Assert-CecilCustomAttributeArgumentDoesNotTargetRemovedType `
+                -Argument $namedArgument.Argument `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$ReferenceContext custom attribute"
+        }
+        foreach ($namedArgument in $attribute.Properties) {
+            Assert-CecilCustomAttributeArgumentDoesNotTargetRemovedType `
+                -Argument $namedArgument.Argument `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$ReferenceContext custom attribute"
+        }
+    }
+}
+
+function Assert-CecilSecurityDeclarationsDoNotTargetRemovedType {
+    param(
+        [AllowNull()][object]$Provider,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][string]$ReferenceContext
+    )
+
+    if ($null -eq $Provider -or
+        $null -eq $Provider.PSObject.Properties["SecurityDeclarations"]) {
+        return
+    }
+    foreach ($declaration in $Provider.SecurityDeclarations) {
+        foreach ($securityAttribute in $declaration.SecurityAttributes) {
+            Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                -Reference $securityAttribute.AttributeType `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$ReferenceContext security attribute"
+            foreach ($namedArgument in $securityAttribute.Fields) {
+                Assert-CecilCustomAttributeArgumentDoesNotTargetRemovedType `
+                    -Argument $namedArgument.Argument `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$ReferenceContext security attribute"
+            }
+            foreach ($namedArgument in $securityAttribute.Properties) {
+                Assert-CecilCustomAttributeArgumentDoesNotTargetRemovedType `
+                    -Argument $namedArgument.Argument `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$ReferenceContext security attribute"
+            }
+        }
+    }
+}
+
+function Assert-CecilMarshalInfoDoesNotTargetRemovedType {
+    param(
+        [AllowNull()][object]$MarshalInfo,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][string]$ReferenceContext
+    )
+
+    if ($null -eq $MarshalInfo -or
+        $null -eq $MarshalInfo.PSObject.Properties["ManagedType"] -or
+        $null -eq $MarshalInfo.ManagedType) {
+        return
+    }
+    if ($MarshalInfo.ManagedType -is [Mono.Cecil.TypeReference]) {
+        Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+            -Reference $MarshalInfo.ManagedType `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext "$ReferenceContext custom marshaler"
+        return
+    }
+
+    $managedTypeName = [string]$MarshalInfo.ManagedType -replace '/', '+'
+    foreach ($rootName in $RemovalContext.RootNames) {
+        if ([string]::Equals($managedTypeName, $rootName, [StringComparison]::Ordinal) -or
+            $managedTypeName.StartsWith("$rootName+", [StringComparison]::Ordinal)) {
+            throw "$ReferenceContext custom marshaler names build-only type $managedTypeName."
+        }
+    }
+}
+
+function Assert-CecilGenericParametersDoNotTargetRemovedType {
+    param(
+        [AllowNull()][object]$GenericParameters,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][string]$ReferenceContext
+    )
+
+    foreach ($genericParameter in @($GenericParameters)) {
+        Assert-CecilCustomAttributesDoNotTargetRemovedType `
+            -Provider $genericParameter `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext "$ReferenceContext generic parameter"
+        foreach ($constraint in $genericParameter.Constraints) {
+            Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                -Reference $constraint.ConstraintType `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$ReferenceContext generic constraint"
+            Assert-CecilCustomAttributesDoNotTargetRemovedType `
+                -Provider $constraint `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$ReferenceContext generic constraint"
+        }
+    }
+}
+
+function Assert-CecilAssemblyDoesNotReferenceRemovedTypes {
+    param(
+        [Parameter(Mandatory = $true)][object]$Assembly,
+        [Parameter(Mandatory = $true)][object]$RemovalContext,
+        [Parameter(Mandatory = $true)][AllowEmptyCollection()]
+        [System.Collections.Generic.HashSet[int]]$IgnoredRootTokens,
+        [switch]$RunModuleReferenceSafetyNet
+    )
+
+    if ($Assembly.Modules.Count -ne 1) {
+        throw "Expected a single-module AvatarRecovery assembly, but found $($Assembly.Modules.Count)."
+    }
+
+    Assert-CecilCustomAttributesDoNotTargetRemovedType `
+        -Provider $Assembly `
+        -RemovalContext $RemovalContext `
+        -ReferenceContext "assembly"
+    Assert-CecilSecurityDeclarationsDoNotTargetRemovedType `
+        -Provider $Assembly `
+        -RemovalContext $RemovalContext `
+        -ReferenceContext "assembly"
+
+    $module = $Assembly.MainModule
+    Assert-CecilCustomAttributesDoNotTargetRemovedType `
+        -Provider $module `
+        -RemovalContext $RemovalContext `
+        -ReferenceContext "module"
+
+    foreach ($exportedType in $module.ExportedTypes) {
+        $exportedName = $exportedType.FullName -replace '/', '+'
+        foreach ($rootName in $RemovalContext.RootNames) {
+            if ([string]::Equals($exportedName, $rootName, [StringComparison]::Ordinal) -or
+                $exportedName.StartsWith("$rootName+", [StringComparison]::Ordinal)) {
+                throw "Module exports build-only type $exportedName."
+            }
+        }
+    }
+
+    foreach ($type in Get-CecilTypeDefinitions -Assembly $Assembly) {
+        $topLevelType = $type
+        while ($topLevelType.IsNested -and $null -ne $topLevelType.DeclaringType) {
+            $topLevelType = $topLevelType.DeclaringType
+        }
+        $topLevelToken = $topLevelType.MetadataToken.ToInt32()
+        if ([object]::ReferenceEquals($topLevelType.Module, $module) -and
+            $IgnoredRootTokens.Contains($topLevelToken)) {
+            continue
+        }
+
+        $typeName = $type.FullName -replace '/', '+'
+        foreach ($rootName in $RemovalContext.RootNames) {
+            if ([string]::Equals($typeName, $rootName, [StringComparison]::Ordinal) -or
+                $typeName.StartsWith("$rootName+", [StringComparison]::Ordinal)) {
+                throw "Build-only type remained outside the ignored removal subtree: $typeName"
+            }
+        }
+
+        Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+            -Reference $type.BaseType `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext "$typeName base type"
+        Assert-CecilCustomAttributesDoNotTargetRemovedType `
+            -Provider $type `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext $typeName
+        Assert-CecilSecurityDeclarationsDoNotTargetRemovedType `
+            -Provider $type `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext $typeName
+        Assert-CecilGenericParametersDoNotTargetRemovedType `
+            -GenericParameters $type.GenericParameters `
+            -RemovalContext $RemovalContext `
+            -ReferenceContext $typeName
+
+        foreach ($interface in $type.Interfaces) {
+            Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                -Reference $interface.InterfaceType `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$typeName interface"
+            Assert-CecilCustomAttributesDoNotTargetRemovedType `
+                -Provider $interface `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$typeName interface"
+        }
+
+        foreach ($field in $type.Fields) {
+            $fieldContext = "$typeName::$($field.Name)"
+            Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                -Reference $field.FieldType `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$fieldContext field type"
+            Assert-CecilCustomAttributesDoNotTargetRemovedType `
+                -Provider $field `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext $fieldContext
+            Assert-CecilMarshalInfoDoesNotTargetRemovedType `
+                -MarshalInfo $field.MarshalInfo `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext $fieldContext
+        }
+
+        foreach ($method in $type.Methods) {
+            $methodContext = "$typeName::$($method.Name)"
+            Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                -Reference $method.ReturnType `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$methodContext return type"
+            Assert-CecilCustomAttributesDoNotTargetRemovedType `
+                -Provider $method `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext $methodContext
+            Assert-CecilSecurityDeclarationsDoNotTargetRemovedType `
+                -Provider $method `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext $methodContext
+            Assert-CecilGenericParametersDoNotTargetRemovedType `
+                -GenericParameters $method.GenericParameters `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext $methodContext
+            Assert-CecilCustomAttributesDoNotTargetRemovedType `
+                -Provider $method.MethodReturnType `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$methodContext return metadata"
+            Assert-CecilMarshalInfoDoesNotTargetRemovedType `
+                -MarshalInfo $method.MethodReturnType.MarshalInfo `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$methodContext return metadata"
+
+            foreach ($parameter in $method.Parameters) {
+                Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                    -Reference $parameter.ParameterType `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$methodContext parameter $($parameter.Name)"
+                Assert-CecilCustomAttributesDoNotTargetRemovedType `
+                    -Provider $parameter `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$methodContext parameter $($parameter.Name)"
+                Assert-CecilMarshalInfoDoesNotTargetRemovedType `
+                    -MarshalInfo $parameter.MarshalInfo `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$methodContext parameter $($parameter.Name)"
+            }
+            foreach ($override in $method.Overrides) {
+                Assert-CecilMethodReferenceDoesNotTargetRemovedType `
+                    -MethodReference $override `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$methodContext override"
+            }
+
+            if (-not $method.HasBody) {
+                continue
+            }
+            foreach ($variable in $method.Body.Variables) {
+                Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                    -Reference $variable.VariableType `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$methodContext local"
+            }
+            foreach ($handler in $method.Body.ExceptionHandlers) {
+                Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                    -Reference $handler.CatchType `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$methodContext catch"
+            }
+            foreach ($instruction in $method.Body.Instructions) {
+                $operand = $instruction.Operand
+                $instructionContext = "$methodContext IL_$($instruction.Offset.ToString('x4'))"
+                if ($operand -is [Mono.Cecil.MethodReference]) {
+                    Assert-CecilMethodReferenceDoesNotTargetRemovedType `
+                        -MethodReference $operand `
+                        -RemovalContext $RemovalContext `
+                        -ReferenceContext $instructionContext
+                }
+                elseif ($operand -is [Mono.Cecil.FieldReference]) {
+                    Assert-CecilFieldReferenceDoesNotTargetRemovedType `
+                        -FieldReference $operand `
+                        -RemovalContext $RemovalContext `
+                        -ReferenceContext $instructionContext
+                }
+                elseif ($operand -is [Mono.Cecil.TypeReference]) {
+                    Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                        -Reference $operand `
+                        -RemovalContext $RemovalContext `
+                        -ReferenceContext $instructionContext
+                }
+                elseif ($operand -is [Mono.Cecil.CallSite]) {
+                    Assert-CecilCallSiteDoesNotTargetRemovedType `
+                        -CallSite $operand `
+                        -RemovalContext $RemovalContext `
+                        -ReferenceContext $instructionContext
+                }
+            }
+        }
+
+        foreach ($property in $type.Properties) {
+            $propertyContext = "$typeName::$($property.Name)"
+            Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                -Reference $property.PropertyType `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$propertyContext property type"
+            foreach ($parameter in $property.Parameters) {
+                Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                    -Reference $parameter.ParameterType `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$propertyContext parameter"
+                Assert-CecilCustomAttributesDoNotTargetRemovedType `
+                    -Provider $parameter `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "$propertyContext parameter"
+            }
+            Assert-CecilCustomAttributesDoNotTargetRemovedType `
+                -Provider $property `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext $propertyContext
+        }
+
+        foreach ($event in $type.Events) {
+            $eventContext = "$typeName::$($event.Name)"
+            Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                -Reference $event.EventType `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "$eventContext event type"
+            Assert-CecilCustomAttributesDoNotTargetRemovedType `
+                -Provider $event `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext $eventContext
+        }
+    }
+
+    if ($RunModuleReferenceSafetyNet) {
+        foreach ($typeReference in $module.GetTypeReferences()) {
+            Assert-CecilTypeReferenceDoesNotTargetRemovedType `
+                -Reference $typeReference `
+                -RemovalContext $RemovalContext `
+                -ReferenceContext "module type reference safety net"
+        }
+        foreach ($memberReference in $module.GetMemberReferences()) {
+            if ($memberReference -is [Mono.Cecil.MethodReference]) {
+                Assert-CecilMethodReferenceDoesNotTargetRemovedType `
+                    -MethodReference $memberReference `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "module member reference safety net"
+            }
+            elseif ($memberReference -is [Mono.Cecil.FieldReference]) {
+                Assert-CecilFieldReferenceDoesNotTargetRemovedType `
+                    -FieldReference $memberReference `
+                    -RemovalContext $RemovalContext `
+                    -ReferenceContext "module member reference safety net"
+            }
+        }
+    }
+}
+
+function Remove-NonRuntimeBuildMetadata {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    Ensure-MonoCecilLoaded
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $tempPath = "$Path.build-metadata.tmp"
+    if (Test-Path -LiteralPath $tempPath) {
+        Remove-Item -LiteralPath $tempPath -Force
+    }
+    $wroteOutput = $false
+    $removedTypes = New-Object System.Collections.Generic.List[string]
+    $removedPrivateDataFields = New-Object System.Collections.Generic.List[object]
+    $removedLegacyPrivateDataFields = New-Object System.Collections.Generic.List[object]
+    $privateDataFieldTokens = [System.Collections.Generic.HashSet[int]]::new()
+    $monoScriptPrivateDataFieldTokens = [System.Collections.Generic.HashSet[int]]::new()
+    $monoScriptMetadataTypeCount = 0
+
+    try {
+        $typesToRemove = New-Object System.Collections.Generic.List[object]
+        $allTypes = @(Get-CecilTypeDefinitions -Assembly $assembly)
+        foreach ($type in $allTypes) {
+            $hasMonoScriptProducer = Test-CecilGeneratedCodeProducer `
+                -Type $type `
+                -Producer "Unity.MonoScriptGenerator.MonoScriptInfoGenerator"
+            $monoScriptGetMethods = @($type.Methods | Where-Object {
+                $_.Name -eq $UnityMonoScriptMetadataMethodName
+            })
+            $hasMonoScriptGetMethod = (
+                $monoScriptGetMethods.Count -eq 1 -and
+                $monoScriptGetMethods[0].IsStatic -and
+                $monoScriptGetMethods[0].IsPrivate -and
+                $monoScriptGetMethods[0].Parameters.Count -eq 0 -and
+                $monoScriptGetMethods[0].HasBody -and
+                $monoScriptGetMethods[0].ReturnType.FullName -eq
+                    "$UnityMonoScriptMetadataTypeName/MonoScriptData")
+            $isMonoScriptMetadata = (
+                $type.FullName -eq $UnityMonoScriptMetadataTypeName -and
+                $hasMonoScriptProducer -and
+                $hasMonoScriptGetMethod)
+            if ($type.FullName -eq $UnityMonoScriptMetadataTypeName -and -not $isMonoScriptMetadata) {
+                throw "Unity MonoScript metadata type did not match the expected generated contract: $($type.FullName)"
+            }
+            $isLegacyRuntimeGuard = (($type.FullName -replace '/', '+') -eq $RuntimeIntegrityGuardTypeName)
+            $isLegacyStringDecryptor = (($type.FullName -replace '/', '+') -eq $StringDecryptorTypeName)
+            if (-not $isMonoScriptMetadata -and -not $isLegacyRuntimeGuard -and -not $isLegacyStringDecryptor) {
+                continue
+            }
+
+            if ($isMonoScriptMetadata) {
+                $monoScriptMetadataTypeCount++
+            }
+
+            foreach ($method in $type.Methods) {
+                if (-not $method.HasBody) {
+                    continue
+                }
+
+                foreach ($instruction in $method.Body.Instructions) {
+                    if ($instruction.OpCode.Code -ne [Mono.Cecil.Cil.Code]::Ldtoken -or
+                        $null -eq $instruction.Operand -or
+                        -not ($instruction.Operand -is [Mono.Cecil.FieldReference])) {
+                        continue
+                    }
+
+                    $field = $null
+                    try {
+                        $field = $instruction.Operand.Resolve()
+                    }
+                    catch {
+                        $field = $null
+                    }
+                    if ($null -eq $field -or
+                        $null -eq $field.InitialValue -or
+                        $field.InitialValue.Length -le 0 -or
+                        $field.DeclaringType.Name -ne "<PrivateImplementationDetails>") {
+                        continue
+                    }
+
+                    $fieldToken = $field.MetadataToken.ToInt32()
+                    if ($privateDataFieldTokens.Add($fieldToken)) {
+                        $fieldInfo = [PSCustomObject]@{
+                            Field = $field
+                            Name = $field.FullName
+                            Token = $fieldToken
+                            Size = $field.InitialValue.Length
+                        }
+                        if ($isMonoScriptMetadata) {
+                            [void]$monoScriptPrivateDataFieldTokens.Add($fieldToken)
+                            [void]$removedPrivateDataFields.Add($fieldInfo)
+                        }
+                        else {
+                            [void]$removedLegacyPrivateDataFields.Add($fieldInfo)
+                        }
+                    }
+                }
+            }
+
+            [void]$typesToRemove.Add($type)
+        }
+
+        if ($monoScriptMetadataTypeCount -ne 1) {
+            throw "Expected exactly one Unity MonoScript metadata type, but found $monoScriptMetadataTypeCount."
+        }
+        if ($monoScriptMetadataTypeCount -eq 1 -and $monoScriptPrivateDataFieldTokens.Count -ne 2) {
+            throw "Unity MonoScript metadata must reference exactly two private data fields, but found $($monoScriptPrivateDataFieldTokens.Count)."
+        }
+
+        $removedRootTokens = [System.Collections.Generic.HashSet[int]]::new()
+        $removedRootNames = New-Object System.Collections.Generic.List[string]
+        foreach ($type in $typesToRemove) {
+            [void]$removedRootTokens.Add($type.MetadataToken.ToInt32())
+            [void]$removedRootNames.Add(($type.FullName -replace '/', '+'))
+        }
+        $removedPrivateFieldNames = [System.Collections.Generic.HashSet[string]]::new(
+            [StringComparer]::Ordinal)
+        foreach ($fieldInfo in $removedPrivateDataFields.ToArray()) {
+            [void]$removedPrivateFieldNames.Add([string]$fieldInfo.Name)
+        }
+        foreach ($fieldInfo in $removedLegacyPrivateDataFields.ToArray()) {
+            [void]$removedPrivateFieldNames.Add([string]$fieldInfo.Name)
+        }
+        $removalContext = [PSCustomObject]@{
+            Module = $assembly.MainModule
+            RootTokens = $removedRootTokens
+            RootNames = @($removedRootNames.ToArray())
+            PrivateFieldNames = $removedPrivateFieldNames
+        }
+        Assert-CecilAssemblyDoesNotReferenceRemovedTypes `
+            -Assembly $assembly `
+            -RemovalContext $removalContext `
+            -IgnoredRootTokens $removedRootTokens
+
+        foreach ($fieldInfo in $removedPrivateDataFields) {
+            [void]$fieldInfo.Field.DeclaringType.Fields.Remove($fieldInfo.Field)
+        }
+        foreach ($fieldInfo in $removedLegacyPrivateDataFields) {
+            [void]$fieldInfo.Field.DeclaringType.Fields.Remove($fieldInfo.Field)
+        }
+
+        foreach ($type in $typesToRemove) {
+            [void]$removedTypes.Add(($type.FullName -replace '/', '+'))
+            if ($type.IsNested) {
+                [void]$type.DeclaringType.NestedTypes.Remove($type)
+            }
+            else {
+                [void]$assembly.MainModule.Types.Remove($type)
+            }
+        }
+
+        if ($removedTypes.Count -gt 0 -or
+            $removedPrivateDataFields.Count -gt 0 -or
+            $removedLegacyPrivateDataFields.Count -gt 0) {
+            $assembly.Write((ConvertTo-FullPath $tempPath))
+            $wroteOutput = $true
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($wroteOutput -and (Test-Path -LiteralPath $tempPath)) {
+        $sanitizedAssembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $tempPath))
+        try {
+            $emptyRootTokens = [System.Collections.Generic.HashSet[int]]::new()
+            $sanitizedContext = [PSCustomObject]@{
+                Module = $sanitizedAssembly.MainModule
+                RootTokens = $emptyRootTokens
+                RootNames = @($removalContext.RootNames)
+                PrivateFieldNames = $removedPrivateFieldNames
+            }
+            Assert-CecilAssemblyDoesNotReferenceRemovedTypes `
+                -Assembly $sanitizedAssembly `
+                -RemovalContext $sanitizedContext `
+                -IgnoredRootTokens $emptyRootTokens `
+                -RunModuleReferenceSafetyNet
+
+            $remainingPrivateFields = @(Get-CecilTypeDefinitions -Assembly $sanitizedAssembly |
+                ForEach-Object { $_.Fields } |
+                Where-Object { $removedPrivateFieldNames.Contains($_.FullName) })
+            if ($remainingPrivateFields.Count -ne 0) {
+                throw "Removed private data fields remained after Cecil write."
+            }
+        }
+        finally {
+            $sanitizedAssembly.Dispose()
+        }
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    }
+
+    return [PSCustomObject]@{
+        RemovedTypeCount = $removedTypes.Count
+        RemovedTypes = @($removedTypes.ToArray())
+        RemovedPrivateDataFieldCount = $removedPrivateDataFields.Count
+        RemovedPrivateDataFieldSizes = @($removedPrivateDataFields | ForEach-Object { [int]$_.Size })
+        RemovedLegacyPrivateDataFieldCount = $removedLegacyPrivateDataFields.Count
+        RemovedLegacyPrivateDataFieldSizes = @($removedLegacyPrivateDataFields | ForEach-Object { [int]$_.Size })
+        UnityMonoScriptMetadataTypeCount = $monoScriptMetadataTypeCount
+        ExternalReferenceValidation = "ComprehensiveCecilReferenceWalk"
+        PostWriteReferenceValidation = $wroteOutput
+    }
+}
+
+function Disable-StringHidingProbe {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    Ensure-MonoCecilLoaded
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    $tempPath = "$Path.string-probe.tmp"
+    if (Test-Path -LiteralPath $tempPath) {
+        Remove-Item -LiteralPath $tempPath -Force
+    }
+    $neutralized = New-Object System.Collections.Generic.List[string]
+    $wroteOutput = $false
+
+    try {
+        $targetTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryEnvChecker"
+        $targetMethodName = "TouchStringHidingProbe"
+        $targetType = Get-CecilTypeDefinitions -Assembly $assembly |
+            Where-Object { ($_.FullName -replace '/', '+') -eq $targetTypeName } |
+            Select-Object -First 1
+        if ($null -eq $targetType) {
+            throw "String hiding probe owner type was not found: $targetTypeName"
+        }
+
+        $targetMethods = @($targetType.Methods | Where-Object {
+            $_.Name -eq $targetMethodName -and
+            $_.IsStatic -and
+            $_.Parameters.Count -eq 0 -and
+            $_.ReturnType.FullName -eq "System.Void"
+        })
+        if ($targetMethods.Count -ne 1) {
+            throw "Expected exactly one string hiding probe method, but found $($targetMethods.Count)."
+        }
+
+        $method = $targetMethods[0]
+        if (-not $method.HasBody -or $method.Body.ExceptionHandlers.Count -ne 0) {
+            throw "String hiding probe does not have the expected simple method body."
+        }
+
+        $probeLiterals = @($method.Body.Instructions |
+            Where-Object { $_.OpCode.Code -eq [Mono.Cecil.Cil.Code]::Ldstr } |
+            ForEach-Object { [string]$_.Operand })
+        if ($probeLiterals.Count -ne 1 -or $probeLiterals[0] -ne $StringHidingProbe) {
+            throw "String hiding probe literal contract changed; refusing to remove possible runtime logic."
+        }
+
+        $methodReferences = @($method.Body.Instructions |
+            Where-Object { $_.Operand -is [Mono.Cecil.MethodReference] } |
+            ForEach-Object { "$($_.Operand.DeclaringType.FullName)|$($_.Operand.Name)" })
+        $expectedMethodReferences = @(
+            "System.DateTime|get_UtcNow",
+            "System.DateTime|get_Ticks",
+            "UnityEngine.Debug|Log"
+        )
+        $methodReferenceDifference = @(Compare-Object `
+            -ReferenceObject $expectedMethodReferences `
+            -DifferenceObject $methodReferences)
+        $fieldReferences = @($method.Body.Instructions |
+            Where-Object { $_.Operand -is [Mono.Cecil.FieldReference] })
+        if ($methodReferenceDifference.Count -ne 0 -or
+            $methodReferences.Count -ne $expectedMethodReferences.Count -or
+            $fieldReferences.Count -ne 0) {
+            throw "String hiding probe gained unexpected calls or field access; refusing to remove possible runtime logic."
+        }
+
+        $method.Body.ExceptionHandlers.Clear()
+        $method.Body.Variables.Clear()
+        $method.Body.Instructions.Clear()
+        $method.Body.InitLocals = $false
+        $method.Body.MaxStackSize = 1
+        $method.Body.Instructions.Add(
+            [Mono.Cecil.Cil.Instruction]::Create([Mono.Cecil.Cil.OpCodes]::Ret))
+        [void]$neutralized.Add("$targetTypeName|$targetMethodName")
+
+        $assembly.Write((ConvertTo-FullPath $tempPath))
+        $wroteOutput = $true
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    if ($wroteOutput -and (Test-Path -LiteralPath $tempPath)) {
+        Move-Item -LiteralPath $tempPath -Destination $Path -Force
+    }
+
+    return [PSCustomObject]@{
+        NeutralizedMethodCount = $neutralized.Count
+        NeutralizedMethods = @($neutralized.ToArray())
+        ValidatedExpectedCanary = $true
+    }
+}
+
 function Test-CecilAttribute {
     param(
         [Parameter(Mandatory = $true)][object]$Provider,
@@ -2046,12 +3114,12 @@ function Inject-RuntimeIntegrityGuardCalls {
         [Parameter(Mandatory = $true)][string]$TargetListPath
     )
 
-    if ($DisableRuntimeIntegrityGuard) {
+    if (-not $EnableInProcessRuntimeIntegrityGuard -or $DisableRuntimeIntegrityGuard) {
         return [PSCustomObject]@{
             Enabled = $false
             InjectedMethodCount = 0
             Skipped = @()
-            Reason = "DisabledBySwitch"
+            Reason = if (-not $EnableInProcessRuntimeIntegrityGuard) { "ExternalSidecarOnly" } else { "DisabledBySwitch" }
         }
     }
 
@@ -2168,12 +3236,12 @@ function Inject-AntiDebugChecks {
         [Parameter(Mandatory = $true)][string]$TargetListPath
     )
 
-    if ($DisableAntiDebug) {
+    if (-not $EnableAntiDebugInjection -or $DisableAntiDebug) {
         return [PSCustomObject]@{
             Enabled = $false
             InjectedMethodCount = 0
             Skipped = @()
-            Reason = "DisabledBySwitch"
+            Reason = if (-not $EnableAntiDebugInjection) { "RemovedIneffectiveDebuggerCheck" } else { "DisabledBySwitch" }
         }
     }
 
@@ -2613,12 +3681,12 @@ function Invoke-CecilStringEncryption {
         [AllowNull()][string]$MappingPath = ""
     )
 
-    if ($DisableCecilStringEncryption) {
+    if (-not $EnableCecilStringEncryption -or $DisableCecilStringEncryption) {
         return [PSCustomObject]@{
             Enabled = $false
             EncryptedStringCount = 0
             Skipped = @()
-            Reason = "DisabledBySwitch"
+            Reason = if (-not $EnableCecilStringEncryption) { "RetiredIneffectiveLocalEncryption" } else { "DisabledBySwitch" }
         }
     }
     if ($null -eq $script:StringEncryptionKeyBytes -or $script:StringEncryptionKeyBytes.Length -eq 0) {
@@ -3074,7 +4142,8 @@ function New-ObfuscarConfig {
     [void]$lines.Add("  <Var name=""OutPath"" value=""$(Get-XmlEscaped $OutputDir)"" />")
     [void]$lines.Add('  <Var name="KeepPublicApi" value="true" />')
     [void]$lines.Add('  <Var name="HidePrivateApi" value="true" />')
-    $hideStrings = if ($DisableCecilStringEncryption) { "true" } else { "false" }
+    # ローカル DLL の文字列変換は秘密を守れないため、Obfuscar/Cecil とも無効化する。
+    $hideStrings = "false"
     [void]$lines.Add("  <Var name=""HideStrings"" value=""$hideStrings"" />")
     [void]$lines.Add('  <Var name="RenameProperties" value="false" />')
     [void]$lines.Add('  <Var name="RenameEvents" value="false" />')
@@ -3113,7 +4182,7 @@ function New-ObfuscarConfig {
         [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $typeName)"" skipFields=""true"" />")
     }
 
-    if (-not $DisableCecilStringEncryption) {
+    if ($EnableCecilStringEncryption -and -not $DisableCecilStringEncryption) {
         [void]$lines.Add("    <SkipType name=""$(Get-XmlEscaped $StringDecryptorTypeName)"" skipMethods=""true"" skipProperties=""true"" skipFields=""true"" skipEvents=""true"" />")
     }
 
@@ -3131,13 +4200,22 @@ function Test-BinaryLeak {
 
     $bytes = [System.IO.File]::ReadAllBytes($Path)
     $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
-    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeEven = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeOdd = if ($bytes.Length -gt 1) {
+        [System.Text.Encoding]::Unicode.GetString($bytes, 1, $bytes.Length - 1)
+    } else {
+        ""
+    }
+    $unicode = "$unicodeEven`n$unicodeOdd"
 
     $problems = New-Object System.Collections.Generic.List[string]
     $userName = [Environment]::UserName
     $tempPath = [System.IO.Path]::GetTempPath()
     $configuredCertificatePath = if ([string]::IsNullOrWhiteSpace($CodeSigningCertificatePath)) { "" } else { ConvertTo-FullPath $CodeSigningCertificatePath }
     $allowlist = Get-AllowlistSet -Path $BinaryLeakAllowlistPath
+    $denyLiterals = @($allowlist |
+        Where-Object { $_.StartsWith("DenyLiteral:", [StringComparison]::Ordinal) } |
+        ForEach-Object { $_.Substring("DenyLiteral:".Length) })
     $literalChecks = @(
         @{ Name = "current user name"; Pattern = $userName; AllowKey = "" },
         @{ Name = "repo absolute path"; Pattern = (ConvertTo-FullPath $RepoRoot); AllowKey = "" },
@@ -3189,6 +4267,15 @@ function Test-BinaryLeak {
         }
     }
 
+    foreach ($denyLiteral in $denyLiterals) {
+        if ([string]::IsNullOrWhiteSpace($denyLiteral)) {
+            throw "Binary leak deny rule must not be empty: $BinaryLeakAllowlistPath"
+        }
+        if ($ascii.Contains($denyLiteral) -or $unicode.Contains($denyLiteral)) {
+            [void]$problems.Add("forbidden literal '$denyLiteral'")
+        }
+    }
+
     if (-not $AllowDocumentNames) {
         if ($ascii -match '\\Packages\\com\.nickel-jp\.avatar-recovery\\Editor\\[^\x00-\x1F]+?\.cs' -or
             $unicode -match '\\Packages\\com\.nickel-jp\.avatar-recovery\\Editor\\[^\x00-\x1F]+?\.cs') {
@@ -3218,7 +4305,13 @@ function Test-StringHidingProbeAbsent {
 
     $bytes = [System.IO.File]::ReadAllBytes($Path)
     $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
-    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeEven = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeOdd = if ($bytes.Length -gt 1) {
+        [System.Text.Encoding]::Unicode.GetString($bytes, 1, $bytes.Length - 1)
+    } else {
+        ""
+    }
+    $unicode = "$unicodeEven`n$unicodeOdd"
     if ($ascii.Contains($StringHidingProbe) -or $unicode.Contains($StringHidingProbe)) {
         throw "String hiding protection did not remove the plaintext marker: $StringHidingProbe"
     }
@@ -3339,9 +4432,9 @@ function Get-HideStringsImpactReport {
 
     return [PSCustomObject]@{
         Enabled = $true
-        HideStringsDisabled = (-not [bool]$DisableCecilStringEncryption)
-        ManagedBy = if ($DisableCecilStringEncryption) { "ObfuscarHideStrings" } else { "CecilStringEncryptionAllowlistAndRiskScan" }
-        StringProtectionProvider = if ($DisableCecilStringEncryption) { "ObfuscarHideStrings" } else { "CecilStringEncryption" }
+        HideStringsDisabled = $true
+        ManagedBy = if ($EnableCecilStringEncryption -and -not $DisableCecilStringEncryption) { "CecilStringEncryptionAllowlistAndRiskScan" } else { "PlaintextRiskScanNoEncryption" }
+        StringProtectionProvider = if ($EnableCecilStringEncryption -and -not $DisableCecilStringEncryption) { "CecilStringEncryption" } else { "None" }
         LdstrLiteralCount = $literalCount
         UniqueLdstrLiteralCount = $uniqueLiterals.Count
         EncryptedBlobLiteralCount = $encryptedBlobLiteralCount
@@ -3354,17 +4447,16 @@ function Get-HideStringsImpactReport {
     }
 }
 
-function ConvertTo-SafeDocumentName {
+function ConvertTo-OpaqueDocumentName {
     param(
         [Parameter(Mandatory = $true)][string]$Original,
         [Parameter(Mandatory = $true)][int]$Length
     )
 
-    $name = $Original -replace '^\\Packages\\com\.nickel-jp\.avatar-recovery\\Editor\\', 'AvatarRecoverySource\'
-    $name = $name -replace '\.cs$', '.src'
-    $name = $name -replace '\\', '/'
+    # PE 内の長さを変えず、元フォルダー名・型名・ファイル名を一切引き継がない。
+    $name = "AvatarRecoveryBuild/document.bin"
     if ($name.Length -gt $Length) {
-        $name = "AvatarRecoverySource/source.src"
+        $name = "source.bin"
     }
     while ($name.Length -lt $Length) {
         $name += "_"
@@ -3394,7 +4486,7 @@ function Clear-SourceDocumentPaths {
         '\\Packages\\com\.nickel-jp\.avatar-recovery\\Editor\\[^\x00-\x1F]+?\.cs')
 
     foreach ($match in $matches) {
-        $replacement = ConvertTo-SafeDocumentName -Original $match.Value -Length $match.Value.Length
+        $replacement = ConvertTo-OpaqueDocumentName -Original $match.Value -Length $match.Value.Length
         $replacementBytes = [System.Text.Encoding]::ASCII.GetBytes($replacement)
         [Array]::Copy($replacementBytes, 0, $bytes, $match.Index, $replacementBytes.Length)
     }
@@ -3487,7 +4579,13 @@ function Test-PublicFileForSecrets {
 
     $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $Path))
     $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
-    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeEven = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeOdd = if ($bytes.Length -gt 1) {
+        [System.Text.Encoding]::Unicode.GetString($bytes, 1, $bytes.Length - 1)
+    } else {
+        ""
+    }
+    $unicode = "$unicodeEven`n$unicodeOdd"
     if ($ascii -match '-----BEGIN [A-Z ]*PRIVATE KEY-----' -or
         $unicode -match '-----BEGIN [A-Z ]*PRIVATE KEY-----') {
         throw "公開禁止の秘密鍵本文が含まれています: $Path"
@@ -3582,6 +4680,8 @@ function Write-ProtectionBuildReport {
     param(
         [Parameter(Mandatory = $true)][object]$Scan,
         [Parameter(Mandatory = $true)][object]$PublicApiReport,
+        [Parameter(Mandatory = $true)][object]$BuildMetadataSanitizationReport,
+        [Parameter(Mandatory = $true)][object]$StringHidingProbeReport,
         [Parameter(Mandatory = $true)][object]$RuntimeIntegritySourceReport,
         [Parameter(Mandatory = $true)][object]$RuntimeIntegrityInjectionReport,
         [Parameter(Mandatory = $true)][object]$AntiDebugReport,
@@ -3613,14 +4713,16 @@ function Write-ProtectionBuildReport {
         GeneratedAt = (Get-Date).ToString("o")
         Pipeline = @(
             "UnityCompile",
+            "BuildOnlyMetadataRemoval",
+            "StringHidingProbeRemoval",
             "PreObfuscarCoreLibRepair",
             "PublicApiAllowlist",
-            "RuntimeIntegrityGuardInjection",
-            "AntiDebugInjection",
+            "InProcessRuntimeIntegrityGuardRetired",
+            "AntiDebugRetired",
             "CecilControlFlowObfuscation",
             "AntiDecompileMetadata",
             "Obfuscar",
-            "CecilStringEncryption",
+            "CecilStringEncryptionRetired",
             "HideStringsImpactScan",
             "CoreLibReferenceRepair",
             "BranchSanitization",
@@ -3629,7 +4731,7 @@ function Write-ProtectionBuildReport {
             "LeakCheck",
             "AuthenticodeSign",
             "SignatureVerify",
-            "RuntimeIntegritySidecar",
+            "ExternalDistributionIntegritySidecar",
             "Zip",
             "ZipContentCheck",
             "Checksum",
@@ -3640,8 +4742,8 @@ function Write-ProtectionBuildReport {
         Obfuscar = [PSCustomObject]@{
             KeepPublicApi = $true
             HidePrivateApi = $true
-            HideStrings = [bool]$DisableCecilStringEncryption
-            StringProtectionProvider = if ($DisableCecilStringEncryption) { "ObfuscarHideStrings" } else { "CecilStringEncryption" }
+            HideStrings = $false
+            StringProtectionProvider = if ($EnableCecilStringEncryption -and -not $DisableCecilStringEncryption) { "CecilStringEncryption" } else { "None" }
             HideStringsImpactManagedBy = $HideStringsImpactReport.ManagedBy
             RenameProperties = $false
             RenameEvents = $false
@@ -3650,6 +4752,8 @@ function Write-ProtectionBuildReport {
             ExclusionRuleCount = $skipRuleCount
         }
         BuildEnvironment = Get-BuildEnvironmentReport
+        BuildMetadataSanitization = $BuildMetadataSanitizationReport
+        StringHidingProbe = $StringHidingProbeReport
         ControlFlowObfuscation = $ControlFlowObfuscationReport
         AntiDebug = $AntiDebugReport
         StringEncryption = $StringEncryptionReport
@@ -3773,9 +4877,7 @@ function Initialize-ProjectPackage {
     Copy-Item -LiteralPath $dllMeta -Destination (Join-Path $editorDir "$AssemblyFileName.meta") -Force
 }
 
-if (-not (Test-Path $SourcePackageRoot)) {
-    throw "Source package was not found: $SourcePackageRoot"
-}
+Initialize-SourcePackage
 if (-not (Test-Path $UnityExe)) {
     throw "Unity executable was not found: $UnityExe"
 }
@@ -3816,6 +4918,10 @@ Ensure-Directory $outputDir
 $protectedInputDll = Join-Path $inputDir $AssemblyFileName
 Copy-Item -LiteralPath $compiledDll -Destination $protectedInputDll -Force
 
+$buildMetadataSanitizationReport = Remove-NonRuntimeBuildMetadata -Path $protectedInputDll
+Write-Host "Build-only metadata removed: types=$($buildMetadataSanitizationReport.RemovedTypeCount) privateDataFields=$($buildMetadataSanitizationReport.RemovedPrivateDataFieldCount)"
+$stringHidingProbeReport = Disable-StringHidingProbe -Path $protectedInputDll
+Write-Host "String hiding probe neutralized: $($stringHidingProbeReport.NeutralizedMethodCount)"
 $patchedCount = Clear-SourceDocumentPaths -Path $protectedInputDll
 Write-Host "Source document paths sanitized before Obfuscar: $patchedCount"
 $patchedDebugSymbols = Clear-DebugSymbolPaths -Path $protectedInputDll
@@ -3882,7 +4988,7 @@ $stringEncryptionReport = Invoke-CecilStringEncryption `
     -TargetListPath $StringEncryptionAllowlistPath `
     -SourceReport $stringDecryptorSourceReport `
     -MappingPath (Join-Path $outputDir "Mapping.txt")
-if (-not $DisableCecilStringEncryption -and [int]$stringEncryptionReport.EncryptedStringCount -le 0) {
+if ($EnableCecilStringEncryption -and -not $DisableCecilStringEncryption -and [int]$stringEncryptionReport.EncryptedStringCount -le 0) {
     throw "Cecil string encryption did not encrypt any string literals."
 }
 $stringEncryptionReportPath = Join-Path $PrivateBackupRoot "cecil-string-encryption-$Version.json"
@@ -3908,6 +5014,10 @@ $patchedAfterObfuscar = Clear-SourceDocumentPaths -Path $obfuscatedDll
 Write-Host "Source document paths sanitized after Obfuscar: $patchedAfterObfuscar"
 $patchedDebugSymbolsAfterObfuscar = Clear-DebugSymbolPaths -Path $obfuscatedDll
 Write-Host "Debug symbol paths sanitized after Obfuscar: $patchedDebugSymbolsAfterObfuscar"
+$publicApiReport = Test-PublicApiAllowlist `
+    -DllPath $obfuscatedDll `
+    -AllowlistPath $PublicApiAllowlistPath `
+    -AssemblySearchPaths $assemblySearchPaths
 Test-BinaryLeak -Path $obfuscatedDll
 Test-StringHidingProbeAbsent -Path $obfuscatedDll
 Invoke-CodeSign -Path $obfuscatedDll -Context $codeSigningContext
@@ -3972,6 +5082,8 @@ Test-PublicReleaseSecrets
 Write-ProtectionBuildReport `
     -Scan $scan `
     -PublicApiReport $publicApiReport `
+    -BuildMetadataSanitizationReport $buildMetadataSanitizationReport `
+    -StringHidingProbeReport $stringHidingProbeReport `
     -RuntimeIntegritySourceReport $runtimeIntegritySourceReport `
     -RuntimeIntegrityInjectionReport $runtimeIntegrityInjectionReport `
     -AntiDebugReport $antiDebugReport `

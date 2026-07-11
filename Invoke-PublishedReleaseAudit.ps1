@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.2.0",
+    [string]$Version = "1.2.1",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$OutputRoot = "",
@@ -20,8 +20,8 @@ $AssemblyFileName = "EditorTools.AvatarRecovery.Editor.dll"
 $RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
 $CertificateFileName = "avatar-recovery-self-signed-code-signing.cer"
 $CertificatePemFileName = "avatar-recovery-self-signed-code-signing.cer.pem"
-$StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
 $TrustedCertificatePath = Join-Path $RepoRoot "certificates\$CertificateFileName"
+$BinaryLeakRulesPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -173,16 +173,20 @@ function Test-DetachedSignatureFile {
         if ($null -eq $publicKey) {
             throw "Public key was not available: $CertificatePath"
         }
-
-        $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
-        $signatureBytes = [Convert]::FromBase64String($signature.signatureBase64)
-        $verified = $publicKey.VerifyData(
-            $targetBytes,
-            $signatureBytes,
-            [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-            [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-        if (-not $verified) {
-            throw "Detached signature verification failed: $SignaturePath"
+        try {
+            $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $TargetPath))
+            $signatureBytes = [Convert]::FromBase64String($signature.signatureBase64)
+            $verified = $publicKey.VerifyData(
+                $targetBytes,
+                $signatureBytes,
+                [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+            if (-not $verified) {
+                throw "Detached signature verification failed: $SignaturePath"
+            }
+        }
+        finally {
+            $publicKey.Dispose()
         }
     }
     finally {
@@ -203,7 +207,13 @@ function Test-ForbiddenPublishedFile {
 
     $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $Path))
     $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
-    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeEven = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeOdd = if ($bytes.Length -gt 1) {
+        [System.Text.Encoding]::Unicode.GetString($bytes, 1, $bytes.Length - 1)
+    } else {
+        ""
+    }
+    $unicode = "$unicodeEven`n$unicodeOdd"
     if ($ascii -match '-----BEGIN [A-Z ]*PRIVATE KEY-----' -or
         $unicode -match '-----BEGIN [A-Z ]*PRIVATE KEY-----') {
         throw "公開禁止の秘密鍵本文が含まれています: $Path"
@@ -225,12 +235,35 @@ function Test-DownloadedPublicFiles {
     }
 }
 
+function Get-BinaryLeakDenyLiterals {
+    $prefix = "DenyLiteral:"
+    return @(Get-Content -LiteralPath $BinaryLeakRulesPath |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_.StartsWith($prefix, [StringComparison]::Ordinal) } |
+        ForEach-Object {
+            $value = $_.Substring($prefix.Length)
+            if ([string]::IsNullOrWhiteSpace($value)) {
+                throw "Binary leak deny rule must not be empty: $BinaryLeakRulesPath"
+            }
+            $value
+        })
+}
+
 function Test-BinaryLeak {
-    param([Parameter(Mandatory = $true)][string]$Path)
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [AllowNull()][string]$ForbiddenSignerThumbprint = ""
+    )
 
     $bytes = [System.IO.File]::ReadAllBytes($Path)
     $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
-    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeEven = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeOdd = if ($bytes.Length -gt 1) {
+        [System.Text.Encoding]::Unicode.GetString($bytes, 1, $bytes.Length - 1)
+    } else {
+        ""
+    }
+    $unicode = "$unicodeEven`n$unicodeOdd"
     $userName = [Environment]::UserName
     $checks = @(
         @{ Name = "current user name"; Pattern = $userName },
@@ -253,8 +286,15 @@ function Test-BinaryLeak {
         }
     }
 
-    if ($ascii.Contains($StringHidingProbe) -or $unicode.Contains($StringHidingProbe)) {
-        throw "String hiding marker is visible in the published DLL."
+    foreach ($denyLiteral in Get-BinaryLeakDenyLiterals) {
+        if ($ascii.Contains($denyLiteral) -or $unicode.Contains($denyLiteral)) {
+            throw "Binary leak check failed for ${Path}: forbidden literal '$denyLiteral'"
+        }
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ForbiddenSignerThumbprint) -and
+        ($ascii.Contains($ForbiddenSignerThumbprint) -or $unicode.Contains($ForbiddenSignerThumbprint))) {
+        throw "Binary leak check failed for ${Path}: signer thumbprint is duplicated inside the DLL"
     }
 }
 
@@ -363,7 +403,12 @@ function Test-IlSpyOutput {
         $patterns = @(
             "C:\\Users\\",
             "\\Packages\\com\.nickel-jp\.avatar-recovery\\Editor\\",
-            "VrcaExtractor\.cs"
+            "VrcaExtractor\.cs",
+            "AvatarRecoverySource/",
+            "EditorTools\.AvatarRecovery\|",
+            "AvatarRecoveryIntegrityGuard",
+            "AvatarRecoveryStringDecryptor",
+            "get_IsAttached"
         )
         $leaks = @(Select-String -Path ($sourceFiles | Select-Object -ExpandProperty FullName) -Pattern $patterns -ErrorAction SilentlyContinue)
     }
@@ -450,16 +495,20 @@ function Test-RuntimeIntegritySidecarFile {
         if ($null -eq $publicKey) {
             throw "Runtime integrity public key was not available: $SidecarPath"
         }
-
-        $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
-        $signatureBytes = [Convert]::FromBase64String($sidecar.signatureBase64)
-        $verified = $publicKey.VerifyData(
-            $targetBytes,
-            $signatureBytes,
-            [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-            [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-        if (-not $verified) {
-            throw "Runtime integrity sidecar signature verification failed: $SidecarPath"
+        try {
+            $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
+            $signatureBytes = [Convert]::FromBase64String($sidecar.signatureBase64)
+            $verified = $publicKey.VerifyData(
+                $targetBytes,
+                $signatureBytes,
+                [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+            if (-not $verified) {
+                throw "Runtime integrity sidecar signature verification failed: $SidecarPath"
+            }
+        }
+        finally {
+            $publicKey.Dispose()
         }
     }
     finally {
@@ -621,7 +670,7 @@ function Invoke-AuditOnce {
         throw "Checksum manifest does not include DLL hash."
     }
 
-    Test-BinaryLeak -Path $dllPath
+    Test-BinaryLeak -Path $dllPath -ForbiddenSignerThumbprint $certificateThumbprint
 
     $signature = Test-DllAuthenticodeIdentity `
         -DllPath $dllPath `

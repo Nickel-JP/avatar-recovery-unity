@@ -1,8 +1,18 @@
 # AvatarRecovery Update History
 
-The latest three release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
+Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
 ## Recent Older Releases
+
+### Version 1.2.1 — Security Boundary Correction
+
+- Removed Unity-generated MonoScript type/source dictionaries from the distributed DLL after validating that the generated metadata has no managed references in the protected pipeline.
+- Retired the in-DLL self-check and `Debugger.IsAttached` exception injection. Distribution integrity remains covered by Authenticode, checksums, detached signatures, and the externally verified `.runtime.sig` sidecar.
+- Retired the reversible ARX1 client-side string transform and its embedded decryptor/key. Client-side strings are not treated as secrets.
+- Added build, self-test, public-audit, and ILSpy regression checks for original type/source dictionaries and retired protection code.
+- Documented that managed-code obfuscation is a casual-copying speed bump, not a confidentiality or tamper-prevention boundary.
+
+Security clarification for earlier signed releases: their signatures and sidecars support distribution-integrity verification when the expected hash or signer identity is pinned through a trusted channel. They do not make code inside a locally controlled managed DLL tamper-proof or confidential.
 
 ### Version 1.1.18 — Recovery History Serialization Fix
 

@@ -1,10 +1,3 @@
-# AvatarRecovery anti-debug injection targets
-# Format: TypeFullName|MethodName
-# These entries are injected before Obfuscar, so names are original source names.
-
-EditorTools.AvatarRecovery.VrcaExtractor|Extract
-EditorTools.AvatarRecovery.AssetRipperBridge|Extract
-EditorTools.AvatarRecovery.VrcaLoader|TryLoadBundle
-EditorTools.AvatarRecovery.VrcaLoader|LoadAllGameObjects
-EditorTools.AvatarRecovery.ScriptGuidFixer|FixFolder
-EditorTools.AvatarRecovery.ShaderGuidFixer|FixFolder
+# Anti-debug injection was retired.
+# Debugger.IsAttached did not affect static analysis and blocked legitimate Unity debugging.
+# This file intentionally contains no targets.

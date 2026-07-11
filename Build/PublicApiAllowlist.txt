@@ -1,11 +1,11 @@
-# AvatarRecovery 1.1.5 public API allowlist
+# AvatarRecovery protected-release public API allowlist
 # EditorWindow entry points: Unity can open these by type/name and Obfuscar must preserve them.
 EditorTools.AvatarRecovery.AvatarRecoveryWindow
 EditorTools.AvatarRecovery.AvatarRecoveryHelpWindow
 EditorTools.AvatarRecovery.ShaderListViewerWindow
 EditorTools.AvatarRecovery.ViewAssetsInfoWindow
 
-# VRC SDK TypeCache/callback entry points: keep public for first protected release.
+# VRC SDK TypeCache/callback entry points: keep public for TypeCache discovery.
 EditorTools.AvatarRecovery.VrcaAutoBackupPreprocess
 EditorTools.AvatarRecovery.VrcaAutoBackupPostprocess
 EditorTools.AvatarRecovery.VrcaAutoBackupSdkCallback

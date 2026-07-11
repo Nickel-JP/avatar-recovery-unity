@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.2.0",
+    [string]$Version = "1.2.1",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [switch]$SkipPrivateProtectionReports
 )
@@ -11,7 +11,8 @@ $WorkRoot = Join-Path $RepoRoot ".work"
 $OutputRoot = Join-Path $WorkRoot "ProtectionSelfTests$($Version.Replace('.', ''))"
 $AssemblyFileName = "EditorTools.AvatarRecovery.Editor.dll"
 $RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
-$StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
+$BinaryLeakRulesPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
+$PublishedCertificatePath = Join-Path $RepoRoot "certificates\avatar-recovery-self-signed-code-signing.cer"
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -126,12 +127,83 @@ function Test-PackageZipGuard {
     }
 }
 
+function Test-PackageReadmeSecurityDisclosure {
+    param([Parameter(Mandatory = $true)][string]$ZipPath)
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+    try {
+        $entry = $archive.Entries |
+            Where-Object { ($_.FullName -replace '\\', '/') -eq "README.md" } |
+            Select-Object -First 1
+        if ($null -eq $entry) {
+            throw "package README was not found"
+        }
+
+        $stream = $entry.Open()
+        try {
+            $reader = [System.IO.StreamReader]::new($stream)
+            try {
+                $readme = $reader.ReadToEnd()
+            }
+            finally {
+                $reader.Dispose()
+            }
+        }
+        finally {
+            $stream.Dispose()
+        }
+
+        if (-not $readme.Contains("## v1.2.1 の主な変更") -or
+            -not $readme.Contains("## セキュリティモデルと限界") -or
+            -not $readme.Contains("独立して信頼できる経路")) {
+            throw "package README does not disclose the v1.2.1 security boundary"
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
 function Get-Allowlist {
     param([Parameter(Mandatory = $true)][string]$Path)
     return @(Get-Content -LiteralPath $Path |
         ForEach-Object { $_.Trim() } |
         Where-Object { $_ -and -not $_.StartsWith("#") } |
         Sort-Object -Unique)
+}
+
+function Get-BinaryLeakDenyLiterals {
+    $prefix = "DenyLiteral:"
+    return @(Get-Content -LiteralPath $BinaryLeakRulesPath |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_.StartsWith($prefix, [StringComparison]::Ordinal) } |
+        ForEach-Object {
+            $value = $_.Substring($prefix.Length)
+            if ([string]::IsNullOrWhiteSpace($value)) {
+                throw "Binary leak deny rule must not be empty: $BinaryLeakRulesPath"
+            }
+            $value
+        })
+}
+
+function Test-BinaryLeakDenyRules {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $Path))
+    $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+    $unicodeEven = [System.Text.Encoding]::Unicode.GetString($bytes)
+    $unicodeOdd = if ($bytes.Length -gt 1) {
+        [System.Text.Encoding]::Unicode.GetString($bytes, 1, $bytes.Length - 1)
+    } else {
+        ""
+    }
+    $unicode = "$unicodeEven`n$unicodeOdd"
+    foreach ($denyLiteral in Get-BinaryLeakDenyLiterals) {
+        if ($ascii.Contains($denyLiteral) -or $unicode.Contains($denyLiteral)) {
+            throw "forbidden binary literal is visible: $denyLiteral"
+        }
+    }
 }
 
 function Assert-PublicApiMatchesAllowlist {
@@ -141,6 +213,47 @@ function Assert-PublicApiMatchesAllowlist {
     $difference = @(Compare-Object -ReferenceObject $allowed -DifferenceObject ($CurrentPublicTypes | Sort-Object -Unique))
     if ($difference.Count -gt 0) {
         throw "public API mismatch"
+    }
+}
+
+function Get-PublicTopLevelTypeNamesFromAssembly {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $stream = [System.IO.File]::OpenRead((ConvertTo-FullPath $Path))
+    try {
+        $peReader = [System.Reflection.PortableExecutable.PEReader]::new($stream)
+        try {
+            if (-not $peReader.HasMetadata) {
+                throw "assembly does not contain CLR metadata: $Path"
+            }
+
+            $metadataReader = [System.Reflection.Metadata.PEReaderExtensions]::GetMetadataReader($peReader)
+            $publicTypes = New-Object System.Collections.Generic.List[string]
+            foreach ($handle in $metadataReader.TypeDefinitions) {
+                $type = $metadataReader.GetTypeDefinition($handle)
+                $visibility = $type.Attributes -band [System.Reflection.TypeAttributes]::VisibilityMask
+                if ($visibility -ne [System.Reflection.TypeAttributes]::Public) {
+                    continue
+                }
+
+                $namespace = $metadataReader.GetString($type.Namespace)
+                $name = $metadataReader.GetString($type.Name)
+                $fullName = if ([string]::IsNullOrWhiteSpace($namespace)) {
+                    $name
+                } else {
+                    "$namespace.$name"
+                }
+                [void]$publicTypes.Add($fullName)
+            }
+
+            return @($publicTypes | Sort-Object -Unique)
+        }
+        finally {
+            $peReader.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
     }
 }
 
@@ -279,7 +392,8 @@ function Get-PrivateProtectionReportPath {
 function Test-RuntimeIntegritySidecarFile {
     param(
         [Parameter(Mandatory = $true)][string]$DllPath,
-        [Parameter(Mandatory = $true)][string]$SidecarPath
+        [Parameter(Mandatory = $true)][string]$SidecarPath,
+        [Parameter(Mandatory = $true)][string]$ExpectedThumbprint
     )
 
     if ([string]::IsNullOrWhiteSpace($SidecarPath) -or -not (Test-Path -LiteralPath $SidecarPath)) {
@@ -306,21 +420,29 @@ function Test-RuntimeIntegritySidecarFile {
         if ($certificateThumbprint -ne (($sidecar.signerThumbprint -replace '\s', '').ToUpperInvariant())) {
             throw "runtime integrity sidecar signer mismatch"
         }
+        if ($certificateThumbprint -ne (($ExpectedThumbprint -replace '\s', '').ToUpperInvariant())) {
+            throw "runtime integrity signer does not match the independently pinned certificate"
+        }
 
         $publicKey = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPublicKey($certificate)
         if ($null -eq $publicKey) {
             throw "runtime integrity public key was not available"
         }
 
-        $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
-        $signatureBytes = [Convert]::FromBase64String($sidecar.signatureBase64)
-        $verified = $publicKey.VerifyData(
-            $targetBytes,
-            $signatureBytes,
-            [System.Security.Cryptography.HashAlgorithmName]::SHA256,
-            [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-        if (-not $verified) {
-            throw "runtime integrity sidecar signature verification failed"
+        try {
+            $targetBytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $DllPath))
+            $signatureBytes = [Convert]::FromBase64String($sidecar.signatureBase64)
+            $verified = $publicKey.VerifyData(
+                $targetBytes,
+                $signatureBytes,
+                [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
+            if (-not $verified) {
+                throw "runtime integrity sidecar signature verification failed"
+            }
+        }
+        finally {
+            $publicKey.Dispose()
         }
     }
     finally {
@@ -356,6 +478,9 @@ $checksumPath = Join-Path $RepoRoot "checksums\$PackageId-$Version.sha256.txt"
         throw "checksum manifest not found"
     }
     Test-PackageZipGuard -ZipPath $zipPath
+    Test-PackageReadmeSecurityDisclosure -ZipPath $zipPath
+    Assert-PublicApiMatchesAllowlist `
+        -CurrentPublicTypes (Get-PublicTopLevelTypeNamesFromAssembly -Path (Get-PackagedDllPath))
     $zipHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
     $checksumText = Get-Content -LiteralPath $checksumPath -Raw
     if (-not $checksumText.Contains($zipHash)) {
@@ -379,8 +504,10 @@ New-TestZip -Path (Join-Path $OutputRoot "private-key-injection.zip") -EntryName
 [void]$results.Add((Assert-Fails "E private key text injection" { Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "private-key-injection.zip") }))
 
 [void]$results.Add((Assert-Fails "F unauthorized public API" {
-    $allowed = Get-Allowlist -Path (Join-Path $RepoRoot "Build\PublicApiAllowlist.txt")
-    Assert-PublicApiMatchesAllowlist -CurrentPublicTypes @($allowed + "EditorTools.AvatarRecovery.UnauthorizedPublicType")
+    $packagedPublicTypes = Get-PublicTopLevelTypeNamesFromAssembly -Path (Get-PackagedDllPath)
+    Assert-PublicApiMatchesAllowlist -CurrentPublicTypes $packagedPublicTypes
+    Assert-PublicApiMatchesAllowlist -CurrentPublicTypes @(
+        $packagedPublicTypes + "EditorTools.AvatarRecovery.UnauthorizedPublicType")
 }))
 
 $dllPath = Get-PackagedDllPath
@@ -408,69 +535,111 @@ $dllPath = Get-PackagedDllPath
     }
 }))
 
-[void]$results.Add((Assert-Passes "I string hiding marker is not plaintext" {
-    $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $dllPath))
-    $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
-    $unicode = [System.Text.Encoding]::Unicode.GetString($bytes)
-    if ($ascii.Contains($StringHidingProbe) -or $unicode.Contains($StringHidingProbe)) {
-        throw "string hiding marker is visible"
+[void]$results.Add((Assert-Passes "I forbidden binary literals are absent" {
+    Test-BinaryLeakDenyRules -Path $dllPath
+
+    $oddOffsetFixturePath = Join-Path $OutputRoot "odd-offset-utf16-deny.bin"
+    $denyLiteral = @(Get-BinaryLeakDenyLiterals | Select-Object -First 1)[0]
+    $encodedDenyLiteral = [System.Text.Encoding]::Unicode.GetBytes($denyLiteral)
+    $oddOffsetFixture = [byte[]]::new($encodedDenyLiteral.Length + 1)
+    $oddOffsetFixture[0] = 0x7F
+    [Array]::Copy($encodedDenyLiteral, 0, $oddOffsetFixture, 1, $encodedDenyLiteral.Length)
+    [System.IO.File]::WriteAllBytes($oddOffsetFixturePath, $oddOffsetFixture)
+
+    $oddOffsetRejected = $false
+    try {
+        Test-BinaryLeakDenyRules -Path $oddOffsetFixturePath
+    }
+    catch {
+        $oddOffsetRejected = $true
+    }
+    if (-not $oddOffsetRejected) {
+        throw "odd-offset UTF-16LE deny literal bypassed the binary leak scanner"
     }
 }))
 
-[void]$results.Add((Assert-Passes "J runtime integrity sidecar verifies when present" {
+[void]$results.Add((Assert-Passes "J externally pinned runtime sidecar accepts valid and rejects invalid input" {
     $sidecarPath = Get-PackagedRuntimeIntegritySidecarPath
-    Test-RuntimeIntegritySidecarFile -DllPath $dllPath -SidecarPath $sidecarPath
+    if (-not (Test-Path -LiteralPath $PublishedCertificatePath)) {
+        throw "published certificate was not found"
+    }
+
+    $trustedCertificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+        (ConvertTo-FullPath $PublishedCertificatePath))
+    try {
+        $expectedThumbprint = ($trustedCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+    }
+    finally {
+        $trustedCertificate.Dispose()
+    }
+
+    Test-RuntimeIntegritySidecarFile `
+        -DllPath $dllPath `
+        -SidecarPath $sidecarPath `
+        -ExpectedThumbprint $expectedThumbprint
+
+    $missingRejected = $false
+    try {
+        Test-RuntimeIntegritySidecarFile `
+            -DllPath $dllPath `
+            -SidecarPath (Join-Path $OutputRoot "missing.runtime.sig") `
+            -ExpectedThumbprint $expectedThumbprint
+    }
+    catch {
+        $missingRejected = $true
+    }
+    if (-not $missingRejected) {
+        throw "external sidecar verifier accepted a missing sidecar"
+    }
+
+    $tamperedSidecarPath = Join-Path $OutputRoot "tampered.runtime.sig"
+    $tamperedSidecar = Get-Content -LiteralPath $sidecarPath -Raw | ConvertFrom-Json
+    $tamperedSignature = [Convert]::FromBase64String([string]$tamperedSidecar.signatureBase64)
+    $tamperedSignature[0] = $tamperedSignature[0] -bxor 0x01
+    $tamperedSidecar.signatureBase64 = [Convert]::ToBase64String($tamperedSignature)
+    $tamperedSidecar | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $tamperedSidecarPath -Encoding UTF8
+
+    $tamperedRejected = $false
+    try {
+        Test-RuntimeIntegritySidecarFile `
+            -DllPath $dllPath `
+            -SidecarPath $tamperedSidecarPath `
+            -ExpectedThumbprint $expectedThumbprint
+    }
+    catch {
+        $tamperedRejected = $true
+    }
+    if (-not $tamperedRejected) {
+        throw "external sidecar verifier accepted a tampered signature"
+    }
 }))
 
 if ($SkipPrivateProtectionReports) {
-    [void]$results.Add((Assert-Skipped "K Cecil string encryption report covers allowlist" "Private protection reports are not available in CI checkout."))
-    [void]$results.Add((Assert-Skipped "L HideStrings disabled impact scan is managed" "Private protection reports are not available in CI checkout."))
-    [void]$results.Add((Assert-Skipped "M runtime integrity JSON fields are preserved" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "K custom string encryption is retired" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "L plaintext risk scan is managed" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "M build-only metadata and self-check code are removed" "Private protection reports are not available in CI checkout."))
     [void]$results.Add((Assert-Skipped "N Cecil control-flow report covers allowlist" "Private protection reports are not available in CI checkout."))
     [void]$results.Add((Assert-Skipped "O anti-decompile report covers allowlist" "Private protection reports are not available in CI checkout."))
-    [void]$results.Add((Assert-Skipped "P runtime integrity injection covers allowlist" "Private protection reports are not available in CI checkout."))
-    [void]$results.Add((Assert-Skipped "Q anti-debug injection covers allowlist" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "P in-process runtime guard is retired" "Private protection reports are not available in CI checkout."))
+    [void]$results.Add((Assert-Skipped "Q anti-debug injection is retired" "Private protection reports are not available in CI checkout."))
 }
 else {
-    [void]$results.Add((Assert-Passes "K Cecil string encryption report covers allowlist" {
+    [void]$results.Add((Assert-Passes "K custom string encryption is retired" {
         $reportPath = Get-PrivateProtectionReportPath -FileName "cecil-string-encryption-$Version.json"
         $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
         $allowlist = Get-Allowlist -Path (Join-Path $RepoRoot "Build\StringEncryptionAllowlist.txt")
-        $encryptedOriginalMethods = @($report.EncryptedMethods | ForEach-Object { [string]$_.OriginalMethod })
-
-        if (-not [bool]$report.Enabled) {
-            throw "Cecil string encryption report is disabled"
+        if ([bool]$report.Enabled -or [int]$report.EncryptedStringCount -ne 0) {
+            throw "custom string encryption unexpectedly remained enabled"
         }
-        if ([int]$report.TargetRuleCount -ne $allowlist.Count) {
-            throw "Cecil string encryption target count mismatch"
+        if ([string]$report.Reason -ne "RetiredIneffectiveLocalEncryption") {
+            throw "unexpected string encryption retirement reason"
         }
-        if ([int]$report.MappedTargetCount -lt $allowlist.Count) {
-            throw "Cecil string encryption did not map every allowlist entry"
-        }
-        if ([int]$report.EncryptedMethodCount -lt $allowlist.Count) {
-            throw "Cecil string encryption did not encrypt every allowlist entry"
-        }
-        if ([int]$report.EncryptedStringCount -le 0) {
-            throw "Cecil string encryption did not encrypt any string"
-        }
-        if ([int]$report.EncodedBlobStringCount -le 0) {
-            throw "Cecil string encryption blob optimization was not exercised"
-        }
-        if ([int]$report.InlineByteArrayThreshold -le 0) {
-            throw "Cecil string encryption inline threshold is not recorded"
-        }
-        if ([int]$report.InlineByteArrayStringCount -gt 0 -and [int]$report.ExpandedShortBranchCount -le 0) {
-            throw "Cecil string encryption did not expand short branches after inline byte-array rewriting"
-        }
-
-        foreach ($entry in $allowlist) {
-            if ($encryptedOriginalMethods -notcontains $entry) {
-                throw "Cecil string encryption missed allowlist entry: $entry"
-            }
+        if ($allowlist.Count -ne 0) {
+            throw "retired string encryption allowlist is not empty"
         }
     }))
 
-    [void]$results.Add((Assert-Passes "L HideStrings disabled impact scan is managed" {
+    [void]$results.Add((Assert-Passes "L plaintext risk scan is managed" {
         $reportPath = Get-PrivateProtectionReportPath -FileName "hide-strings-impact-$Version.json"
         $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
 
@@ -480,35 +649,55 @@ else {
         if (-not [bool]$report.HideStringsDisabled) {
             throw "HideStrings impact report did not record disabled HideStrings"
         }
-        if ([string]$report.ManagedBy -ne "CecilStringEncryptionAllowlistAndRiskScan") {
+        if ([string]$report.ManagedBy -ne "PlaintextRiskScanNoEncryption") {
             throw "HideStrings impact report has unexpected management mode"
+        }
+        if ([string]$report.StringProtectionProvider -ne "None") {
+            throw "string protection provider must be None"
         }
         if ([int]$report.SensitivePlaintextHitCount -ne 0) {
             throw "HideStrings impact scan found sensitive plaintext"
         }
-        if ([int]$report.EncryptedBlobLiteralCount -lt [int]$report.EncodedBlobStringCount) {
-            throw "HideStrings impact report lost encrypted blob literals"
+        if ([int]$report.EncryptedBlobLiteralCount -ne 0 -or
+            [int]$report.InlineByteArrayStringCount -ne 0 -or
+            [int]$report.EncodedBlobStringCount -ne 0) {
+            throw "retired string encryption artifacts remain"
         }
     }))
 
-    [void]$results.Add((Assert-Passes "M runtime integrity JSON fields are preserved" {
-        $mappingPath = Get-PrivateProtectionReportPath -FileName "Mapping.txt"
-        $mappingText = Get-Content -LiteralPath $mappingPath -Raw
-        $jsonFields = @(
-            "format",
-            "algorithm",
-            "target",
-            "targetSha256",
-            "signerThumbprint",
-            "signerCertificateBase64",
-            "signatureBase64"
-        )
+    [void]$results.Add((Assert-Passes "M build-only metadata and self-check code are removed" {
+        $reportPath = Get-PrivateProtectionReportPath -FileName "protection-build-report-$Version.json"
+        $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+        $metadata = $report.BuildMetadataSanitization
+        $sizes = @($metadata.RemovedPrivateDataFieldSizes | ForEach-Object { [int]$_ } | Sort-Object)
+        if ([int]$metadata.UnityMonoScriptMetadataTypeCount -ne 1 -or
+            [int]$metadata.RemovedPrivateDataFieldCount -ne 2 -or
+            @($sizes | Where-Object { $_ -le 0 }).Count -ne 0 -or
+            [string]$metadata.ExternalReferenceValidation -ne "ComprehensiveCecilReferenceWalk" -or
+            -not [bool]$metadata.PostWriteReferenceValidation) {
+            throw "Unity MonoScript metadata removal report is unexpected"
+        }
+        if ([int]$report.StringHidingProbe.NeutralizedMethodCount -ne 1 -or
+            -not [bool]$report.StringHidingProbe.ValidatedExpectedCanary) {
+            throw "validated string hiding canary was not neutralized"
+        }
 
-        foreach ($fieldName in $jsonFields) {
-            $pattern = "AvatarRecoveryIntegrityGuard/RuntimeIntegritySignature::$([regex]::Escape($fieldName)).* -> "
-            if ($mappingText -match $pattern) {
-                throw "Runtime integrity JSON field was renamed: $fieldName"
-            }
+        Test-BinaryLeakDenyRules -Path $dllPath
+        $sidecarPath = Get-PackagedRuntimeIntegritySidecarPath
+        $sidecar = Get-Content -LiteralPath $sidecarPath -Raw | ConvertFrom-Json
+        $thumbprint = [string]$sidecar.signerThumbprint
+        $bytes = [System.IO.File]::ReadAllBytes((ConvertTo-FullPath $dllPath))
+        $ascii = [System.Text.Encoding]::ASCII.GetString($bytes)
+        $unicodeEven = [System.Text.Encoding]::Unicode.GetString($bytes)
+        $unicodeOdd = if ($bytes.Length -gt 1) {
+            [System.Text.Encoding]::Unicode.GetString($bytes, 1, $bytes.Length - 1)
+        } else {
+            ""
+        }
+        $unicode = "$unicodeEven`n$unicodeOdd"
+        if (-not [string]::IsNullOrWhiteSpace($thumbprint) -and
+            ($ascii.Contains($thumbprint) -or $unicode.Contains($thumbprint))) {
+            throw "signer thumbprint is duplicated inside the DLL"
         }
     }))
 
@@ -569,49 +758,29 @@ else {
         }
     }))
 
-    [void]$results.Add((Assert-Passes "P runtime integrity injection covers allowlist" {
+    [void]$results.Add((Assert-Passes "P in-process runtime guard is retired" {
         $reportPath = Get-PrivateProtectionReportPath -FileName "runtime-integrity-injection-$Version.json"
         $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
         $allowlist = Get-Allowlist -Path (Join-Path $RepoRoot "Build\RuntimeIntegrityGuardTargets.txt")
-        $injectedMethods = @($report.InjectedMethods | ForEach-Object { [string]$_ })
-
-        if (-not [bool]$report.Enabled) {
-            throw "Runtime integrity injection report is disabled"
+        if ([bool]$report.Enabled -or [int]$report.InjectedMethodCount -ne 0 -or
+            [string]$report.Reason -ne "ExternalSidecarOnly") {
+            throw "in-process runtime integrity guard unexpectedly remained enabled"
         }
-        if ([int]$report.TargetRuleCount -ne $allowlist.Count) {
-            throw "Runtime integrity injection target count mismatch"
-        }
-        if (@($report.Skipped).Count -ne 0) {
-            throw "Runtime integrity injection skipped a protected method"
-        }
-
-        foreach ($entry in $allowlist) {
-            if ($injectedMethods -notcontains $entry) {
-                throw "Runtime integrity injection missed allowlist entry: $entry"
-            }
+        if ($allowlist.Count -ne 0) {
+            throw "retired runtime integrity target list is not empty"
         }
     }))
 
-    [void]$results.Add((Assert-Passes "Q anti-debug injection covers allowlist" {
+    [void]$results.Add((Assert-Passes "Q anti-debug injection is retired" {
         $reportPath = Get-PrivateProtectionReportPath -FileName "anti-debug-$Version.json"
         $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
         $allowlist = Get-Allowlist -Path (Join-Path $RepoRoot "Build\AntiDebugTargets.txt")
-        $injectedMethods = @($report.InjectedMethods | ForEach-Object { [string]$_ })
-
-        if (-not [bool]$report.Enabled) {
-            throw "Anti-debug injection report is disabled"
+        if ([bool]$report.Enabled -or [int]$report.InjectedMethodCount -ne 0 -or
+            [string]$report.Reason -ne "RemovedIneffectiveDebuggerCheck") {
+            throw "anti-debug injection unexpectedly remained enabled"
         }
-        if ([int]$report.TargetRuleCount -ne $allowlist.Count) {
-            throw "Anti-debug injection target count mismatch"
-        }
-        if (@($report.Skipped).Count -ne 0) {
-            throw "Anti-debug injection skipped a protected method"
-        }
-
-        foreach ($entry in $allowlist) {
-            if ($injectedMethods -notcontains $entry) {
-                throw "Anti-debug injection missed allowlist entry: $entry"
-            }
+        if ($allowlist.Count -ne 0) {
+            throw "retired anti-debug target list is not empty"
         }
     }))
 }
