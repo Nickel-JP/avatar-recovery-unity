@@ -4,6 +4,13 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.6 — English Manual
+
+- Renamed the Unity menu entry to `AvatarRecovery → Manual`.
+- Added a complete English manual while retaining the Japanese manual.
+- Synchronized the manual window title and content with the language selected from either the Unity menu or the tool window.
+- Updated guide text to match the current folder import, avatar backup, preview, and Shader Lists interfaces.
+
 ### Version 1.2.5 — GitHub Information Tab
 
 - Added a `GitHub` information tab inside the AvatarRecovery window.
