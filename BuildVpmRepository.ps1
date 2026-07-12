@@ -3,7 +3,8 @@ param(
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$OutputRoot = $PSScriptRoot,
     [string]$BaseUrl = "",
-    [string]$MinimumPublishedVersion = "1.1.5"
+    [string]$MinimumPublishedVersion = "1.1.5",
+    [string]$MaximumPublishedVersion = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -89,12 +90,19 @@ function Get-VersionSortKey {
 function Test-VersionIsPublished {
     param([string]$Version)
 
-    if ([string]::IsNullOrWhiteSpace($MinimumPublishedVersion)) {
-        return $true
-    }
-
     try {
-        return ([version]$Version) -ge ([version]$MinimumPublishedVersion)
+        $candidateVersion = [version]$Version
+        if (-not [string]::IsNullOrWhiteSpace($MinimumPublishedVersion) -and
+            $candidateVersion -lt ([version]$MinimumPublishedVersion)) {
+            return $false
+        }
+
+        if (-not [string]::IsNullOrWhiteSpace($MaximumPublishedVersion) -and
+            $candidateVersion -gt ([version]$MaximumPublishedVersion)) {
+            return $false
+        }
+
+        return $true
     }
     catch {
         Write-Warning "Skipping package zip with invalid version: $Version"
@@ -173,7 +181,9 @@ try {
         }
 
         if (-not (Test-VersionIsPublished -Version $candidateVersion)) {
-            Write-Host "Skipping package below published minimum version $MinimumPublishedVersion`: $candidateVersion"
+            Write-Host (
+                "Skipping package outside published version range " +
+                "$MinimumPublishedVersion .. $MaximumPublishedVersion`: $candidateVersion")
             continue
         }
 

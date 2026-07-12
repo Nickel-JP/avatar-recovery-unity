@@ -4,24 +4,16 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
-### Version 1.2.6 — English Manual
-
-- Renamed the Unity menu entry to `AvatarRecovery → Manual`.
-- Added a complete English manual while retaining the Japanese manual.
-- Synchronized the manual window title and content with the language selected from either the Unity menu or the tool window.
-- Updated guide text to match the current folder import, avatar backup, preview, and Shader Lists interfaces.
-
-### Version 1.2.5 — GitHub Information Tab
-
-- Added a `GitHub` information tab inside the AvatarRecovery window.
-- Added English and Japanese guidance explaining that the GitHub page provides update release notes, the latest version, installation details, and usage information.
-- Added a direct link to the official AvatarRecovery GitHub repository.
-
-### Version 1.2.4 — Language Menu Selection
+### Version 1.2.4 — Language, GitHub, and Manual
 
 - Added `AvatarRecovery → Language → Japanese / English` to the Unity menu.
 - Kept the `Language` menu label unchanged regardless of the selected language.
 - Synchronized menu selection with the language control inside the tool and persisted the selected language.
+- Added a `GitHub` information tab with English and Japanese guidance and a direct link to the official repository.
+- Renamed the Unity menu entry to `AvatarRecovery → Manual` and added a complete English manual while retaining Japanese.
+- Synchronized the manual window title and content with the language selected from either the Unity menu or the tool window.
+- Updated the manual to match the current folder import, avatar backup, preview, and Shader Lists interfaces.
+- If version 1.2.4 was already installed, refresh the repository in VCC or ALCOM and reinstall 1.2.4 to receive the finalized package.
 
 ### Version 1.2.3 — Menu Visibility Cleanup
 

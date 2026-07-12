@@ -42,21 +42,21 @@ VCC and ALCOM can choose versions listed in this repository. The public index is
 
 ## Public Verification
 
-The current protected package is `com.nickel-jp.avatar-recovery-1.2.6.zip`.
+The current protected package is `com.nickel-jp.avatar-recovery-1.2.4.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.6.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.4.zip -Algorithm SHA256).Hash
 
-# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.6.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.6.sha256.txt.
+# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.4.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.4.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.6.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.4.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -90,24 +90,16 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Version 1.2.6 — English Manual
-
-- Renamed the Unity menu entry to `AvatarRecovery → Manual`.
-- Added a complete English manual while retaining the Japanese manual.
-- Synchronized the manual window title and content with the language selected from either the Unity menu or the tool window.
-- Updated guide text to match the current folder import, avatar backup, preview, and Shader Lists interfaces.
-
-### Version 1.2.5 — GitHub Information Tab
-
-- Added a `GitHub` information tab inside the AvatarRecovery window.
-- Added English and Japanese guidance explaining that the GitHub page provides update release notes, the latest version, installation details, and usage information.
-- Added a direct link to the official AvatarRecovery GitHub repository.
-
-### Version 1.2.4 — Language Menu Selection
+### Version 1.2.4 — Language, GitHub, and Manual
 
 - Added `AvatarRecovery → Language → Japanese / English` to the Unity menu.
 - Kept the `Language` menu label unchanged regardless of the selected language.
 - Synchronized menu selection with the language control inside the tool and persisted the selected language.
+- Added a `GitHub` information tab with English and Japanese guidance and a direct link to the official repository.
+- Renamed the Unity menu entry to `AvatarRecovery → Manual` and added a complete English manual while retaining Japanese.
+- Synchronized the manual window title and content with the language selected from either the Unity menu or the tool window.
+- Updated the manual to match the current folder import, avatar backup, preview, and Shader Lists interfaces.
+- If version 1.2.4 was already installed, refresh the repository in VCC or ALCOM and reinstall 1.2.4 to receive the finalized package.
 
 ### Version 1.2.3 — Menu Visibility Cleanup
 

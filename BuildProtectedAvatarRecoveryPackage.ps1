@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.2.6",
-    [string]$PreviousVersion = "1.2.5",
+    [string]$Version = "1.2.4",
+    [string]$PreviousVersion = "1.2.3",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -5057,9 +5057,23 @@ Test-ForbiddenAssemblyReferences -Path $packagedDll
 Test-UnityEditorWindowFieldNameCollisions -Path $packagedDll -Scan $scan
 Test-UnitySerializedFieldNameCollisions -Path $packagedDll
 
-& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") -ProjectRoot $ProjectRoot -BaseUrl $BaseUrl -MinimumPublishedVersion $Version
+& powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") `
+    -ProjectRoot $ProjectRoot `
+    -BaseUrl $BaseUrl `
+    -MinimumPublishedVersion $Version `
+    -MaximumPublishedVersion $Version
 if ($LASTEXITCODE -ne 0) {
     throw "VPM repository build failed."
+}
+
+$publishedIndex = Get-Content -LiteralPath (Join-Path $RepoRoot "index.json") -Raw | ConvertFrom-Json
+$publishedVersions = @(
+    $publishedIndex.packages.$PackageId.versions.PSObject.Properties.Name
+)
+if ($publishedVersions.Count -ne 1 -or $publishedVersions[0] -ne $Version) {
+    throw (
+        "VPM repository version scope mismatch. Expected only $Version, found: " +
+        ($publishedVersions -join ", "))
 }
 
 $zipPath = Join-Path $RepoRoot "packages\$PackageId-$Version.zip"
