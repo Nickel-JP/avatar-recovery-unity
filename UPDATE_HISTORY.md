@@ -4,6 +4,13 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.5 — Long-Running Extraction Stability
+
+- Fixed long-running AssetRipper extraction being reported as failed while it was still making progress.
+- After 60 minutes, processing now continues and asks the user to choose `Wait` or `Cancel` instead of stopping automatically.
+- Choosing `Wait` keeps the extraction running and shows the continuation prompt again after another 60 minutes.
+- Improved cancellation reliability, failure diagnostics, and temporary-output safety.
+
 ### Version 1.2.4 — Language, GitHub, and Manual
 
 - Added `AvatarRecovery → Language → Japanese / English` to the Unity menu.

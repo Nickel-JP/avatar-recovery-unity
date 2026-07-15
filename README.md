@@ -42,21 +42,21 @@ VCC and ALCOM can choose versions listed in this repository. The public index is
 
 ## Public Verification
 
-The current protected package is `com.nickel-jp.avatar-recovery-1.2.4.zip`.
+The current protected package is `com.nickel-jp.avatar-recovery-1.2.5.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.4.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.5.zip -Algorithm SHA256).Hash
 
-# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.4.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.4.sha256.txt.
+# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.5.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.5.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.4.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.5.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -89,6 +89,13 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.2.5 — Long-Running Extraction Stability
+
+- Fixed long-running AssetRipper extraction being reported as failed while it was still making progress.
+- After 60 minutes, processing now continues and asks the user to choose `Wait` or `Cancel` instead of stopping automatically.
+- Choosing `Wait` keeps the extraction running and shows the continuation prompt again after another 60 minutes.
+- Improved cancellation reliability, failure diagnostics, and temporary-output safety.
 
 ### Version 1.2.4 — Language, GitHub, and Manual
 
