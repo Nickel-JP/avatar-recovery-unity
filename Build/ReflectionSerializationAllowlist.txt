@@ -12,6 +12,17 @@ Core\AssetRipperBridge.cs|Serialization|SerializedContract|*
 # AssetRipper-exported AnimationClip bindings are restored through Unity type checks and Animator.StringToHash.
 Core\AnimationClipBindingRestorer.cs|Reflection|typeof\s*\(|*
 
+# AnimationClip name sanitization excludes Scene assets before loading clip containers.
+Core\AnimationClipNameSanitizer.cs|Reflection|typeof\s*\(|*
+
+# PipelineManager Blueprint ID cleanup identifies the SDK component and updates its serialized string field.
+Core\PipelineManagerBlueprintIdCleaner.cs|Reflection|\.GetType\s*\(|*
+Core\PipelineManagerBlueprintIdCleaner.cs|Reflection|typeof\s*\(|*
+Core\PipelineManagerBlueprintIdCleaner.cs|Reflection|\.GetMethod\s*\(|*
+Core\PipelineManagerBlueprintIdCleaner.cs|Reflection|\.Invoke\s*\(|*
+Core\PipelineManagerBlueprintIdCleaner.cs|Reflection|FindProperty\s*\(|*
+Core\PipelineManagerBlueprintIdCleaner.cs|Serialization|SerializedContract|*
+
 # 分離した復元コアは Prefab 内コンポーネント型を名前で判定する。
 
 Core\RecoveryCoreAlgorithms.cs|Reflection|\.GetType\s*\(|*
@@ -92,6 +103,9 @@ Utils\AvatarRecoveryConsoleLogColorizer.cs|Reflection|\.GetField\s*\(|*
 Utils\AvatarRecoveryConsoleLogColorizer.cs|Reflection|\.GetType\s*\(|*
 Utils\AvatarRecoveryConsoleLogColorizer.cs|Reflection|typeof\s*\(|*
 Utils\AvatarRecoveryEnvChecker.cs|Reflection|\.GetType\s*\(|*
+
+# GitHub update history starts once per Unity session and cleans up on assembly reload or Editor quit.
+Utils\GitHubUpdateHistoryService.cs|AttributeContract|InitializeOnLoad|*
 
 # Central settings helper owns all existing EditorPrefs key compatibility.
 Utils\EditorPrefsHelper.cs|EditorPrefs|EditorPrefs|*

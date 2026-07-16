@@ -4,6 +4,15 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.6 — GitHub/Discord and Recovery Stability
+
+- Renamed the `GitHub` tab to `GitHub/Discord` and added the official AvatarRecovery Community Server for update announcements, bug reports, and community support.
+- Added the latest three update entries from the official repository, manual reload, original/Japanese display, and offline cache support.
+- Added installed/latest AvatarRecovery and Unity version information to the File Select tab and moved batch results to the Unity Console.
+- Fixed incorrect GUID-conflict detection that could block a repeated restore when no live conflicting asset remained.
+- Improved prefab post-processing so affected prefabs are skipped safely while Blueprint ID cleanup and existing Face animation selection behavior remain intact.
+- If version 1.2.6 was installed previously, refresh the repository in VCC or ALCOM and reinstall 1.2.6 to receive the finalized package.
+
 ### Version 1.2.5 — Long-Running Extraction Stability
 
 - Fixed long-running AssetRipper extraction being reported as failed while it was still making progress.
