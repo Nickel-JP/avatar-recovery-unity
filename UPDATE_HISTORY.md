@@ -4,6 +4,14 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.7 — Console Logging Compatibility
+
+- Improved AvatarRecovery's Console logging so it no longer changes the logging configuration used by other Unity Editor tools.
+- Kept the existing color-coded Console presentation while consolidating each batch result into one `[Batch Extraction Complete]` entry with a pink title and green details.
+- Preserved existing recovery behavior, including Face animation selection and Blueprint ID cleanup.
+- Verified the protected package in Unity 2022.3.22f1 with the Selena_sample.vrca recovery workflow, with one successful restore and no errors in the successful run.
+- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.7.
+
 ### Version 1.2.6 — GitHub/Discord and Recovery Stability
 
 - Renamed the `GitHub` tab to `GitHub/Discord` and added the official AvatarRecovery Community Server for update announcements, bug reports, and community support.

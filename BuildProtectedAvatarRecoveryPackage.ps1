@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.2.6",
-    [string]$PreviousVersion = "1.2.5",
+    [string]$Version = "1.2.7",
+    [string]$PreviousVersion = "1.2.6",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -2777,7 +2777,7 @@ function Disable-StringHidingProbe {
         $expectedMethodReferences = @(
             "System.DateTime|get_UtcNow",
             "System.DateTime|get_Ticks",
-            "UnityEngine.Debug|Log"
+            "EditorTools.AvatarRecovery.Debug|Log"
         )
         $methodReferenceDifference = @(Compare-Object `
             -ReferenceObject $expectedMethodReferences `
@@ -2830,6 +2830,107 @@ function Test-CecilAttribute {
     }
 
     return $false
+}
+
+function Test-AvatarRecoveryLogIsolation {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [string]$ExpectedFacadeTypeName = ""
+    )
+
+    Ensure-MonoCecilLoaded
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly((ConvertTo-FullPath $Path))
+    try {
+        $types = @(Get-CecilTypeDefinitions -Assembly $assembly)
+        $problems = New-Object System.Collections.Generic.List[string]
+
+        foreach ($typeReference in $assembly.MainModule.GetTypeReferences()) {
+            if ($typeReference.FullName -eq "UnityEngine.ILogHandler") {
+                [void]$problems.Add("ILogHandler type reference")
+            }
+        }
+
+        foreach ($type in $types) {
+            foreach ($interface in $type.Interfaces) {
+                if ($interface.InterfaceType.FullName -eq "UnityEngine.ILogHandler") {
+                    [void]$problems.Add("ILogHandler implementation: $($type.FullName)")
+                }
+            }
+        }
+
+        foreach ($reference in $assembly.MainModule.GetMemberReferences()) {
+            if ($reference.DeclaringType.FullName -eq "UnityEngine.ILogHandler" -or
+                ($reference.DeclaringType.FullName -eq "UnityEngine.ILogger" -and
+                 $reference.Name -in @("get_logHandler", "set_logHandler"))) {
+                [void]$problems.Add(
+                    "global handler reference: $($reference.DeclaringType.FullName)|$($reference.Name)")
+            }
+        }
+
+        $owners = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+        $directCallCount = 0
+        foreach ($type in $types) {
+            foreach ($method in $type.Methods) {
+                if (-not $method.HasBody) {
+                    continue
+                }
+
+                foreach ($instruction in $method.Body.Instructions) {
+                    $reference = $instruction.Operand -as [Mono.Cecil.MethodReference]
+                    if ($null -ne $reference -and
+                        $reference.DeclaringType.FullName -eq "UnityEngine.Debug" -and
+                        $reference.Name.StartsWith("Log", [StringComparison]::Ordinal)) {
+                        [void]$owners.Add($type.FullName)
+                        $directCallCount++
+                    }
+                }
+            }
+        }
+
+        $ownerNames = @($owners)
+        if ($ownerNames.Count -ne 1) {
+            [void]$problems.Add(
+                "UnityEngine.Debug.Log* direct owner count must be 1, " +
+                "actual=$($ownerNames.Count): $($ownerNames -join ', ')")
+        }
+        else {
+            $owner = $types |
+                Where-Object { $_.FullName -eq $ownerNames[0] } |
+                Select-Object -First 1
+            if (-not [string]::IsNullOrWhiteSpace($ExpectedFacadeTypeName) -and
+                $owner.FullName -ne $ExpectedFacadeTypeName) {
+                [void]$problems.Add("unexpected facade owner: $($owner.FullName)")
+            }
+            if ($owner.IsPublic -or
+                $owner.IsNestedPublic -or
+                -not $owner.IsAbstract -or
+                -not $owner.IsSealed) {
+                [void]$problems.Add(
+                    "facade must remain an internal static type: $($owner.FullName)")
+            }
+            if (Test-CecilAttribute `
+                    -Provider $owner `
+                    -AttributeFullName "UnityEditor.InitializeOnLoadAttribute") {
+                [void]$problems.Add(
+                    "facade must not use InitializeOnLoad: $($owner.FullName)")
+            }
+        }
+
+        if ($problems.Count -gt 0) {
+            throw (
+                "AvatarRecovery logging isolation failed." +
+                [Environment]::NewLine +
+                ($problems -join [Environment]::NewLine))
+        }
+
+        return [PSCustomObject]@{
+            DirectUnityDebugOwner = $ownerNames[0]
+            DirectUnityDebugCallCount = $directCallCount
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
 }
 
 function Test-CecilTypeIsUnitySerializedContract {
@@ -4917,6 +5018,9 @@ Ensure-Directory $outputDir
 
 $protectedInputDll = Join-Path $inputDir $AssemblyFileName
 Copy-Item -LiteralPath $compiledDll -Destination $protectedInputDll -Force
+Test-AvatarRecoveryLogIsolation `
+    -Path $protectedInputDll `
+    -ExpectedFacadeTypeName "EditorTools.AvatarRecovery.Debug" | Out-Null
 
 $buildMetadataSanitizationReport = Remove-NonRuntimeBuildMetadata -Path $protectedInputDll
 Write-Host "Build-only metadata removed: types=$($buildMetadataSanitizationReport.RemovedTypeCount) privateDataFields=$($buildMetadataSanitizationReport.RemovedPrivateDataFieldCount)"
@@ -5007,6 +5111,7 @@ if ($LASTEXITCODE -ne 0) { throw "RepairCoreLibReference failed (post-Obfuscar):
 Write-Host "System.Private.CoreLib repair (post-Obfuscar): $repairOutputPostObfuscar"
 $branchSanitizationReport = Invoke-CecilBranchSanitization -Path $obfuscatedDll
 Write-Host "Post-pipeline branch sanitization: expanded=$($branchSanitizationReport.ExpandedShortBranchCount) methods=$($branchSanitizationReport.SanitizedMethodCount)"
+Test-AvatarRecoveryLogIsolation -Path $obfuscatedDll | Out-Null
 Test-ForbiddenAssemblyReferences -Path $obfuscatedDll
 Test-UnityEditorWindowFieldNameCollisions -Path $obfuscatedDll -Scan $scan
 Test-UnitySerializedFieldNameCollisions -Path $obfuscatedDll
@@ -5056,6 +5161,7 @@ Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Test-ForbiddenAssemblyReferences -Path $packagedDll
 Test-UnityEditorWindowFieldNameCollisions -Path $packagedDll -Scan $scan
 Test-UnitySerializedFieldNameCollisions -Path $packagedDll
+Test-AvatarRecoveryLogIsolation -Path $packagedDll | Out-Null
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") `
     -ProjectRoot $ProjectRoot `

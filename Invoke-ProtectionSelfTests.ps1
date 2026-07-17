@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "1.2.6",
+    [string]$Version = "1.2.7",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [switch]$SkipPrivateProtectionReports
 )
@@ -247,6 +247,61 @@ function Get-PublicTopLevelTypeNamesFromAssembly {
             }
 
             return @($publicTypes | Sort-Object -Unique)
+        }
+        finally {
+            $peReader.Dispose()
+        }
+    }
+    finally {
+        $stream.Dispose()
+    }
+}
+
+function Assert-NoUnityGlobalLogHandlerReferences {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $stream = [System.IO.File]::OpenRead((ConvertTo-FullPath $Path))
+    try {
+        $peReader = [System.Reflection.PortableExecutable.PEReader]::new($stream)
+        try {
+            if (-not $peReader.HasMetadata) {
+                throw "assembly does not contain CLR metadata: $Path"
+            }
+
+            $reader = [System.Reflection.Metadata.PEReaderExtensions]::GetMetadataReader($peReader)
+            $problems = New-Object System.Collections.Generic.List[string]
+
+            foreach ($handle in $reader.TypeReferences) {
+                $reference = $reader.GetTypeReference($handle)
+                if ($reader.GetString($reference.Namespace) -eq "UnityEngine" -and
+                    $reader.GetString($reference.Name) -eq "ILogHandler") {
+                    [void]$problems.Add("UnityEngine.ILogHandler type reference")
+                }
+            }
+
+            foreach ($handle in $reader.MemberReferences) {
+                $reference = $reader.GetMemberReference($handle)
+                $memberName = $reader.GetString($reference.Name)
+                if ($reference.Parent.Kind -ne
+                    [System.Reflection.Metadata.HandleKind]::TypeReference) {
+                    continue
+                }
+
+                $typeReference = $reader.GetTypeReference(
+                    [System.Reflection.Metadata.TypeReferenceHandle]$reference.Parent)
+                if ($reader.GetString($typeReference.Namespace) -eq "UnityEngine" -and
+                    $reader.GetString($typeReference.Name) -eq "ILogger" -and
+                    $memberName -in @("get_logHandler", "set_logHandler")) {
+                    [void]$problems.Add("UnityEngine.ILogger.$memberName")
+                }
+            }
+
+            if ($problems.Count -gt 0) {
+                throw (
+                    "AvatarRecovery must not access Unity global log handler." +
+                    [Environment]::NewLine +
+                    ($problems -join [Environment]::NewLine))
+            }
         }
         finally {
             $peReader.Dispose()
@@ -784,6 +839,10 @@ else {
         }
     }))
 }
+
+[void]$results.Add((Assert-Passes "R packaged DLL does not replace Unity global log handler" {
+    Assert-NoUnityGlobalLogHandlerReferences -Path $dllPath
+}))
 
 $report = [PSCustomObject]@{
     Version = $Version

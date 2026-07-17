@@ -98,10 +98,6 @@ UI\VrcaBackupPanel.cs|EditorPrefs|EditorPrefs|*
 # Unity initialize hook and VRC SDK reflection type discovery.
 Utils\AvatarRecoveryIntegrityGuard.cs|AttributeContract|InitializeOnLoad|*
 Utils\AvatarRecoveryIntegrityGuard.cs|Reflection|JsonUtility|*
-Utils\AvatarRecoveryConsoleLogColorizer.cs|AttributeContract|InitializeOnLoad|*
-Utils\AvatarRecoveryConsoleLogColorizer.cs|Reflection|\.GetField\s*\(|*
-Utils\AvatarRecoveryConsoleLogColorizer.cs|Reflection|\.GetType\s*\(|*
-Utils\AvatarRecoveryConsoleLogColorizer.cs|Reflection|typeof\s*\(|*
 Utils\AvatarRecoveryEnvChecker.cs|Reflection|\.GetType\s*\(|*
 
 # GitHub update history starts once per Unity session and cleans up on assembly reload or Editor quit.
