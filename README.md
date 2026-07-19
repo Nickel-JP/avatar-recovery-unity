@@ -98,8 +98,9 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Version 1.2.7 — Console Logging Compatibility
+### Version 1.2.7 — Multi-Select and Console Compatibility
 
+- Added Windows-native multi-selection for recovery files and source folders; hold Ctrl while selecting individual items to add them to the existing batch queue.
 - Improved AvatarRecovery's Console logging so it no longer changes the logging configuration used by other Unity Editor tools.
 - Kept the existing color-coded Console presentation while consolidating each batch result into one `[Batch Extraction Complete]` entry with a pink title and green details.
 - Preserved existing recovery behavior, including Face animation selection and Blueprint ID cleanup.
