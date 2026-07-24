@@ -13,6 +13,9 @@ $AssemblyFileName = "EditorTools.AvatarRecovery.Editor.dll"
 $RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
 $BinaryLeakRulesPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
 $PublishedCertificatePath = Join-Path $RepoRoot "certificates\avatar-recovery-self-signed-code-signing.cer"
+$PublishedCertificatePemPath = Join-Path $RepoRoot "certificates\avatar-recovery-self-signed-code-signing.cer.pem"
+$PublicBaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity"
+$PublishedVersionLimit = 3
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -162,6 +165,200 @@ function Test-PackageReadmeSecurityDisclosure {
     }
     finally {
         $archive.Dispose()
+    }
+}
+
+function Get-PackageManifestFromZip {
+    param([Parameter(Mandatory = $true)][string]$ZipPath)
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+    try {
+        $manifestEntry = $archive.Entries |
+            Where-Object { ($_.FullName -replace '\\', '/') -eq "package.json" } |
+            Select-Object -First 1
+        if ($null -eq $manifestEntry) {
+            throw "package.json was not found in package zip: $ZipPath"
+        }
+
+        $stream = $manifestEntry.Open()
+        try {
+            $reader = [System.IO.StreamReader]::new($stream)
+            try {
+                return ($reader.ReadToEnd() | ConvertFrom-Json)
+            }
+            finally {
+                $reader.Dispose()
+            }
+        }
+        finally {
+            $stream.Dispose()
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
+function Test-DetachedSignatureFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$TargetPath,
+        [Parameter(Mandatory = $true)][string]$SignaturePath,
+        [Parameter(Mandatory = $true)][string]$CertificatePath
+    )
+
+    foreach ($requiredPath in @($TargetPath, $SignaturePath, $CertificatePath)) {
+        if (-not (Test-Path -LiteralPath $requiredPath)) {
+            throw "detached signature input was not found: $requiredPath"
+        }
+    }
+
+    $signature = Get-Content -LiteralPath $SignaturePath -Raw | ConvertFrom-Json
+    if ([string]$signature.format -cne "AvatarRecovery detached signature v1" -or
+        [string]$signature.algorithm -cne "RSA-SHA256-PKCS1") {
+        throw "unsupported detached signature: $SignaturePath"
+    }
+
+    $targetHash = (
+        Get-FileHash -LiteralPath $TargetPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    if ([string]$signature.targetSha256 -cne $targetHash) {
+        throw "detached signature target hash mismatch: $TargetPath"
+    }
+
+    $certificate = [System.Security.Cryptography.X509Certificates.X509Certificate2]::new(
+        (ConvertTo-FullPath $CertificatePath))
+    try {
+        $certificateThumbprint = (
+            $certificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+        $signatureThumbprint = (
+            [string]$signature.signerThumbprint -replace '\s', '').ToUpperInvariant()
+        if ($certificateThumbprint -cne $signatureThumbprint) {
+            throw "detached signature signer mismatch: $SignaturePath"
+        }
+
+        $publicKey = (
+            [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::
+                GetRSAPublicKey($certificate))
+        if ($null -eq $publicKey) {
+            throw "detached signature public key was unavailable: $CertificatePath"
+        }
+        try {
+            $targetBytes = [System.IO.File]::ReadAllBytes(
+                (ConvertTo-FullPath $TargetPath))
+            $signatureBytes = [Convert]::FromBase64String(
+                [string]$signature.signatureBase64)
+            if (-not $publicKey.VerifyData(
+                    $targetBytes,
+                    $signatureBytes,
+                    [System.Security.Cryptography.HashAlgorithmName]::SHA256,
+                    [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)) {
+                throw "detached signature verification failed: $SignaturePath"
+            }
+        }
+        finally {
+            $publicKey.Dispose()
+        }
+    }
+    finally {
+        $certificate.Dispose()
+    }
+}
+
+function Test-PublishedVersionArtifacts {
+    param([Parameter(Mandatory = $true)][string]$IndexPath)
+
+    $index = Get-Content -LiteralPath $IndexPath -Raw | ConvertFrom-Json
+    $packageProperty = $index.packages.PSObject.Properties[$PackageId]
+    if ($null -eq $packageProperty) {
+        throw "package id was not found in VPM index: $PackageId"
+    }
+
+    $certificateHash = (
+        Get-FileHash -LiteralPath $PublishedCertificatePath -Algorithm SHA256
+    ).Hash.ToLowerInvariant()
+    $certificatePemHash = (
+        Get-FileHash -LiteralPath $PublishedCertificatePemPath -Algorithm SHA256
+    ).Hash.ToLowerInvariant()
+
+    foreach ($versionProperty in $packageProperty.Value.versions.PSObject.Properties) {
+        $publishedVersion = [string]$versionProperty.Name
+        $indexManifest = $versionProperty.Value
+        $zipPath = Join-Path $RepoRoot "packages\$PackageId-$publishedVersion.zip"
+        $zipSignaturePath = "$zipPath.sig"
+        $checksumPath = Join-Path $RepoRoot "checksums\$PackageId-$publishedVersion.sha256.txt"
+        $checksumSignaturePath = "$checksumPath.sig"
+
+        foreach ($requiredPath in @(
+                $zipPath,
+                $zipSignaturePath,
+                $checksumPath,
+                $checksumSignaturePath)) {
+            if (-not (Test-Path -LiteralPath $requiredPath)) {
+                throw "published artifact was not found: $requiredPath"
+            }
+        }
+
+        $expectedPackageUrl = "$PublicBaseUrl/packages/$PackageId-$publishedVersion.zip"
+        if ([string]$indexManifest.url -cne $expectedPackageUrl -or
+            [string]$indexManifest.repo -cne "$PublicBaseUrl/index.json") {
+            throw "published package URL or repository URL is invalid: $publishedVersion"
+        }
+
+        $actualZipHash = (
+            Get-FileHash -LiteralPath $zipPath -Algorithm SHA256
+        ).Hash.ToLowerInvariant()
+        if ([string]$indexManifest.zipSHA256 -cne $actualZipHash) {
+            throw "VPM index package hash mismatch: $publishedVersion"
+        }
+
+        Test-DetachedSignatureFile `
+            -TargetPath $zipPath `
+            -SignaturePath $zipSignaturePath `
+            -CertificatePath $PublishedCertificatePath
+        Test-DetachedSignatureFile `
+            -TargetPath $checksumPath `
+            -SignaturePath $checksumSignaturePath `
+            -CertificatePath $PublishedCertificatePath
+
+        $checksumText = Get-Content -LiteralPath $checksumPath -Raw
+        foreach ($requiredHash in @(
+                $actualZipHash,
+                $certificateHash,
+                $certificatePemHash)) {
+            if ($checksumText -notmatch [regex]::Escape($requiredHash)) {
+                throw (
+                    "checksum manifest for $publishedVersion does not include " +
+                    "expected hash: $requiredHash")
+            }
+        }
+
+        $zipManifest = Get-PackageManifestFromZip -ZipPath $zipPath
+        $zipPropertyNames = @($zipManifest.PSObject.Properties.Name)
+        $indexPropertyNames = @($indexManifest.PSObject.Properties.Name)
+        $expectedIndexPropertyNames = @($zipPropertyNames + @("zipSHA256"))
+        if ((($indexPropertyNames | Sort-Object) -join "|") -cne
+            (($expectedIndexPropertyNames | Sort-Object) -join "|")) {
+            throw (
+                "VPM index properties do not match package.json: " +
+                $publishedVersion)
+        }
+
+        foreach ($zipProperty in $zipManifest.PSObject.Properties) {
+            $indexProperty = $indexManifest.PSObject.Properties[$zipProperty.Name]
+            if ($null -eq $indexProperty) {
+                throw (
+                    "VPM index is missing package.json property " +
+                    "$($zipProperty.Name): $publishedVersion")
+            }
+
+            $zipValue = $zipProperty.Value | ConvertTo-Json -Depth 80 -Compress
+            $indexValue = $indexProperty.Value | ConvertTo-Json -Depth 80 -Compress
+            if ($zipValue -cne $indexValue) {
+                throw (
+                    "VPM index property $($zipProperty.Name) does not match " +
+                    "package.json: $publishedVersion")
+            }
+        }
     }
 }
 
@@ -364,6 +561,65 @@ function Get-IndexZipHash {
     return $packageEntry.versions.PSObject.Properties[$Version].Value.zipSHA256
 }
 
+function Get-IndexPublishedVersions {
+    param([Parameter(Mandatory = $true)][string]$IndexPath)
+
+    $index = Get-Content -LiteralPath $IndexPath -Raw | ConvertFrom-Json
+    $packageProperty = $index.packages.PSObject.Properties[$PackageId]
+    if ($null -eq $packageProperty) {
+        throw "package id was not found in VPM index: $PackageId"
+    }
+
+    return @($packageProperty.Value.versions.PSObject.Properties.Name)
+}
+
+function Assert-PublishedVersionWindow {
+    param(
+        [Parameter(Mandatory = $true)][string]$IndexPath,
+        [Parameter(Mandatory = $true)][string]$ExpectedLatestVersion,
+        [ValidateRange(1, 3)]
+        [int]$ExpectedVersionCount = $PublishedVersionLimit
+    )
+
+    $index = Get-Content -LiteralPath $IndexPath -Raw | ConvertFrom-Json
+    $packageProperty = $index.packages.PSObject.Properties[$PackageId]
+    if ($null -eq $packageProperty) {
+        throw "package id was not found in VPM index: $PackageId"
+    }
+
+    $versionProperties = @($packageProperty.Value.versions.PSObject.Properties)
+    $publishedVersions = @($versionProperties.Name)
+    if ($publishedVersions.Count -ne $ExpectedVersionCount) {
+        throw (
+            "VPM index must publish exactly $ExpectedVersionCount versions, " +
+            "found $($publishedVersions.Count).")
+    }
+    if ($publishedVersions[0] -cne $ExpectedLatestVersion) {
+        throw (
+            "VPM index latest version mismatch. Expected $ExpectedLatestVersion, " +
+            "found $($publishedVersions[0]).")
+    }
+
+    $sortedVersions = @($publishedVersions | Sort-Object { [version]$_ } -Descending)
+    if (($publishedVersions -join "|") -cne ($sortedVersions -join "|")) {
+        throw "VPM index versions are not in descending order."
+    }
+
+    foreach ($versionProperty in $versionProperties) {
+        $versionKey = [string]$versionProperty.Name
+        $manifest = $versionProperty.Value
+        if ([string]$manifest.version -cne $versionKey) {
+            throw "VPM index version key and manifest version differ: $versionKey"
+        }
+        if ([string]::IsNullOrWhiteSpace([string]$manifest.url)) {
+            throw "VPM index package URL is empty: $versionKey"
+        }
+        if ([string]$manifest.zipSHA256 -cnotmatch '^[0-9a-f]{64}$') {
+            throw "VPM index package hash is invalid: $versionKey"
+        }
+    }
+}
+
 function Get-PackagedDllPath {
     $candidate = Join-Path $RepoRoot ".work\Release$($Version.Replace('.', ''))\ProjectRoot\Packages\$PackageId\Editor\$AssemblyFileName"
     if (Test-Path -LiteralPath $candidate) {
@@ -544,6 +800,15 @@ $checksumPath = Join-Path $RepoRoot "checksums\$PackageId-$Version.sha256.txt"
     if ((Get-IndexZipHash) -ne $zipHash) {
         throw "index zipSHA256 mismatch"
     }
+    Assert-PublishedVersionWindow `
+        -IndexPath (Join-Path $RepoRoot "index.json") `
+        -ExpectedLatestVersion $Version
+    Test-DetachedSignatureFile `
+        -TargetPath (Join-Path $RepoRoot "index.json") `
+        -SignaturePath (Join-Path $RepoRoot "index.json.sig") `
+        -CertificatePath $PublishedCertificatePath
+    Test-PublishedVersionArtifacts `
+        -IndexPath (Join-Path $RepoRoot "index.json")
 }))
 
 New-TestZip -Path (Join-Path $OutputRoot "source-injection.zip") -EntryName "Editor/Injected.cs" -Text "class Injected {}"
@@ -842,6 +1107,123 @@ else {
 
 [void]$results.Add((Assert-Passes "R packaged DLL does not replace Unity global log handler" {
     Assert-NoUnityGlobalLogHandlerReferences -Path $dllPath
+}))
+
+[void]$results.Add((Assert-Passes "S VPM repository retains three versions without rewriting history" {
+    $fixtureRoot = Join-Path $OutputRoot "vpm-version-window"
+    $fixturePackagesRoot = Join-Path $fixtureRoot "packages"
+    Ensure-Directory $fixturePackagesRoot
+
+    $fixtureVersions = @("1.2.7", "1.2.6", "1.2.5", "1.2.4")
+    $hashesBefore = @{}
+    foreach ($fixtureVersion in $fixtureVersions) {
+        $fixtureManifest = [ordered]@{
+            name = $PackageId
+            displayName = "Avatar Recovery"
+            version = $fixtureVersion
+            unity = "2022.3"
+            vpmDependencies = [ordered]@{
+                "com.vrchat.base" = ">=3.7.0 <3.11.0"
+            }
+        }
+        $fixtureZipPath = Join-Path $fixturePackagesRoot "$PackageId-$fixtureVersion.zip"
+        New-TestZip `
+            -Path $fixtureZipPath `
+            -EntryName "package.json" `
+            -Text ($fixtureManifest | ConvertTo-Json -Depth 10)
+        $hashesBefore[$fixtureVersion] = (
+            Get-FileHash -LiteralPath $fixtureZipPath -Algorithm SHA256).Hash
+    }
+
+    $buildOutput = @(
+        & powershell -NoProfile -ExecutionPolicy Bypass `
+            -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") `
+            -OutputRoot $fixtureRoot `
+            -BaseUrl "https://example.invalid/avatar-recovery" `
+            -MinimumPublishedVersion "1.0.0" `
+            -MaximumPublishedVersion "1.2.7" `
+            -MaximumPublishedVersionCount 3 `
+            -IndexOnly 2>&1
+    )
+    $buildExitCode = $LASTEXITCODE
+    if ($buildExitCode -ne 0) {
+        throw (
+            "VPM index-only fixture build failed." +
+            [Environment]::NewLine +
+            ($buildOutput -join [Environment]::NewLine))
+    }
+
+    $fixtureIndexPath = Join-Path $fixtureRoot "index.json"
+    Assert-PublishedVersionWindow `
+        -IndexPath $fixtureIndexPath `
+        -ExpectedLatestVersion "1.2.7"
+    $actualVersions = Get-IndexPublishedVersions -IndexPath $fixtureIndexPath
+    $expectedVersions = @("1.2.7", "1.2.6", "1.2.5")
+    if (($actualVersions -join "|") -cne ($expectedVersions -join "|")) {
+        throw "VPM index-only fixture selected unexpected versions."
+    }
+
+    foreach ($fixtureVersion in $fixtureVersions) {
+        $fixtureZipPath = Join-Path $fixturePackagesRoot "$PackageId-$fixtureVersion.zip"
+        $hashAfter = (Get-FileHash -LiteralPath $fixtureZipPath -Algorithm SHA256).Hash
+        if ($hashAfter -cne $hashesBefore[$fixtureVersion]) {
+            throw "VPM index-only mode modified package ZIP $fixtureVersion."
+        }
+    }
+
+    $fixtureProjectRoot = Join-Path $fixtureRoot "project"
+    $fixturePackageRoot = Join-Path $fixtureProjectRoot "Packages\$PackageId"
+    Ensure-Directory $fixturePackageRoot
+    $nextVersion = "1.2.8"
+    $nextManifest = [ordered]@{
+        name = $PackageId
+        displayName = "Avatar Recovery"
+        version = $nextVersion
+        unity = "2022.3"
+        vpmDependencies = [ordered]@{
+            "com.vrchat.base" = ">=3.7.0 <3.11.0"
+        }
+    }
+    [System.IO.File]::WriteAllText(
+        (Join-Path $fixturePackageRoot "package.json"),
+        ($nextManifest | ConvertTo-Json -Depth 10),
+        [System.Text.UTF8Encoding]::new($false))
+
+    $normalBuildOutput = @(
+        & powershell -NoProfile -ExecutionPolicy Bypass `
+            -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") `
+            -ProjectRoot $fixtureProjectRoot `
+            -OutputRoot $fixtureRoot `
+            -BaseUrl "https://example.invalid/avatar-recovery" `
+            -MinimumPublishedVersion "1.0.0" `
+            -MaximumPublishedVersion $nextVersion `
+            -MaximumPublishedVersionCount 3 2>&1
+    )
+    $normalBuildExitCode = $LASTEXITCODE
+    if ($normalBuildExitCode -ne 0) {
+        throw (
+            "VPM normal fixture build failed." +
+            [Environment]::NewLine +
+            ($normalBuildOutput -join [Environment]::NewLine))
+    }
+
+    Assert-PublishedVersionWindow `
+        -IndexPath $fixtureIndexPath `
+        -ExpectedLatestVersion $nextVersion
+    $normalBuildVersions = Get-IndexPublishedVersions -IndexPath $fixtureIndexPath
+    $expectedNormalBuildVersions = @($nextVersion, "1.2.7", "1.2.6")
+    if (($normalBuildVersions -join "|") -cne
+        ($expectedNormalBuildVersions -join "|")) {
+        throw "VPM normal fixture selected unexpected versions."
+    }
+
+    foreach ($fixtureVersion in $fixtureVersions) {
+        $fixtureZipPath = Join-Path $fixturePackagesRoot "$PackageId-$fixtureVersion.zip"
+        $hashAfter = (Get-FileHash -LiteralPath $fixtureZipPath -Algorithm SHA256).Hash
+        if ($hashAfter -cne $hashesBefore[$fixtureVersion]) {
+            throw "VPM normal mode modified historical package ZIP $fixtureVersion."
+        }
+    }
 }))
 
 $report = [PSCustomObject]@{

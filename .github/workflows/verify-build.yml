@@ -2,16 +2,36 @@ name: Verify build and published artifacts
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - Build/**
+      - BuildProtectedAvatarRecoveryPackage.ps1
+      - BuildVpmRepository.ps1
+      - Invoke-ProtectionSelfTests.ps1
+      - Invoke-PublishedReleaseAudit.ps1
+      - README.md
+      - index.json
+      - index.json.sig
+      - update-manifest.json
+      - packages/**
+      - checksums/**
+      - certificates/**
+      - .github/workflows/verify-build.yml
   push:
     branches:
       - main
     paths:
       - Build/**
       - BuildProtectedAvatarRecoveryPackage.ps1
+      - BuildVpmRepository.ps1
       - Invoke-ProtectionSelfTests.ps1
       - Invoke-PublishedReleaseAudit.ps1
       - README.md
       - index.json
+      - index.json.sig
+      - update-manifest.json
       - packages/**
       - checksums/**
       - certificates/**
@@ -32,6 +52,7 @@ jobs:
         run: |
           $scripts = @(
             ".\BuildProtectedAvatarRecoveryPackage.ps1",
+            ".\BuildVpmRepository.ps1",
             ".\Invoke-ProtectionSelfTests.ps1",
             ".\Invoke-PublishedReleaseAudit.ps1"
           )
@@ -60,6 +81,7 @@ jobs:
           "$env:USERPROFILE\.dotnet\tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Audit published GitHub Pages artifacts
+        if: github.event_name != 'pull_request'
         shell: pwsh
         env:
           DOTNET_ROLL_FORWARD: Major

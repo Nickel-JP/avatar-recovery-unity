@@ -2,6 +2,7 @@ param(
     [string]$Version = "1.2.7",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
+    [string]$ExpectedRepositoryBaseUrl = "",
     [string]$OutputRoot = "",
     [string]$ExpectedCodeSigningCertificateThumbprint = $env:AVATAR_RECOVERY_PUBLISHED_CERTIFICATE_THUMBPRINT,
     [int]$RetryCount = 18,
@@ -22,6 +23,7 @@ $CertificateFileName = "avatar-recovery-self-signed-code-signing.cer"
 $CertificatePemFileName = "avatar-recovery-self-signed-code-signing.cer.pem"
 $TrustedCertificatePath = Join-Path $RepoRoot "certificates\$CertificateFileName"
 $BinaryLeakRulesPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
+$PublishedVersionLimit = 3
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -191,6 +193,72 @@ function Test-DetachedSignatureFile {
     }
     finally {
         $certificate.Dispose()
+    }
+}
+
+function Get-PackageManifestFromZip {
+    param([Parameter(Mandatory = $true)][string]$ZipPath)
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
+    try {
+        $manifestEntry = $archive.Entries |
+            Where-Object { ($_.FullName -replace '\\', '/') -eq "package.json" } |
+            Select-Object -First 1
+        if ($null -eq $manifestEntry) {
+            throw "package.json was not found in package zip: $ZipPath"
+        }
+
+        $stream = $manifestEntry.Open()
+        try {
+            $reader = [System.IO.StreamReader]::new($stream)
+            try {
+                return ($reader.ReadToEnd() | ConvertFrom-Json)
+            }
+            finally {
+                $reader.Dispose()
+            }
+        }
+        finally {
+            $stream.Dispose()
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+}
+
+function Assert-IndexManifestMatchesPackageZip {
+    param(
+        [Parameter(Mandatory = $true)][string]$ZipPath,
+        [Parameter(Mandatory = $true)]$IndexManifest,
+        [Parameter(Mandatory = $true)][string]$PublishedVersion
+    )
+
+    $zipManifest = Get-PackageManifestFromZip -ZipPath $ZipPath
+    $zipPropertyNames = @($zipManifest.PSObject.Properties.Name)
+    $indexPropertyNames = @($IndexManifest.PSObject.Properties.Name)
+    $expectedIndexPropertyNames = @($zipPropertyNames + @("zipSHA256"))
+    if ((($indexPropertyNames | Sort-Object) -join "|") -cne
+        (($expectedIndexPropertyNames | Sort-Object) -join "|")) {
+        throw "index.json manifest properties do not match package.json for $PublishedVersion."
+    }
+
+    foreach ($zipProperty in $zipManifest.PSObject.Properties) {
+        $indexProperty = $IndexManifest.PSObject.Properties[$zipProperty.Name]
+        if ($null -eq $indexProperty) {
+            throw (
+                "index.json is missing package.json property " +
+                "$($zipProperty.Name) for $PublishedVersion.")
+        }
+
+        $zipValue = $zipProperty.Value | ConvertTo-Json -Depth 80 -Compress
+        $indexValue = $indexProperty.Value | ConvertTo-Json -Depth 80 -Compress
+        if ($zipValue -cne $indexValue) {
+            throw (
+                "index.json property $($zipProperty.Name) does not match " +
+                "package.json for $PublishedVersion.")
+        }
     }
 }
 
@@ -596,34 +664,29 @@ function Test-ZipTamperDetection {
 
 function Invoke-AuditOnce {
     $normalizedBaseUrl = $BaseUrl.TrimEnd("/")
+    $normalizedExpectedRepositoryBaseUrl = if (
+        [string]::IsNullOrWhiteSpace($ExpectedRepositoryBaseUrl)) {
+        $normalizedBaseUrl
+    }
+    else {
+        $ExpectedRepositoryBaseUrl.TrimEnd("/")
+    }
     Remove-SafeAuditDirectory -Path $OutputRoot
     Ensure-Directory $OutputRoot
 
     $indexPath = Join-Path $OutputRoot "index.json"
     $indexSignaturePath = Join-Path $OutputRoot "index.json.sig"
-    $zipPath = Join-Path $OutputRoot "$PackageId-$Version.zip"
-    $zipSignaturePath = "$zipPath.sig"
-    $checksumPath = Join-Path $OutputRoot "$PackageId-$Version.sha256.txt"
-    $checksumSignaturePath = "$checksumPath.sig"
     $certificatePath = Join-Path $OutputRoot $CertificateFileName
     $certificatePemPath = Join-Path $OutputRoot $CertificatePemFileName
 
     Save-Url -Url "$normalizedBaseUrl/index.json" -Path $indexPath
     Save-Url -Url "$normalizedBaseUrl/index.json.sig" -Path $indexSignaturePath
-    Save-Url -Url "$normalizedBaseUrl/packages/$PackageId-$Version.zip" -Path $zipPath
-    Save-Url -Url "$normalizedBaseUrl/packages/$PackageId-$Version.zip.sig" -Path $zipSignaturePath
-    Save-Url -Url "$normalizedBaseUrl/checksums/$PackageId-$Version.sha256.txt" -Path $checksumPath
-    Save-Url -Url "$normalizedBaseUrl/checksums/$PackageId-$Version.sha256.txt.sig" -Path $checksumSignaturePath
     Save-Url -Url "$normalizedBaseUrl/certificates/$CertificateFileName" -Path $certificatePath
     Save-Url -Url "$normalizedBaseUrl/certificates/$CertificatePemFileName" -Path $certificatePemPath
 
     Test-DownloadedPublicFiles -Paths @(
         $indexPath,
         $indexSignaturePath,
-        $zipPath,
-        $zipSignaturePath,
-        $checksumPath,
-        $checksumSignaturePath,
         $certificatePath,
         $certificatePemPath
     )
@@ -635,8 +698,6 @@ function Invoke-AuditOnce {
     }
 
     Test-DetachedSignatureFile -TargetPath $indexPath -SignaturePath $indexSignaturePath -CertificatePath $certificatePath
-    Test-DetachedSignatureFile -TargetPath $zipPath -SignaturePath $zipSignaturePath -CertificatePath $certificatePath
-    Test-DetachedSignatureFile -TargetPath $checksumPath -SignaturePath $checksumSignaturePath -CertificatePath $certificatePath
 
     $index = Get-Content -LiteralPath $indexPath -Raw | ConvertFrom-Json
     $packageEntry = $index.packages.PSObject.Properties[$PackageId].Value
@@ -644,23 +705,113 @@ function Invoke-AuditOnce {
         throw "Package id was not found in index.json: $PackageId"
     }
 
-    $versions = @($packageEntry.versions.PSObject.Properties.Name)
-    if ($versions.Count -ne 1 -or $versions[0] -ne $Version) {
-        throw "Unexpected published versions: $($versions -join ', ')"
+    $versionProperties = @($packageEntry.versions.PSObject.Properties)
+    $versions = @($versionProperties.Name)
+    if ($versions.Count -ne $PublishedVersionLimit -or
+        $versions[0] -cne $Version) {
+        throw (
+            "Expected $Version first and exactly $PublishedVersionLimit published versions, " +
+            "found: $($versions -join ', ')")
     }
-
-    $zipHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    if ($packageEntry.versions.$Version.zipSHA256 -ne $zipHash) {
-        throw "index.json zipSHA256 mismatch."
+    $sortedVersions = @($versions | Sort-Object { [version]$_ } -Descending)
+    if (($versions -join "|") -cne ($sortedVersions -join "|")) {
+        throw "Published versions are not in descending order: $($versions -join ', ')"
     }
 
     $certificateHash = (Get-FileHash -LiteralPath $certificatePath -Algorithm SHA256).Hash.ToLowerInvariant()
     $certificatePemHash = (Get-FileHash -LiteralPath $certificatePemPath -Algorithm SHA256).Hash.ToLowerInvariant()
-    $checksumText = Get-Content -LiteralPath $checksumPath -Raw
-    foreach ($requiredHash in @($zipHash, $certificateHash, $certificatePemHash)) {
-        if ($checksumText -notmatch [regex]::Escape($requiredHash)) {
-            throw "Checksum manifest does not include expected hash: $requiredHash"
+    $publishedVersionResults = New-Object System.Collections.Generic.List[object]
+    $zipPath = ""
+    $zipSignaturePath = ""
+    $checksumPath = ""
+    $zipHash = ""
+    $checksumText = ""
+
+    foreach ($versionProperty in $versionProperties) {
+        $publishedVersion = [string]$versionProperty.Name
+        $publishedManifest = $versionProperty.Value
+        if ([string]$publishedManifest.version -cne $publishedVersion) {
+            throw "index.json version key and package version differ: $publishedVersion"
         }
+
+        $expectedPackageUrl = (
+            "$normalizedExpectedRepositoryBaseUrl/packages/" +
+            "$PackageId-$publishedVersion.zip")
+        if ([string]$publishedManifest.url -cne $expectedPackageUrl) {
+            throw "index.json package URL mismatch for $publishedVersion."
+        }
+        if ([string]$publishedManifest.repo -cne "$normalizedExpectedRepositoryBaseUrl/index.json") {
+            throw "index.json repository URL mismatch for $publishedVersion."
+        }
+
+        $publishedZipPath = Join-Path $OutputRoot "$PackageId-$publishedVersion.zip"
+        $publishedZipSignaturePath = "$publishedZipPath.sig"
+        $publishedChecksumPath = Join-Path $OutputRoot "$PackageId-$publishedVersion.sha256.txt"
+        $publishedChecksumSignaturePath = "$publishedChecksumPath.sig"
+        Save-Url `
+            -Url "$normalizedBaseUrl/packages/$PackageId-$publishedVersion.zip" `
+            -Path $publishedZipPath
+        Save-Url `
+            -Url "$normalizedBaseUrl/packages/$PackageId-$publishedVersion.zip.sig" `
+            -Path $publishedZipSignaturePath
+        Save-Url `
+            -Url "$normalizedBaseUrl/checksums/$PackageId-$publishedVersion.sha256.txt" `
+            -Path $publishedChecksumPath
+        Save-Url `
+            -Url "$normalizedBaseUrl/checksums/$PackageId-$publishedVersion.sha256.txt.sig" `
+            -Path $publishedChecksumSignaturePath
+
+        Test-DownloadedPublicFiles -Paths @(
+            $publishedZipPath,
+            $publishedZipSignaturePath,
+            $publishedChecksumPath,
+            $publishedChecksumSignaturePath
+        )
+        Test-DetachedSignatureFile `
+            -TargetPath $publishedZipPath `
+            -SignaturePath $publishedZipSignaturePath `
+            -CertificatePath $certificatePath
+        Test-DetachedSignatureFile `
+            -TargetPath $publishedChecksumPath `
+            -SignaturePath $publishedChecksumSignaturePath `
+            -CertificatePath $certificatePath
+
+        $publishedZipHash = (
+            Get-FileHash -LiteralPath $publishedZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+        if ([string]$publishedManifest.zipSHA256 -cne $publishedZipHash) {
+            throw "index.json zipSHA256 mismatch for $publishedVersion."
+        }
+        Assert-IndexManifestMatchesPackageZip `
+            -ZipPath $publishedZipPath `
+            -IndexManifest $publishedManifest `
+            -PublishedVersion $publishedVersion
+
+        $publishedChecksumText = Get-Content -LiteralPath $publishedChecksumPath -Raw
+        foreach ($requiredHash in @($publishedZipHash, $certificateHash, $certificatePemHash)) {
+            if ($publishedChecksumText -notmatch [regex]::Escape($requiredHash)) {
+                throw (
+                    "Checksum manifest for $publishedVersion does not include " +
+                    "expected hash: $requiredHash")
+            }
+        }
+
+        [void]$publishedVersionResults.Add([PSCustomObject]@{
+            Version = $publishedVersion
+            Url = $expectedPackageUrl
+            ZipSHA256 = $publishedZipHash
+            DetachedSignatures = "Valid"
+        })
+
+        if ($publishedVersion -ceq $Version) {
+            $zipPath = $publishedZipPath
+            $zipSignaturePath = $publishedZipSignaturePath
+            $checksumPath = $publishedChecksumPath
+            $zipHash = $publishedZipHash
+            $checksumText = $publishedChecksumText
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($zipPath)) {
+        throw "Latest package artifacts were not selected for deep audit: $Version"
     }
 
     $extractRoot = Join-Path $OutputRoot "zip"
@@ -696,6 +847,7 @@ function Invoke-AuditOnce {
     $report = [PSCustomObject]@{
         Version = $Version
         BaseUrl = $normalizedBaseUrl
+        ExpectedRepositoryBaseUrl = $normalizedExpectedRepositoryBaseUrl
         ZipSHA256 = $zipHash
         CertificateSHA256 = $certificateHash
         ExpectedCertificateThumbprint = $expectedCertificateThumbprint
@@ -703,6 +855,7 @@ function Invoke-AuditOnce {
         DllAuthenticode = [string]$signature.Status
         DllAuthenticodeTrustMode = if ($TrustPublishedCertificateForAuthenticode) { "TrustedStoreRequired" } else { "ThumbprintOnlyAcceptedWhenUntrusted" }
         DllSignerThumbprint = $signerThumbprint
+        PublishedVersions = @($publishedVersionResults.ToArray())
         RuntimeIntegritySidecar = $runtimeIntegrityResult
         TamperedDllAuthenticode = $tamperResult
         TamperedZip = $zipTamperResult

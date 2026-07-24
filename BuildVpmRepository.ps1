@@ -4,10 +4,17 @@ param(
     [string]$OutputRoot = $PSScriptRoot,
     [string]$BaseUrl = "",
     [string]$MinimumPublishedVersion = "1.1.5",
-    [string]$MaximumPublishedVersion = ""
+    [string]$MaximumPublishedVersion = "",
+    [ValidateRange(1, 3)]
+    [int]$MaximumPublishedVersionCount = 3,
+    [switch]$IndexOnly
 )
 
 $ErrorActionPreference = "Stop"
+
+if ($IndexOnly -and [string]::IsNullOrWhiteSpace($MaximumPublishedVersion)) {
+    throw "MaximumPublishedVersion is required in IndexOnly mode."
+}
 
 function ConvertTo-FileUri {
     param([string]$Path)
@@ -110,60 +117,73 @@ function Test-VersionIsPublished {
     }
 }
 
-$packageRoot = Join-Path $ProjectRoot "Packages\$PackageId"
-$packageJsonPath = Join-Path $packageRoot "package.json"
-
-if (-not (Test-Path $packageJsonPath)) {
-    throw "Package manifest was not found: $packageJsonPath"
-}
-
-$manifest = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
-$version = $manifest.version
-
-if ([string]::IsNullOrWhiteSpace($version)) {
-    throw "Package version is empty in $packageJsonPath"
-}
-
 $packagesDir = Join-Path $OutputRoot "packages"
 New-Item -ItemType Directory -Force -Path $packagesDir | Out-Null
 
-$packageFileName = "$PackageId-$version.zip"
-$zipPath = Join-Path $packagesDir $packageFileName
 $indexPath = Join-Path $OutputRoot "index.json"
-
-if (Test-Path $zipPath) {
-    Remove-Item -LiteralPath $zipPath -Force
+$normalizedBaseUrl = if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
+    ""
+}
+else {
+    $BaseUrl.TrimEnd("/")
+}
+$repoUrl = if ([string]::IsNullOrWhiteSpace($normalizedBaseUrl)) {
+    ConvertTo-FileUri $indexPath
+}
+else {
+    "$normalizedBaseUrl/index.json"
 }
 
-$tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("avatar-recovery-vpm-" + [System.Guid]::NewGuid().ToString("N"))
-$stagingRoot = Join-Path $tempRoot "package"
+$version = ""
+$zipPath = ""
+$packageUrl = ""
+$zipSha256 = ""
+$tempRoot = ""
 
 try {
-    New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
-    Copy-Item -Path (Join-Path $packageRoot "*") -Destination $stagingRoot -Recurse -Force
+    if (-not $IndexOnly) {
+        $packageRoot = Join-Path $ProjectRoot "Packages\$PackageId"
+        $packageJsonPath = Join-Path $packageRoot "package.json"
+        if (-not (Test-Path -LiteralPath $packageJsonPath)) {
+            throw "Package manifest was not found: $packageJsonPath"
+        }
 
-    if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
-        New-Item -ItemType File -Force -Path $zipPath | Out-Null
-        $packageUrl = ConvertTo-FileUri $zipPath
-        Remove-Item -LiteralPath $zipPath -Force
-        $repoUrl = ConvertTo-FileUri $indexPath
+        $manifest = Get-Content -LiteralPath $packageJsonPath -Raw | ConvertFrom-Json
+        $version = [string]$manifest.version
+        if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "Package version is empty in $packageJsonPath"
+        }
+
+        $packageFileName = "$PackageId-$version.zip"
+        $zipPath = Join-Path $packagesDir $packageFileName
+        if (Test-Path -LiteralPath $zipPath) {
+            Remove-Item -LiteralPath $zipPath -Force
+        }
+
+        $tempRoot = Join-Path ([System.IO.Path]::GetTempPath()) (
+            "avatar-recovery-vpm-" + [System.Guid]::NewGuid().ToString("N"))
+        $stagingRoot = Join-Path $tempRoot "package"
+        New-Item -ItemType Directory -Force -Path $stagingRoot | Out-Null
+        Copy-Item -Path (Join-Path $packageRoot "*") -Destination $stagingRoot -Recurse -Force
+
+        $packageUrl = if ([string]::IsNullOrWhiteSpace($normalizedBaseUrl)) {
+            ConvertTo-FileUri $zipPath
+        }
+        else {
+            "$normalizedBaseUrl/packages/$packageFileName"
+        }
+
+        $stagedManifestPath = Join-Path $stagingRoot "package.json"
+        $stagedManifest = Get-Content -LiteralPath $stagedManifestPath -Raw | ConvertFrom-Json
+        Set-JsonProperty -Object $stagedManifest -Name "url" -Value $packageUrl
+        Set-JsonProperty -Object $stagedManifest -Name "repo" -Value $repoUrl
+        Write-Utf8NoBom -Path $stagedManifestPath -Value (
+            $stagedManifest | ConvertTo-Json -Depth 50)
+
+        Compress-Archive -Path (Join-Path $stagingRoot "*") -DestinationPath $zipPath -Force
+        $zipSha256 = (
+            Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
     }
-    else {
-        $normalizedBaseUrl = $BaseUrl.TrimEnd("/")
-        $packageUrl = "$normalizedBaseUrl/packages/$packageFileName"
-        $repoUrl = "$normalizedBaseUrl/index.json"
-    }
-
-    $stagedManifestPath = Join-Path $stagingRoot "package.json"
-    $stagedManifest = Get-Content -LiteralPath $stagedManifestPath -Raw | ConvertFrom-Json
-
-    Set-JsonProperty -Object $stagedManifest -Name "url" -Value $packageUrl
-    Set-JsonProperty -Object $stagedManifest -Name "repo" -Value $repoUrl
-
-    Write-Utf8NoBom -Path $stagedManifestPath -Value ($stagedManifest | ConvertTo-Json -Depth 50)
-
-    Compress-Archive -Path (Join-Path $stagingRoot "*") -DestinationPath $zipPath -Force
-    $zipSha256 = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
 
     $versionEntries = @()
     $packageZipPattern = "$PackageId-*.zip"
@@ -188,6 +208,12 @@ try {
         }
 
         $candidatePackageFileName = Split-Path -Leaf $packageZip.FullName
+        $expectedPackageFileName = "$PackageId-$candidateVersion.zip"
+        if ($candidatePackageFileName -cne $expectedPackageFileName) {
+            throw (
+                "Package zip filename does not match its manifest version. " +
+                "Expected $expectedPackageFileName, found $candidatePackageFileName.")
+        }
         if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
             $candidatePackageUrl = ConvertTo-FileUri $packageZip.FullName
         }
@@ -211,8 +237,27 @@ try {
         throw "No valid package versions were found in: $packagesDir"
     }
 
+    $duplicateVersions = @(
+        $versionEntries |
+            Group-Object -Property Version |
+            Where-Object { $_.Count -gt 1 }
+    )
+    if ($duplicateVersions.Count -gt 0) {
+        throw (
+            "Duplicate package versions were found: " +
+            (($duplicateVersions | ForEach-Object { $_.Name }) -join ", "))
+    }
+
+    $selectedVersionEntries = @(
+        $versionEntries |
+            Sort-Object `
+                @{ Expression = { Get-VersionSortKey $_.Version }; Descending = $true },
+                @{ Expression = { $_.Version }; Descending = $true } |
+            Select-Object -First $MaximumPublishedVersionCount
+    )
+
     $versions = [ordered]@{}
-    foreach ($entry in ($versionEntries | Sort-Object @{ Expression = { Get-VersionSortKey $_.Version }; Descending = $true }, @{ Expression = { $_.Version }; Descending = $true })) {
+    foreach ($entry in $selectedVersionEntries) {
         $versions[$entry.Version] = $entry.Manifest
     }
 
@@ -231,13 +276,17 @@ try {
 
     Write-Utf8NoBom -Path $indexPath -Value ($repo | ConvertTo-Json -Depth 80)
 
-    Write-Host "Created VPM package: $zipPath"
     Write-Host "Created VPM repository: $indexPath"
-    Write-Host "Package URL: $packageUrl"
-    Write-Host "SHA256: $zipSha256"
+    Write-Host "Published versions: $($selectedVersionEntries.Version -join ', ')"
+    if (-not $IndexOnly) {
+        Write-Host "Created VPM package: $zipPath"
+        Write-Host "Package URL: $packageUrl"
+        Write-Host "SHA256: $zipSha256"
+    }
 }
 finally {
-    if (Test-Path $tempRoot) {
+    if (-not [string]::IsNullOrWhiteSpace($tempRoot) -and
+        (Test-Path -LiteralPath $tempRoot)) {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force
     }
 }
