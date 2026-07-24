@@ -38,7 +38,7 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 ```
 
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
-VCC and ALCOM can choose versions listed in this repository. The public index is currently limited to the active supported release.
+In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
 
 ## AvatarRecovery Community Server
 

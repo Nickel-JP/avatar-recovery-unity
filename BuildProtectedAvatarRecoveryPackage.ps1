@@ -40,6 +40,7 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -Er
 
 $RepoRoot = $PSScriptRoot
 $WorkRoot = Join-Path $RepoRoot ".work"
+$PublishedVersionLimit = 3
 if ([string]::IsNullOrWhiteSpace($BackupRoot)) {
     $envBackupRoot = [Environment]::GetEnvironmentVariable("AVATAR_RECOVERY_BACKUP_ROOT")
     $BackupRoot = if ([string]::IsNullOrWhiteSpace($envBackupRoot)) {
@@ -5166,8 +5167,8 @@ Test-AvatarRecoveryLogIsolation -Path $packagedDll | Out-Null
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") `
     -ProjectRoot $ProjectRoot `
     -BaseUrl $BaseUrl `
-    -MinimumPublishedVersion $Version `
-    -MaximumPublishedVersion $Version
+    -MaximumPublishedVersion $Version `
+    -MaximumPublishedVersionCount $PublishedVersionLimit
 if ($LASTEXITCODE -ne 0) {
     throw "VPM repository build failed."
 }
@@ -5176,9 +5177,20 @@ $publishedIndex = Get-Content -LiteralPath (Join-Path $RepoRoot "index.json") -R
 $publishedVersions = @(
     $publishedIndex.packages.$PackageId.versions.PSObject.Properties.Name
 )
-if ($publishedVersions.Count -ne 1 -or $publishedVersions[0] -ne $Version) {
+if ($publishedVersions.Count -ne $PublishedVersionLimit -or
+    $publishedVersions[0] -ne $Version) {
     throw (
-        "VPM repository version scope mismatch. Expected only $Version, found: " +
+        "VPM repository version scope mismatch. Expected $Version first and exactly " +
+        "$PublishedVersionLimit published versions, found: " +
+        ($publishedVersions -join ", "))
+}
+$sortedPublishedVersions = @(
+    $publishedVersions |
+        Sort-Object { [version]$_ } -Descending
+)
+if (($publishedVersions -join "|") -cne ($sortedPublishedVersions -join "|")) {
+    throw (
+        "VPM repository versions are not in descending order: " +
         ($publishedVersions -join ", "))
 }
 
