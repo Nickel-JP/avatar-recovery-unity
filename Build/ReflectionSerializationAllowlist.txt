@@ -103,6 +103,11 @@ Utils\AvatarRecoveryEnvChecker.cs|Reflection|\.GetType\s*\(|*
 # GitHub update history starts once per Unity session and cleans up on assembly reload or Editor quit.
 Utils\GitHubUpdateHistoryService.cs|AttributeContract|InitializeOnLoad|*
 
+# Windows標準の複数選択ダイアログはEditor起動時に終了フックを登録し、必須コールバックを検証する。
+
+Utils\WindowsMultiSelectDialog.cs|AttributeContract|InitializeOnLoad|[InitializeOnLoad]
+Utils\WindowsMultiSelectDialog.cs|Reflection|nameof\s*\(|throw new ArgumentNullException(nameof(completed));
+
 # Central settings helper owns all existing EditorPrefs key compatibility.
 Utils\EditorPrefsHelper.cs|EditorPrefs|EditorPrefs|*
 Utils\EditorPrefsHelper.cs|Reflection|typeof\s*\(|*

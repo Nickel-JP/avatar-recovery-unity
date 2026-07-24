@@ -50,21 +50,21 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current protected package is `com.nickel-jp.avatar-recovery-1.2.7.zip`.
+The current protected package is `com.nickel-jp.avatar-recovery-1.2.8.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.7.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.8.zip -Algorithm SHA256).Hash
 
-# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.7.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.7.sha256.txt.
+# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.8.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.8.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.7.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.8.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -97,6 +97,15 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.2.8 — Editor Responsiveness
+
+- Reduced Unity Editor stalls while selecting recovery files or folders by moving native selection and folder enumeration away from the Editor's main thread.
+- Added selected files to the queue incrementally so large selections no longer block the AvatarRecovery window for one long operation.
+- Reduced repeated work in recovery history rendering, AssetRipper path discovery, and background-image loading.
+- Improved native dialog cleanup when selection is cancelled, scripts reload, or Unity closes.
+- Preserved the existing extraction and recovery pipeline, including Face animation selection and Blueprint ID cleanup.
+- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.8.
 
 ### Version 1.2.7 — Multi-Select and Console Compatibility
 
