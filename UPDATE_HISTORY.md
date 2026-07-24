@@ -4,6 +4,15 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.8 — Editor Responsiveness
+
+- Reduced Unity Editor stalls while selecting recovery files or folders by moving native selection and folder enumeration away from the Editor's main thread.
+- Added selected files to the queue incrementally so large selections no longer block the AvatarRecovery window for one long operation.
+- Reduced repeated work in recovery history rendering, AssetRipper path discovery, and background-image loading.
+- Improved native dialog cleanup when selection is cancelled, scripts reload, or Unity closes.
+- Preserved the existing extraction and recovery pipeline, including Face animation selection and Blueprint ID cleanup.
+- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.8.
+
 ### Version 1.2.7 — Multi-Select and Console Compatibility
 
 - Added Windows-native multi-selection for recovery files and source folders; hold Ctrl while selecting individual items to add them to the existing batch queue.
