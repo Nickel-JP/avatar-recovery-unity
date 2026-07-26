@@ -4,6 +4,25 @@ Recent release notes are shown in [README.md](README.md). This page keeps the ol
 
 ## Recent Older Releases
 
+### Version 1.2.9 — Expression Menu Recovery Compatibility
+
+- Preserved the existing recovery path for VRCA files whose Expression Menus are already restored by AssetRipper.
+- Added recovery for Expression Menus that previously appeared as Missing after extraction.
+- Verified restored Root Menus, SubMenus, controls, parameters, and icons in both the final and Raw prefabs before accepting the result.
+- Kept incomplete or unsupported Menu results from replacing the normal AssetRipper output.
+- Preserved AAO-optimized avatar detection, mesh repair, and Pose Reset protection.
+- Verified the normal, Menu-recovery, and AAO-optimized workflows in Unity 2022.3.22f1.
+- Known limitations:
+  - Expression Menu recovery can only use Menu, SubMenu, icon, and reference data that remains in the VRCA. If required data is missing, corrupt, ambiguous, or unsupported, the normal AssetRipper result is preserved and the Menu may remain Missing.
+  - If AAO evidence has been removed or a safe pose cannot be determined uniquely, Pose Reset is skipped. AvatarRecovery cannot reconstruct an already damaged baked pose or the creator's original AAO authoring setup from information that is no longer present.
+  - Bone Weights that are structurally valid but semantically incorrect cannot always be identified or reconstructed automatically.
+  - Extreme BlendShape values or combinations outside the avatar's normal authored range can still cause clipping or disappearing geometry.
+  - Very large AAO-optimized avatars can require substantially longer validation time and may temporarily appear unresponsive while checks are running.
+  - The Raw prefab is the AssetRipper-extracted state before AvatarRecovery's repair steps; it is not the creator's original Unity prefab.
+  - Source data that was never stored in the VRCA, such as original FBX/PSD files, Modular Avatar or NDMF authoring setup, and source scripts, cannot be recovered.
+  - When recovery cannot be verified safely, AvatarRecovery does not guess or overwrite the normal result; manual repair may still be required.
+- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.9.
+
 ### Version 1.2.8 — Editor Responsiveness
 
 - Reduced Unity Editor stalls while selecting recovery files or folders by moving native selection and folder enumeration away from the Editor's main thread.

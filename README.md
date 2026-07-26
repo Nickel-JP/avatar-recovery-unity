@@ -50,21 +50,21 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current protected package is `com.nickel-jp.avatar-recovery-1.2.8.zip`.
+The current protected package is `com.nickel-jp.avatar-recovery-1.2.9.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.8.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.9.zip -Algorithm SHA256).Hash
 
-# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.8.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.8.sha256.txt.
+# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.9.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.9.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.8.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.9.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -97,6 +97,25 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.2.9 — Expression Menu Recovery Compatibility
+
+- Preserved the existing recovery path for VRCA files whose Expression Menus are already restored by AssetRipper.
+- Added recovery for Expression Menus that previously appeared as Missing after extraction.
+- Verified restored Root Menus, SubMenus, controls, parameters, and icons in both the final and Raw prefabs before accepting the result.
+- Kept incomplete or unsupported Menu results from replacing the normal AssetRipper output.
+- Preserved AAO-optimized avatar detection, mesh repair, and Pose Reset protection.
+- Verified the normal, Menu-recovery, and AAO-optimized workflows in Unity 2022.3.22f1.
+- Known limitations:
+  - Expression Menu recovery can only use Menu, SubMenu, icon, and reference data that remains in the VRCA. If required data is missing, corrupt, ambiguous, or unsupported, the normal AssetRipper result is preserved and the Menu may remain Missing.
+  - If AAO evidence has been removed or a safe pose cannot be determined uniquely, Pose Reset is skipped. AvatarRecovery cannot reconstruct an already damaged baked pose or the creator's original AAO authoring setup from information that is no longer present.
+  - Bone Weights that are structurally valid but semantically incorrect cannot always be identified or reconstructed automatically.
+  - Extreme BlendShape values or combinations outside the avatar's normal authored range can still cause clipping or disappearing geometry.
+  - Very large AAO-optimized avatars can require substantially longer validation time and may temporarily appear unresponsive while checks are running.
+  - The Raw prefab is the AssetRipper-extracted state before AvatarRecovery's repair steps; it is not the creator's original Unity prefab.
+  - Source data that was never stored in the VRCA, such as original FBX/PSD files, Modular Avatar or NDMF authoring setup, and source scripts, cannot be recovered.
+  - When recovery cannot be verified safely, AvatarRecovery does not guess or overwrite the normal result; manual repair may still be required.
+- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.9.
 
 ### Version 1.2.8 — Editor Responsiveness
 

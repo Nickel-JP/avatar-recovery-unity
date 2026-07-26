@@ -1,11 +1,11 @@
 {
-    "format":  "AvatarRecovery detached signature v1",
-    "algorithm":  "RSA-SHA256-PKCS1",
-    "signedAtUtc":  "2026-07-24T16:15:15.2839235Z",
-    "target":  "index.json",
-    "targetSha256":  "16e28fbaeb26c698a07f88b502c89adf67cf2339c5a20a794ec0eccf69c534f6",
-    "signerCertificate":  "certificates/avatar-recovery-self-signed-code-signing.cer",
-    "signerCertificatePem":  "certificates/avatar-recovery-self-signed-code-signing.cer.pem",
-    "signerThumbprint":  "960260D2C8E24599FD3BC639F393733DE07997E2",
-    "signatureBase64":  "kJJt30IqLKpE3l0gROyhBrKLA8PtCcFxTrA3J2kGYgGTajDeTsgQgs2IwFzYzEbcPvI0oxei/i18nDrq7Nk4WptZ4h10IfttFTEgZrO6s0A0JnYVgF33S5jMAtc9XptcSN/LZqe1OozJ9qSNCUqjXVz7g0aUViqK/JI5PUK03x/gzRncHlMwrohL10c8T5+bnpIAIqfGsrJh5F3VVzlb/M4IJFFKfBfvpGy6JI5VeTKkA5JWBVNDKfs5bmAba+4o4aBEONIkzclwBSJVhpbu2QZlyTnDUK60fTrPep9C4F4WgyiBJiMiWVwOQGXrEClMcqvItVns7YLaM3xovJwhiPBJRV9KfBYD03BAuZqIGMZXWKSZrnteOjsMP13gyAARJeba+zecKzxizJ7hW5BJnBcE6EvRFMLSi8QA6aYoEKFzhHiFzS3GlvIyp9aNRi4E5c+ZpBv7fuL7nH2EdYyWf2lwJyxW8ISrsPDOgZ0mdMpkD+2VzGNvBDbxaevyZ3ON"
+  "format": "AvatarRecovery detached signature v1",
+  "algorithm": "RSA-SHA256-PKCS1",
+  "signedAtUtc": "2026-07-26T00:36:48.6982451Z",
+  "target": "index.json",
+  "targetSha256": "b760869ba681f0a8d01c6fd9bfee63bda611c7b425a0fa30826bd6e14c4d2545",
+  "signerCertificate": "certificates/avatar-recovery-self-signed-code-signing.cer",
+  "signerCertificatePem": "certificates/avatar-recovery-self-signed-code-signing.cer.pem",
+  "signerThumbprint": "960260D2C8E24599FD3BC639F393733DE07997E2",
+  "signatureBase64": "d2G5PYe64zz+F3+j4oo1huPhxkfVQq9LUpSoOCp5YHFXI1Nj5p/ro5CV0YIinsbM84o61seTGAVlE4v/dff/RGBtSmIJyAcPrbf01QzWg+YRKN8VQkzc4IDJ1FT+z6iiUaX1Nvccb0Tz/DXTnpI8YpD/vGHVrtlrpplD9RR/mGYO1ZEx0FQ+6IIVvAnWduDqrY++gKi4orjsEvwF2uK1KoPLBB76/7xjjACUyV1g5gIJ/07OKYajBudxF3leCzXnEoW28cKgt4P/hiRIMROGHj/iCuAOl22G8pXEPxoA8W02giO1uhYBAmEVpt8ecXmGUkHnWnACjq3n57BuvtPxXE4nRNzcg96+nGyet6bq5Y+gczotNb1MGEWfVfXDPaKB7myJdFi+Q1+ZmWyMz16QgRLUhD2phGLtAx/zvf08uuunfdOBYrPli+HSXGHC1LY6iSaAyS0cq7nbcWLNIBLrRrZSfQMVLhBSKQqT5nqBHhrA7E2DIkjmpleSFwgPy0gk"
 }
