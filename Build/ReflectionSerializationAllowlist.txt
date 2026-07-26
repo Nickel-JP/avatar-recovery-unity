@@ -7,7 +7,11 @@
 Core\AssetRipperBridge.cs|EditorPrefs|EditorPrefs|*
 Core\AssetRipperBridge.cs|Reflection|\.GetType\s*\(|*
 Core\AssetRipperBridge.cs|Reflection|FindProperty\s*\(|*
+Core\AssetRipperBridge.cs|Reflection|FindPropertyRelative\s*\(|*
 Core\AssetRipperBridge.cs|Serialization|SerializedContract|*
+
+# Isolated normalizer output is a fixed, versioned JSON contract.
+Core\ExpressionMenuNormalizerRunner.cs|Reflection|JsonUtility|*
 
 # AssetRipper-exported AnimationClip bindings are restored through Unity type checks and Animator.StringToHash.
 Core\AnimationClipBindingRestorer.cs|Reflection|typeof\s*\(|*

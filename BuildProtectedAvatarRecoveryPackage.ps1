@@ -1,6 +1,6 @@
 ﻿param(
-    [string]$Version = "1.2.8",
-    [string]$PreviousVersion = "1.2.7",
+    [string]$Version = "1.2.9",
+    [string]$PreviousVersion = "1.2.8",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -67,6 +67,60 @@ $AntiDebugTargetsPath = Join-Path $RepoRoot "Build\AntiDebugTargets.txt"
 $StringEncryptionAllowlistPath = Join-Path $RepoRoot "Build\StringEncryptionAllowlist.txt"
 $ControlFlowObfuscationAllowlistPath = Join-Path $RepoRoot "Build\ControlFlowObfuscationAllowlist.txt"
 $AntiDecompileAllowlistPath = Join-Path $RepoRoot "Build\AntiDecompileAllowlist.txt"
+$ExpressionMenuNormalizerProjectPath = Join-Path $RepoRoot "Build\ExpressionMenuNormalizer\ExpressionMenuNormalizer.csproj"
+$ExpressionMenuNormalizerTargetFramework = "net48"
+$ExpressionMenuNormalizerConfiguration = "Release"
+$ExpressionMenuNormalizerStageRoot = Join-Path $SourcePackageRoot "Tools~\ExpressionMenuNormalizer"
+$ExpressionMenuNormalizerIntegritySourcePath = Join-Path `
+    $SourcePackageRoot `
+    "Editor\Core\ExpressionMenuNormalizerPayloadIntegrity.cs"
+$ExpressionMenuNormalizerManifestFileName = "SHA256SUMS.txt"
+$ExpressionMenuNormalizerAssetsToolsVersion = "3.0.0"
+$ExpressionMenuNormalizerAssetsToolsUnsignedSha256 = "d77efbc23e963995a58d8c9f2c4345e86bebc26cfdf8a958aee57583fa77f60d"
+$ExpressionMenuNormalizerTextureVersion = "3.0.2"
+$ExpressionMenuNormalizerUnsignedRuntimeSha256 = @{
+    "AssetRipper.TextureDecoder.dll" = "f4122bf4f3749abfb6b8c98a8ab9440c67544511443ffc06eca0cc423d4228eb"
+    "AssetsTools.NET.Texture.dll" = "189d7e51feefb3829e5338790fe60d09cf6e716a7980f7a355a5d78ca003cdca"
+    "crunchunity.dll" = "a23f2e66d83551795c941ca36086260a9b3b61d205779faf5f4f949a00393b41"
+    "System.Buffers.dll" = "accccfbe45d9f08ffeed9916e37b33e98c65be012cfff6e7fa7b67210ce1fefb"
+    "System.Half.dll" = "b1fb190a77169e4a561acfc7883adca479ba43d36f95d85ec36db1b0fa11d0c0"
+    "System.Memory.dll" = "bf3fb84664f4097f1a8a9bc71a51dcf8cf1a905d4080a4d290da1730866e856f"
+    "System.Numerics.Vectors.dll" = "1d3ef8698281e7cf7371d1554afef5872b39f96c26da772210a33da041ba1183"
+    "System.Runtime.CompilerServices.Unsafe.dll" = "66409f670315afe8610f17a4d3a1ee52d72b6a46c544cec97544e8385f90ad74"
+}
+$ExpressionMenuNormalizerClassPackageSha256 = "e63c5ed98380aa87f8cc4ae408589add2f859f887c232068d9106406cc901e3b"
+$ExpressionMenuNormalizerRequiredFileNames = @(
+    "ExpressionMenuNormalizer.exe",
+    "ExpressionMenuNormalizer.exe.config",
+    "AssetRipper.TextureDecoder.dll",
+    "AssetsTools.NET.dll",
+    "AssetsTools.NET.Texture.dll",
+    "crunchunity.dll",
+    "System.Buffers.dll",
+    "System.Half.dll",
+    "System.Memory.dll",
+    "System.Numerics.Vectors.dll",
+    "System.Runtime.CompilerServices.Unsafe.dll",
+    "class.tpk",
+    "AssetRipper.TextureDecoder.LICENSE.txt",
+    "AssetsTools.NET.LICENSE.txt",
+    "Crunch.LICENSE.txt",
+    "RuntimeDependencies.LICENSE.txt",
+    "THIRD_PARTY_NOTICES.md"
+)
+$ExpressionMenuNormalizerOptionalFileNames = @()
+$ExpressionMenuNormalizerSignedFileNames = @(
+    "ExpressionMenuNormalizer.exe",
+    "AssetRipper.TextureDecoder.dll",
+    "AssetsTools.NET.dll",
+    "AssetsTools.NET.Texture.dll",
+    "crunchunity.dll",
+    "System.Buffers.dll",
+    "System.Half.dll",
+    "System.Memory.dll",
+    "System.Numerics.Vectors.dll",
+    "System.Runtime.CompilerServices.Unsafe.dll"
+)
 $StringHidingProbe = "AVATAR_RECOVERY_STRING_HIDING_TEST_8D1C4C55"
 $SelfSignedCertificateSubject = "CN=Nickel-JP AvatarRecovery Self-Signed Code Signing"
 $RuntimeIntegrityGuardTypeName = "EditorTools.AvatarRecovery.AvatarRecoveryIntegrityGuard"
@@ -173,6 +227,54 @@ function Ensure-Directory {
     New-Item -ItemType Directory -Force -Path $Path | Out-Null
 }
 
+function Update-SourcePackageFallbackVersion {
+    $versionProviderPath = Join-Path `
+        $SourcePackageRoot `
+        "Editor\Utils\AvatarRecoveryVersionProvider.cs"
+    if (-not (Test-Path -LiteralPath $versionProviderPath -PathType Leaf)) {
+        throw "AvatarRecoveryVersionProvider source was not found: $versionProviderPath"
+    }
+    if ([string]::IsNullOrWhiteSpace($Version) -or
+        $Version.Contains('"') -or
+        $Version.Contains("`r") -or
+        $Version.Contains("`n")) {
+        throw "Package version cannot be written safely to C# source: $Version"
+    }
+
+    $source = Get-Content -LiteralPath $versionProviderPath -Raw -Encoding UTF8
+    $pattern = '(?m)^(?<Indent>[ \t]*)internal const string FallbackInstalledVersion = "(?<Current>[^"\r\n]+)";[ \t]*$'
+    $matches = [regex]::Matches($source, $pattern)
+    if ($matches.Count -ne 1) {
+        throw (
+            "Expected exactly one FallbackInstalledVersion declaration in " +
+            "$versionProviderPath, but found $($matches.Count).")
+    }
+
+    $match = $matches[0]
+    $replacement = (
+        $match.Groups["Indent"].Value +
+        'internal const string FallbackInstalledVersion = "' +
+        $Version +
+        '";')
+    $updatedSource = (
+        $source.Substring(0, $match.Index) +
+        $replacement +
+        $source.Substring($match.Index + $match.Length))
+    Write-TextUtf8NoBom -Path $versionProviderPath -Value $updatedSource
+
+    $verifiedSource = Get-Content -LiteralPath $versionProviderPath -Raw -Encoding UTF8
+    $verifiedMatches = [regex]::Matches($verifiedSource, $pattern)
+    if ($verifiedMatches.Count -ne 1 -or
+        -not [string]::Equals(
+            $verifiedMatches[0].Groups["Current"].Value,
+            $Version,
+            [StringComparison]::Ordinal)) {
+        throw "FallbackInstalledVersion update verification failed: $versionProviderPath"
+    }
+
+    Write-Host "Updated FallbackInstalledVersion: $Version"
+}
+
 function Initialize-SourcePackage {
     if (-not (Test-Path -LiteralPath $SourcePackageRoot)) {
         $previousSourcePackageRoot = Join-Path $WorkRoot "Release$($PreviousVersion.Replace('.', ''))\SourcePackage\$PackageId"
@@ -193,6 +295,7 @@ function Initialize-SourcePackage {
     $manifest.version = $Version
     $manifest.url = "$($BaseUrl.TrimEnd('/'))/packages/$PackageId-$Version.zip"
     Write-TextUtf8NoBom -Path $manifestPath -Value (($manifest | ConvertTo-Json -Depth 50) + "`n")
+    Update-SourcePackageFallbackVersion
 
     $packageReadmePath = Join-Path $SourcePackageRoot "README.md"
     if (-not (Test-Path -LiteralPath $packageReadmePath)) {
@@ -4622,8 +4725,742 @@ function Clear-DebugSymbolPaths {
     return $matches.Count
 }
 
+function Get-Sha256HexLower {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw "SHA-256 target file was not found: $Path"
+    }
+
+    return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+}
+
+function Get-StreamSha256HexLower {
+    param([Parameter(Mandatory = $true)][System.IO.Stream]$Stream)
+
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        $hash = $sha256.ComputeHash($Stream)
+        return (($hash | ForEach-Object { $_.ToString("x2") }) -join "")
+    }
+    finally {
+        $sha256.Dispose()
+    }
+}
+
+function Get-ExpressionMenuNormalizerFileReport {
+    param(
+        [Parameter(Mandatory = $true)][string]$RootPath,
+        [Parameter(Mandatory = $true)][string]$FileName
+    )
+
+    $path = Join-Path $RootPath $FileName
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw "ExpressionMenuNormalizer の必須ファイルが見つかりません: $path"
+    }
+
+    $item = Get-Item -LiteralPath $path
+    $signature = if ($ExpressionMenuNormalizerSignedFileNames -contains $FileName) {
+        Get-AuthenticodeSignature -LiteralPath $path
+    } else {
+        $null
+    }
+
+    return [PSCustomObject]@{
+        Name = $FileName
+        Length = [long]$item.Length
+        SHA256 = Get-Sha256HexLower -Path $path
+        AuthenticodeStatus = if ($null -ne $signature) { [string]$signature.Status } else { "NotApplicable" }
+        SignerThumbprint = if ($null -ne $signature -and $null -ne $signature.SignerCertificate) {
+            ($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
+        } else {
+            ""
+        }
+    }
+}
+
+function Test-ExpressionMenuNormalizerManifest {
+    param(
+        [Parameter(Mandatory = $true)][string]$RootPath,
+        [Parameter(Mandatory = $true)][object[]]$ExpectedFiles
+    )
+
+    $manifestPath = Join-Path $RootPath $ExpressionMenuNormalizerManifestFileName
+    if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+        throw "ExpressionMenuNormalizer SHA-256 manifest was not found: $manifestPath"
+    }
+
+    $manifestEntries = @{}
+    foreach ($line in Get-Content -LiteralPath $manifestPath -Encoding UTF8) {
+        $trimmed = $line.Trim()
+        if ([string]::IsNullOrWhiteSpace($trimmed) -or $trimmed.StartsWith("#")) {
+            continue
+        }
+
+        $match = [regex]::Match($trimmed, '^(?<Hash>[0-9A-Fa-f]{64})  (?<Name>[^\\/]+)$')
+        if (-not $match.Success) {
+            throw "ExpressionMenuNormalizer SHA-256 manifest has an invalid line: $line"
+        }
+
+        $name = $match.Groups["Name"].Value
+        if ($manifestEntries.ContainsKey($name)) {
+            throw "ExpressionMenuNormalizer SHA-256 manifest contains a duplicate file: $name"
+        }
+        $manifestEntries[$name] = $match.Groups["Hash"].Value.ToLowerInvariant()
+    }
+
+    $expectedPayloadFiles = @(
+        $ExpectedFiles |
+            Where-Object { $_.Name -ne $ExpressionMenuNormalizerManifestFileName }
+    )
+    if ($manifestEntries.Count -ne $expectedPayloadFiles.Count) {
+        throw (
+            "ExpressionMenuNormalizer SHA-256 manifest file count mismatch. " +
+            "Expected $($expectedPayloadFiles.Count), found $($manifestEntries.Count).")
+    }
+
+    foreach ($expectedFile in $expectedPayloadFiles) {
+        if (-not $manifestEntries.ContainsKey($expectedFile.Name)) {
+            throw "ExpressionMenuNormalizer SHA-256 manifest is missing: $($expectedFile.Name)"
+        }
+        if ($manifestEntries[$expectedFile.Name] -ne $expectedFile.SHA256) {
+            throw "ExpressionMenuNormalizer SHA-256 manifest mismatch: $($expectedFile.Name)"
+        }
+    }
+}
+
+function Test-ExpressionMenuNormalizerPackageDirectory {
+    param(
+        [Parameter(Mandatory = $true)][string]$RootPath,
+        [Parameter(Mandatory = $true)]$ExpectedReport,
+        [Parameter(Mandatory = $true)]$Context
+    )
+
+    if (-not (Test-Path -LiteralPath $RootPath -PathType Container)) {
+        throw "ExpressionMenuNormalizer package directory was not found: $RootPath"
+    }
+
+    $nestedDirectories = @(Get-ChildItem -LiteralPath $RootPath -Directory -Force)
+    if ($nestedDirectories.Count -ne 0) {
+        throw (
+            "ExpressionMenuNormalizer package must contain files only at its root: " +
+            ($nestedDirectories.Name -join ", "))
+    }
+
+    $actualFiles = @(Get-ChildItem -LiteralPath $RootPath -File -Force)
+    $expectedFiles = @($ExpectedReport.Files)
+    if ($actualFiles.Count -ne $expectedFiles.Count) {
+        throw (
+            "ExpressionMenuNormalizer package file count mismatch. " +
+            "Expected $($expectedFiles.Count), found $($actualFiles.Count): " +
+            ($actualFiles.Name -join ", "))
+    }
+
+    $actualNameSet = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($actualFile in $actualFiles) {
+        [void]$actualNameSet.Add($actualFile.Name)
+    }
+
+    foreach ($expectedFile in $expectedFiles) {
+        if (-not $actualNameSet.Contains([string]$expectedFile.Name)) {
+            throw "ExpressionMenuNormalizer package is missing: $($expectedFile.Name)"
+        }
+
+        $path = Join-Path $RootPath $expectedFile.Name
+        $actualLength = (Get-Item -LiteralPath $path).Length
+        if ([long]$actualLength -ne [long]$expectedFile.Length) {
+            throw "ExpressionMenuNormalizer package length mismatch: $($expectedFile.Name)"
+        }
+
+        $actualHash = Get-Sha256HexLower -Path $path
+        if ($actualHash -ne $expectedFile.SHA256) {
+            throw "ExpressionMenuNormalizer package SHA-256 mismatch: $($expectedFile.Name)"
+        }
+
+        if ($ExpressionMenuNormalizerSignedFileNames -contains $expectedFile.Name) {
+            Test-CodeSignature -Path $path -Context $Context
+        }
+    }
+
+    Test-ExpressionMenuNormalizerManifest -RootPath $RootPath -ExpectedFiles $expectedFiles
+}
+
+function Write-ExpressionMenuNormalizerIntegritySource {
+    param(
+        [Parameter(Mandatory = $true)]$ExpectedReport,
+        [string]$TargetPath = ""
+    )
+
+    if ([string]::IsNullOrWhiteSpace($TargetPath)) {
+        $TargetPath = $ExpressionMenuNormalizerIntegritySourcePath
+    }
+
+    if (-not (Test-Path -LiteralPath $TargetPath -PathType Leaf)) {
+        throw (
+            "ExpressionMenuNormalizer integrity source was not found: " +
+            $TargetPath)
+    }
+
+    $hashes = @{}
+    foreach ($fileName in $ExpressionMenuNormalizerRequiredFileNames) {
+        $fileReports = @(
+            $ExpectedReport.Files |
+                Where-Object {
+                    [string]::Equals(
+                        [string]$_.Name,
+                        $fileName,
+                        [StringComparison]::Ordinal)
+                }
+        )
+        if ($fileReports.Count -ne 1) {
+            throw (
+                "Expected exactly one verified SHA-256 for " +
+                "ExpressionMenuNormalizer payload file: $fileName")
+        }
+
+        $expectedHash = [string]$fileReports[0].SHA256
+        if ([string]::IsNullOrWhiteSpace($expectedHash) -or
+            -not [regex]::IsMatch($expectedHash, '^[0-9a-f]{64}$')) {
+            throw (
+                "Expected exactly one verified SHA-256 for " +
+                "ExpressionMenuNormalizer payload file: $fileName")
+        }
+        $hashes[$fileName] = $expectedHash
+    }
+
+    $source = @"
+namespace EditorTools.AvatarRecovery
+{
+    /// <summary>
+    /// 配布ビルド時に、検証済みExpressionMenuNormalizer成果物の
+    /// 署名後SHA-256へ置換される。
+    /// </summary>
+    internal static class ExpressionMenuNormalizerPayloadIntegrity
+    {
+        internal const string ToolSha256 = "$($hashes['ExpressionMenuNormalizer.exe'])";
+
+        internal const string ConfigSha256 = "$($hashes['ExpressionMenuNormalizer.exe.config'])";
+
+        internal const string DependencySha256 = "$($hashes['AssetsTools.NET.dll'])";
+
+        internal const string TextureDependencySha256 = "$($hashes['AssetsTools.NET.Texture.dll'])";
+
+        internal const string TextureDecoderDependencySha256 = "$($hashes['AssetRipper.TextureDecoder.dll'])";
+
+        internal const string BuffersDependencySha256 = "$($hashes['System.Buffers.dll'])";
+
+        internal const string HalfDependencySha256 = "$($hashes['System.Half.dll'])";
+
+        internal const string MemoryDependencySha256 = "$($hashes['System.Memory.dll'])";
+
+        internal const string NumericsDependencySha256 = "$($hashes['System.Numerics.Vectors.dll'])";
+
+        internal const string UnsafeDependencySha256 = "$($hashes['System.Runtime.CompilerServices.Unsafe.dll'])";
+
+        internal const string UnityCrunchDependencySha256 = "$($hashes['crunchunity.dll'])";
+
+        internal const string ClassPackageSha256 = "$($hashes['class.tpk'])";
+
+        internal const string LicenseSha256 = "$($hashes['AssetsTools.NET.LICENSE.txt'])";
+
+        internal const string TextureDecoderLicenseSha256 = "$($hashes['AssetRipper.TextureDecoder.LICENSE.txt'])";
+
+        internal const string UnityCrunchLicenseSha256 = "$($hashes['Crunch.LICENSE.txt'])";
+
+        internal const string RuntimeDependenciesLicenseSha256 = "$($hashes['RuntimeDependencies.LICENSE.txt'])";
+
+        internal const string NoticesSha256 = "$($hashes['THIRD_PARTY_NOTICES.md'])";
+    }
+}
+"@
+
+    Write-TextUtf8NoBom `
+        -Path $TargetPath `
+        -Value ($source + "`n")
+
+    $verifiedSource = Get-Content `
+        -LiteralPath $TargetPath `
+        -Raw `
+        -Encoding UTF8
+    foreach ($hash in $hashes.Values) {
+        if (-not $verifiedSource.Contains('"' + $hash + '"')) {
+            throw (
+                "ExpressionMenuNormalizer integrity source verification " +
+                "failed for SHA-256: $hash")
+        }
+    }
+
+    Write-Host (
+        "Embedded verified ExpressionMenuNormalizer payload hashes: " +
+        $TargetPath)
+}
+
+function Test-CompiledExpressionMenuNormalizerIntegrity {
+    param(
+        [Parameter(Mandatory = $true)][string]$DllPath,
+        [Parameter(Mandatory = $true)]$ExpectedReport
+    )
+
+    Ensure-MonoCecilLoaded
+
+    $fieldToFileName = [ordered]@{
+        ToolSha256 = "ExpressionMenuNormalizer.exe"
+        ConfigSha256 = "ExpressionMenuNormalizer.exe.config"
+        DependencySha256 = "AssetsTools.NET.dll"
+        TextureDependencySha256 = "AssetsTools.NET.Texture.dll"
+        TextureDecoderDependencySha256 = "AssetRipper.TextureDecoder.dll"
+        BuffersDependencySha256 = "System.Buffers.dll"
+        HalfDependencySha256 = "System.Half.dll"
+        MemoryDependencySha256 = "System.Memory.dll"
+        NumericsDependencySha256 = "System.Numerics.Vectors.dll"
+        UnsafeDependencySha256 = "System.Runtime.CompilerServices.Unsafe.dll"
+        UnityCrunchDependencySha256 = "crunchunity.dll"
+        ClassPackageSha256 = "class.tpk"
+        LicenseSha256 = "AssetsTools.NET.LICENSE.txt"
+        TextureDecoderLicenseSha256 = "AssetRipper.TextureDecoder.LICENSE.txt"
+        UnityCrunchLicenseSha256 = "Crunch.LICENSE.txt"
+        RuntimeDependenciesLicenseSha256 = "RuntimeDependencies.LICENSE.txt"
+        NoticesSha256 = "THIRD_PARTY_NOTICES.md"
+    }
+
+    $assembly = [Mono.Cecil.AssemblyDefinition]::ReadAssembly(
+        (ConvertTo-FullPath $DllPath))
+    try {
+        $types = @(Get-CecilTypeDefinitions -Assembly $assembly)
+        $integrityType = $types |
+            Where-Object {
+                $_.FullName -eq (
+                    "EditorTools.AvatarRecovery." +
+                    "ExpressionMenuNormalizerPayloadIntegrity")
+            } |
+            Select-Object -First 1
+        if ($null -eq $integrityType) {
+            throw (
+                "Compiled ExpressionMenuNormalizer integrity type was not found: " +
+                $DllPath)
+        }
+
+        $runnerType = $types |
+            Where-Object {
+                $_.FullName -eq (
+                    "EditorTools.AvatarRecovery." +
+                    "ExpressionMenuNormalizerRunner")
+            } |
+            Select-Object -First 1
+        if ($null -eq $runnerType) {
+            throw (
+                "Compiled ExpressionMenuNormalizer runner type was not found: " +
+                $DllPath)
+        }
+
+        $runnerStringLiterals =
+            [System.Collections.Generic.HashSet[string]]::new(
+                [StringComparer]::Ordinal)
+        foreach ($method in $runnerType.Methods) {
+            if (-not $method.HasBody) {
+                continue
+            }
+
+            foreach ($instruction in $method.Body.Instructions) {
+                if ($instruction.OpCode.Code -eq [Mono.Cecil.Cil.Code]::Ldstr -and
+                    $instruction.Operand -is [string]) {
+                    [void]$runnerStringLiterals.Add(
+                        [string]$instruction.Operand)
+                }
+            }
+        }
+
+        foreach ($entry in $fieldToFileName.GetEnumerator()) {
+            $fileReports = @(
+                $ExpectedReport.Files |
+                    Where-Object {
+                        [string]::Equals(
+                            [string]$_.Name,
+                            [string]$entry.Value,
+                            [StringComparison]::Ordinal)
+                    }
+            )
+            if ($fileReports.Count -ne 1) {
+                throw (
+                    "Compiled integrity verification requires exactly one " +
+                    "SHA-256 for $($entry.Value).")
+            }
+
+            $expectedHash = [string]$fileReports[0].SHA256
+            if (-not [regex]::IsMatch(
+                    $expectedHash,
+                    '^[0-9a-f]{64}$')) {
+                throw (
+                    "Compiled integrity verification requires exactly one " +
+                    "SHA-256 for $($entry.Value).")
+            }
+            $field = @(
+                $integrityType.Fields |
+                    Where-Object {
+                        [string]::Equals(
+                            $_.Name,
+                            [string]$entry.Key,
+                            [StringComparison]::Ordinal)
+                    }
+            )
+            if ($field.Count -ne 1 -or
+                -not $field[0].HasConstant -or
+                -not [string]::Equals(
+                    [string]$field[0].Constant,
+                    $expectedHash,
+                    [StringComparison]::Ordinal)) {
+                throw (
+                    "Compiled ExpressionMenuNormalizer integrity constant " +
+                    "mismatch: $($entry.Key) / $($entry.Value)")
+            }
+
+            if (-not $runnerStringLiterals.Contains($expectedHash)) {
+                throw (
+                    "Compiled ExpressionMenuNormalizer runner does not contain " +
+                    "the pinned SHA-256 for $($entry.Value).")
+            }
+        }
+    }
+    finally {
+        $assembly.Dispose()
+    }
+
+    Write-Host (
+        "Verified compiled ExpressionMenuNormalizer payload hashes: " +
+        "$($fieldToFileName.Count)")
+}
+
+function Invoke-ExpressionMenuNormalizerBuildAndStage {
+    param([Parameter(Mandatory = $true)]$Context)
+
+    # 旧版の残骸を誤って再配布しないよう、Helper 検証前に専用ステージだけを消去する。
+    if (Test-Path -LiteralPath $ExpressionMenuNormalizerStageRoot) {
+        Remove-SafeDirectory $ExpressionMenuNormalizerStageRoot
+    }
+
+    if (-not (Test-Path -LiteralPath $ExpressionMenuNormalizerProjectPath -PathType Leaf)) {
+        throw (
+            "ExpressionMenuNormalizer helper project was not found at the required path: " +
+            "$ExpressionMenuNormalizerProjectPath. " +
+            "Expected contract: Build\ExpressionMenuNormalizer\ExpressionMenuNormalizer.csproj " +
+            "targeting $ExpressionMenuNormalizerTargetFramework.")
+    }
+
+    [xml]$projectXml = Get-Content -LiteralPath $ExpressionMenuNormalizerProjectPath -Raw
+    $targetFrameworks = New-Object System.Collections.Generic.List[string]
+    foreach ($node in $projectXml.SelectNodes(
+            "//*[local-name()='TargetFramework' or local-name()='TargetFrameworks']")) {
+        foreach ($framework in ([string]$node.InnerText).Split(";")) {
+            if (-not [string]::IsNullOrWhiteSpace($framework)) {
+                [void]$targetFrameworks.Add($framework.Trim())
+            }
+        }
+    }
+    if (-not $targetFrameworks.Contains($ExpressionMenuNormalizerTargetFramework)) {
+        throw (
+            "ExpressionMenuNormalizer helper must target " +
+            "$ExpressionMenuNormalizerTargetFramework. Found: " +
+            ($targetFrameworks -join ", "))
+    }
+
+    $platformTargetNode = $projectXml.SelectSingleNode(
+        "//*[local-name()='PlatformTarget']")
+    $platformTarget = if ($null -eq $platformTargetNode) {
+        ""
+    } else {
+        ([string]$platformTargetNode.InnerText).Trim()
+    }
+    if (-not [string]::Equals(
+            $platformTarget,
+            "x64",
+            [StringComparison]::OrdinalIgnoreCase)) {
+        throw (
+            "ExpressionMenuNormalizer helper must target Windows x64. " +
+            "Found PlatformTarget: $platformTarget")
+    }
+
+    $assetsToolsPackageReferences = @(
+        $projectXml.SelectNodes(
+            "//*[local-name()='PackageReference' and @Include='AssetsTools.NET']")
+    )
+    $assetsToolsDirectReferences = @(
+        $projectXml.SelectNodes(
+            "//*[local-name()='Reference' and @Include='AssetsTools.NET']")
+    )
+    if ($assetsToolsPackageReferences.Count -ne 1 -or
+        $assetsToolsDirectReferences.Count -ne 0) {
+        throw (
+            "ExpressionMenuNormalizer must use exactly one official AssetsTools.NET " +
+            "PackageReference and no direct DLL reference.")
+    }
+
+    $assetsToolsPackageReference = $assetsToolsPackageReferences[0]
+    $assetsToolsPackageVersion = [string]$assetsToolsPackageReference.GetAttribute("Version")
+    if ([string]::IsNullOrWhiteSpace($assetsToolsPackageVersion)) {
+        $versionNode = $assetsToolsPackageReference.SelectSingleNode("*[local-name()='Version']")
+        if ($null -ne $versionNode) {
+            $assetsToolsPackageVersion = [string]$versionNode.InnerText
+        }
+    }
+    if (-not [string]::Equals(
+            $assetsToolsPackageVersion,
+            $ExpressionMenuNormalizerAssetsToolsVersion,
+            [StringComparison]::Ordinal)) {
+        throw (
+            "ExpressionMenuNormalizer AssetsTools.NET PackageReference must be exactly " +
+            "$ExpressionMenuNormalizerAssetsToolsVersion. Found: $assetsToolsPackageVersion")
+    }
+
+    $texturePackageReferences = @(
+        $projectXml.SelectNodes(
+            "//*[local-name()='PackageReference' and @Include='AssetsTools.NET.Texture']")
+    )
+    $textureDirectReferences = @(
+        $projectXml.SelectNodes(
+            "//*[local-name()='Reference' and @Include='AssetsTools.NET.Texture']")
+    )
+    if ($texturePackageReferences.Count -ne 1 -or
+        $textureDirectReferences.Count -ne 0) {
+        throw (
+            "ExpressionMenuNormalizer must use exactly one official " +
+            "AssetsTools.NET.Texture PackageReference and no direct DLL reference.")
+    }
+
+    $texturePackageReference = $texturePackageReferences[0]
+    $texturePackageVersion = [string]$texturePackageReference.GetAttribute("Version")
+    if ([string]::IsNullOrWhiteSpace($texturePackageVersion)) {
+        $versionNode = $texturePackageReference.SelectSingleNode("*[local-name()='Version']")
+        if ($null -ne $versionNode) {
+            $texturePackageVersion = [string]$versionNode.InnerText
+        }
+    }
+    if (-not [string]::Equals(
+            $texturePackageVersion,
+            $ExpressionMenuNormalizerTextureVersion,
+            [StringComparison]::Ordinal)) {
+        throw (
+            "ExpressionMenuNormalizer AssetsTools.NET.Texture PackageReference " +
+            "must be exactly $ExpressionMenuNormalizerTextureVersion. " +
+            "Found: $texturePackageVersion")
+    }
+
+    $buildOutputRoot = Join-Path $ProtectionRoot "expression-menu-normalizer-build"
+    Remove-SafeDirectory $buildOutputRoot
+    Ensure-Directory $buildOutputRoot
+
+    $buildOutput = & dotnet build $ExpressionMenuNormalizerProjectPath `
+        --configuration $ExpressionMenuNormalizerConfiguration `
+        --framework $ExpressionMenuNormalizerTargetFramework `
+        --output $buildOutputRoot `
+        --nologo 2>&1
+    $buildExitCode = $LASTEXITCODE
+    $buildOutputText = ($buildOutput | Out-String).Trim()
+    if ($buildExitCode -ne 0) {
+        throw (
+            "ExpressionMenuNormalizer $ExpressionMenuNormalizerTargetFramework build failed " +
+            "(exit code $buildExitCode).$([Environment]::NewLine)$buildOutputText")
+    }
+    if (-not [string]::IsNullOrWhiteSpace($buildOutputText)) {
+        Write-Host $buildOutputText
+    }
+
+    foreach ($fileName in $ExpressionMenuNormalizerRequiredFileNames) {
+        $requiredPath = Join-Path $buildOutputRoot $fileName
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+            throw (
+                "ExpressionMenuNormalizer build output is incomplete. Missing required file: " +
+                "$requiredPath")
+        }
+        if ((Get-Item -LiteralPath $requiredPath).Length -le 0) {
+            throw "ExpressionMenuNormalizer build output is empty: $requiredPath"
+        }
+    }
+
+    $assetsToolsPath = Join-Path $buildOutputRoot "AssetsTools.NET.dll"
+    $assetsToolsUnsignedHash = Get-Sha256HexLower -Path $assetsToolsPath
+    if ($assetsToolsUnsignedHash -ne $ExpressionMenuNormalizerAssetsToolsUnsignedSha256) {
+        throw (
+            "ExpressionMenuNormalizer build did not produce the pinned official " +
+            "AssetsTools.NET $ExpressionMenuNormalizerAssetsToolsVersion DLL. " +
+            "Expected SHA-256 $ExpressionMenuNormalizerAssetsToolsUnsignedSha256, " +
+            "found $assetsToolsUnsignedHash.")
+    }
+
+    foreach ($runtimeFileName in $ExpressionMenuNormalizerUnsignedRuntimeSha256.Keys) {
+        $runtimePath = Join-Path $buildOutputRoot $runtimeFileName
+        $runtimeHash = Get-Sha256HexLower -Path $runtimePath
+        $expectedRuntimeHash =
+            $ExpressionMenuNormalizerUnsignedRuntimeSha256[$runtimeFileName]
+        if ($runtimeHash -ne $expectedRuntimeHash) {
+            throw (
+                "ExpressionMenuNormalizer runtime dependency SHA-256 mismatch: " +
+                "$runtimeFileName. Expected $expectedRuntimeHash, found $runtimeHash.")
+        }
+    }
+
+    $classPackagePath = Join-Path $buildOutputRoot "class.tpk"
+    $classPackageHash = Get-Sha256HexLower -Path $classPackagePath
+    if ($classPackageHash -ne $ExpressionMenuNormalizerClassPackageSha256) {
+        throw (
+            "ExpressionMenuNormalizer class.tpk SHA-256 mismatch. " +
+            "Expected $ExpressionMenuNormalizerClassPackageSha256, found $classPackageHash.")
+    }
+
+    $licensePath = Join-Path $buildOutputRoot "AssetsTools.NET.LICENSE.txt"
+    $licenseText = Get-Content -LiteralPath $licensePath -Raw -Encoding UTF8
+    if (-not $licenseText.Contains("MIT License") -or
+        -not $licenseText.Contains("Copyright (c) 2020 nesrak1")) {
+        throw "AssetsTools.NET license text does not match the required distribution notice: $licensePath"
+    }
+
+    $textureDecoderLicensePath = Join-Path `
+        $buildOutputRoot `
+        "AssetRipper.TextureDecoder.LICENSE.txt"
+    $textureDecoderLicenseText = Get-Content `
+        -LiteralPath $textureDecoderLicensePath `
+        -Raw `
+        -Encoding UTF8
+    if (-not $textureDecoderLicenseText.Contains("MIT License") -or
+        -not $textureDecoderLicenseText.Contains("Copyright (c) 2022 ds5678")) {
+        throw (
+            "AssetRipper.TextureDecoder license text does not match the " +
+            "required distribution notice: $textureDecoderLicensePath")
+    }
+
+    $crunchLicensePath = Join-Path $buildOutputRoot "Crunch.LICENSE.txt"
+    $crunchLicenseText = Get-Content `
+        -LiteralPath $crunchLicensePath `
+        -Raw `
+        -Encoding UTF8
+    if (-not $crunchLicenseText.Contains("ZLIB license") -or
+        -not $crunchLicenseText.Contains("Copyright (c) 2019 Perfare")) {
+        throw (
+            "Unity Crunch license text does not match the required " +
+            "distribution notice: $crunchLicensePath")
+    }
+
+    $runtimeLicensePath = Join-Path `
+        $buildOutputRoot `
+        "RuntimeDependencies.LICENSE.txt"
+    $runtimeLicenseText = Get-Content `
+        -LiteralPath $runtimeLicensePath `
+        -Raw `
+        -Encoding UTF8
+    if (-not $runtimeLicenseText.Contains("MIT License") -or
+        -not $runtimeLicenseText.Contains("Copyright (c) Microsoft Corporation")) {
+        throw (
+            "Runtime dependency license text does not match the required " +
+            "distribution notice: $runtimeLicensePath")
+    }
+
+    $recognizedBuildFiles = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach ($name in @(
+            $ExpressionMenuNormalizerRequiredFileNames +
+            $ExpressionMenuNormalizerOptionalFileNames)) {
+        [void]$recognizedBuildFiles.Add($name)
+    }
+    $fullBuildOutputRoot = ConvertTo-FullPath $buildOutputRoot
+    $unexpectedRuntimeFiles = @(
+        Get-ChildItem -LiteralPath $buildOutputRoot -File -Recurse -Force |
+            Where-Object {
+                $isRuntimeFile = $_.Extension -in @(".exe", ".dll", ".config", ".json", ".tpk")
+                $isAtContractRoot = [string]::Equals(
+                    (ConvertTo-FullPath $_.DirectoryName),
+                    $fullBuildOutputRoot,
+                    [StringComparison]::OrdinalIgnoreCase)
+                $isRuntimeFile -and
+                    (-not $isAtContractRoot -or -not $recognizedBuildFiles.Contains($_.Name))
+            }
+    )
+    if ($unexpectedRuntimeFiles.Count -ne 0) {
+        throw (
+            "ExpressionMenuNormalizer produced unrecognized runtime files. " +
+            "Update the fixed packaging contract before release: " +
+            ($unexpectedRuntimeFiles.FullName -join ", "))
+    }
+
+    foreach ($fileName in $ExpressionMenuNormalizerSignedFileNames) {
+        $path = Join-Path $buildOutputRoot $fileName
+        Invoke-CodeSign -Path $path -Context $Context
+        Test-CodeSignature -Path $path -Context $Context
+    }
+
+    $payloadNames = New-Object System.Collections.Generic.List[string]
+    foreach ($fileName in $ExpressionMenuNormalizerRequiredFileNames) {
+        [void]$payloadNames.Add($fileName)
+    }
+    foreach ($fileName in $ExpressionMenuNormalizerOptionalFileNames) {
+        if (Test-Path -LiteralPath (Join-Path $buildOutputRoot $fileName) -PathType Leaf) {
+            [void]$payloadNames.Add($fileName)
+        }
+    }
+
+    $sourceFileReports = New-Object System.Collections.Generic.List[object]
+    foreach ($fileName in $payloadNames) {
+        [void]$sourceFileReports.Add(
+            (Get-ExpressionMenuNormalizerFileReport `
+                -RootPath $buildOutputRoot `
+                -FileName $fileName))
+    }
+
+    Ensure-Directory $ExpressionMenuNormalizerStageRoot
+    foreach ($fileName in $payloadNames) {
+        Copy-Item `
+            -LiteralPath (Join-Path $buildOutputRoot $fileName) `
+            -Destination (Join-Path $ExpressionMenuNormalizerStageRoot $fileName) `
+            -Force
+    }
+
+    $manifestLines = New-Object System.Collections.Generic.List[string]
+    [void]$manifestLines.Add("# AvatarRecovery ExpressionMenuNormalizer payload SHA-256")
+    foreach ($fileReport in @($sourceFileReports.ToArray()) | Sort-Object Name) {
+        [void]$manifestLines.Add("$($fileReport.SHA256)  $($fileReport.Name)")
+    }
+    Write-TextUtf8NoBom `
+        -Path (Join-Path $ExpressionMenuNormalizerStageRoot $ExpressionMenuNormalizerManifestFileName) `
+        -Value (($manifestLines -join "`n") + "`n")
+
+    $stagedFileReports = New-Object System.Collections.Generic.List[object]
+    foreach ($fileName in @($payloadNames.ToArray()) + @($ExpressionMenuNormalizerManifestFileName)) {
+        [void]$stagedFileReports.Add(
+            (Get-ExpressionMenuNormalizerFileReport `
+                -RootPath $ExpressionMenuNormalizerStageRoot `
+                -FileName $fileName))
+    }
+
+    $report = [PSCustomObject]@{
+        ProjectPath = ConvertTo-FullPath $ExpressionMenuNormalizerProjectPath
+        TargetFramework = $ExpressionMenuNormalizerTargetFramework
+        Configuration = $ExpressionMenuNormalizerConfiguration
+        StageRoot = ConvertTo-FullPath $ExpressionMenuNormalizerStageRoot
+        RequiredFileNames = @($ExpressionMenuNormalizerRequiredFileNames)
+        OptionalFileNamesIncluded = @(
+            $payloadNames |
+                Where-Object { $ExpressionMenuNormalizerOptionalFileNames -contains $_ }
+        )
+        SignedFileNames = @($ExpressionMenuNormalizerSignedFileNames)
+        Files = @($stagedFileReports.ToArray())
+    }
+
+    Write-ExpressionMenuNormalizerIntegritySource `
+        -ExpectedReport $report
+
+    Test-ExpressionMenuNormalizerPackageDirectory `
+        -RootPath $ExpressionMenuNormalizerStageRoot `
+        -ExpectedReport $report `
+        -Context $Context
+
+    Write-Host (
+        "ExpressionMenuNormalizer staged: " +
+        "$($report.Files.Count) files -> $ExpressionMenuNormalizerStageRoot")
+    return $report
+}
+
 function Test-PackageZip {
-    param([Parameter(Mandatory = $true)][string]$ZipPath)
+    param(
+        [Parameter(Mandatory = $true)][string]$ZipPath,
+        [Parameter(Mandatory = $true)]$ExpressionMenuNormalizerReport
+    )
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
@@ -4660,6 +5497,59 @@ function Test-PackageZip {
             }
             finally {
                 $stream.Dispose()
+            }
+        }
+
+        $normalizerPrefix = "Tools~/ExpressionMenuNormalizer/"
+        $normalizerEntries = @(
+            $archive.Entries |
+                ForEach-Object {
+                    $normalizedName = $_.FullName.Replace('\', '/')
+                    if ($normalizedName.StartsWith($normalizerPrefix, [StringComparison]::Ordinal) -and
+                        -not [string]::IsNullOrWhiteSpace($_.Name)) {
+                        [PSCustomObject]@{
+                            Entry = $_
+                            NormalizedName = $normalizedName
+                        }
+                    }
+                }
+        )
+        $expectedNormalizerFiles = @($ExpressionMenuNormalizerReport.Files)
+        if ($normalizerEntries.Count -ne $expectedNormalizerFiles.Count) {
+            throw (
+                "配布 zip の ExpressionMenuNormalizer ファイル数が一致しません。Expected " +
+                "$($expectedNormalizerFiles.Count), found $($normalizerEntries.Count): " +
+                ($normalizerEntries.NormalizedName -join ", "))
+        }
+
+        $entryMap = @{}
+        foreach ($entryRecord in $normalizerEntries) {
+            if ($entryMap.ContainsKey($entryRecord.NormalizedName)) {
+                throw "配布 zip に重複した ExpressionMenuNormalizer entry があります: $($entryRecord.NormalizedName)"
+            }
+            $entryMap[$entryRecord.NormalizedName] = $entryRecord.Entry
+        }
+
+        foreach ($expectedFile in $expectedNormalizerFiles) {
+            $expectedEntryName = "$normalizerPrefix$($expectedFile.Name)"
+            if (-not $entryMap.ContainsKey($expectedEntryName)) {
+                throw "配布 zip に ExpressionMenuNormalizer 必須ファイルがありません: $expectedEntryName"
+            }
+
+            $entry = $entryMap[$expectedEntryName]
+            if ([long]$entry.Length -ne [long]$expectedFile.Length) {
+                throw "配布 zip の ExpressionMenuNormalizer file length mismatch: $expectedEntryName"
+            }
+
+            $stream = $entry.Open()
+            try {
+                $entryHash = Get-StreamSha256HexLower -Stream $stream
+            }
+            finally {
+                $stream.Dispose()
+            }
+            if ($entryHash -ne $expectedFile.SHA256) {
+                throw "配布 zip の ExpressionMenuNormalizer SHA-256 mismatch: $expectedEntryName"
             }
         }
     }
@@ -4793,6 +5683,7 @@ function Write-ProtectionBuildReport {
         [Parameter(Mandatory = $true)][object]$BranchSanitizationReport,
         [Parameter(Mandatory = $true)][object]$RuntimeIntegritySidecarReport,
         [Parameter(Mandatory = $true)][object]$ControlFlowObfuscationReport,
+        [Parameter(Mandatory = $true)][object]$ExpressionMenuNormalizerReport,
         [Parameter(Mandatory = $true)][string]$InputDll,
         [Parameter(Mandatory = $true)][string]$ObfuscatedDll,
         [Parameter(Mandatory = $true)][string]$SignedDll,
@@ -4814,6 +5705,9 @@ function Write-ProtectionBuildReport {
         Version = $Version
         GeneratedAt = (Get-Date).ToString("o")
         Pipeline = @(
+            "ExpressionMenuNormalizerNet48Build",
+            "ExpressionMenuNormalizerAuthenticodeSign",
+            "ExpressionMenuNormalizerStageAndHashVerify",
             "UnityCompile",
             "BuildOnlyMetadataRemoval",
             "StringHidingProbeRemoval",
@@ -4836,6 +5730,7 @@ function Write-ProtectionBuildReport {
             "ExternalDistributionIntegritySidecar",
             "Zip",
             "ZipContentCheck",
+            "ExpressionMenuNormalizerZipHashVerify",
             "Checksum",
             "VpmIndex",
             "DetachedSignatures",
@@ -4862,6 +5757,7 @@ function Write-ProtectionBuildReport {
         HideStringsImpact = $HideStringsImpactReport
         AntiDecompile = $AntiDecompileReport
         BranchSanitization = $BranchSanitizationReport
+        ExpressionMenuNormalizer = $ExpressionMenuNormalizerReport
         Metrics = [PSCustomObject]@{
             InputDllSize = (Get-Item -LiteralPath $InputDll).Length
             ObfuscatedDllSize = (Get-Item -LiteralPath $ObfuscatedDll).Length
@@ -4979,6 +5875,13 @@ function Initialize-ProjectPackage {
     Copy-Item -LiteralPath $dllMeta -Destination (Join-Path $editorDir "$AssemblyFileName.meta") -Force
 }
 
+if ($SkipUnityCompile) {
+    throw (
+        "-SkipUnityCompile cannot be used after ExpressionMenuNormalizer " +
+        "payload hash embedding was enabled. The Unity DLL must be rebuilt " +
+        "from the hashes generated in the same release run.")
+}
+
 Initialize-SourcePackage
 if (-not (Test-Path $UnityExe)) {
     throw "Unity executable was not found: $UnityExe"
@@ -4989,6 +5892,8 @@ Ensure-Directory $ProtectionRoot
 Ensure-Directory $PrivateBackupRoot
 Ensure-Directory $LocalPrivateBackupRoot
 $codeSigningContext = Get-CodeSigningContext
+$expressionMenuNormalizerReport = Invoke-ExpressionMenuNormalizerBuildAndStage `
+    -Context $codeSigningContext
 $runtimeIntegritySourceReport = Ensure-RuntimeIntegrityGuardSource -Context $codeSigningContext
 $stringDecryptorSourceReport = Ensure-StringDecryptorSource
 
@@ -4999,6 +5904,12 @@ Copy-Item -LiteralPath $scanPath -Destination $LocalPrivateBackupRoot -Force
 Assert-SourceScanAllowlist -Scan $scan -AllowlistPath $ReflectionSerializationAllowlistPath
 
 Initialize-CompileProject
+$compileIntegritySourcePath = Join-Path `
+    $CompileProjectRoot `
+    "Packages\$PackageId\Editor\Core\ExpressionMenuNormalizerPayloadIntegrity.cs"
+Write-ExpressionMenuNormalizerIntegritySource `
+    -ExpectedReport $expressionMenuNormalizerReport `
+    -TargetPath $compileIntegritySourcePath
 if (-not $SkipUnityCompile) {
     $compileLog = Invoke-UnityCompile -UnityProjectRoot $CompileProjectRoot
     Copy-Item -LiteralPath $compileLog -Destination $PrivateBackupRoot -Force
@@ -5009,6 +5920,9 @@ $compiledDll = Join-Path $CompileProjectRoot "Library\ScriptAssemblies\$Assembly
 if (-not (Test-Path $compiledDll)) {
     throw "Compiled DLL was not found: $compiledDll"
 }
+Test-CompiledExpressionMenuNormalizerIntegrity `
+    -DllPath $compiledDll `
+    -ExpectedReport $expressionMenuNormalizerReport
 
 $inputDir = Join-Path $ProtectionRoot "input"
 $outputDir = Join-Path $ProtectionRoot "obfuscated"
@@ -5145,6 +6059,13 @@ Get-ChildItem -LiteralPath $outputDir -Force |
     }
 
 Initialize-ProjectPackage
+$packagedExpressionMenuNormalizerRoot = Join-Path `
+    $ProjectPackageRoot `
+    "Tools~\ExpressionMenuNormalizer"
+Test-ExpressionMenuNormalizerPackageDirectory `
+    -RootPath $packagedExpressionMenuNormalizerRoot `
+    -ExpectedReport $expressionMenuNormalizerReport `
+    -Context $codeSigningContext
 $packagedDll = Join-Path $ProjectPackageRoot "Editor\$AssemblyFileName"
 Copy-Item -LiteralPath $obfuscatedDll -Destination $packagedDll -Force
 $packagedRuntimeIntegritySidecar = Join-Path $ProjectPackageRoot "Editor\$RuntimeIntegritySidecarFileName"
@@ -5195,7 +6116,9 @@ if (($publishedVersions -join "|") -cne ($sortedPublishedVersions -join "|")) {
 }
 
 $zipPath = Join-Path $RepoRoot "packages\$PackageId-$Version.zip"
-Test-PackageZip -ZipPath $zipPath
+Test-PackageZip `
+    -ZipPath $zipPath `
+    -ExpressionMenuNormalizerReport $expressionMenuNormalizerReport
 Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Save-CodeSignatureReport -Path $packagedDll -ReportName "signature-packaged-$Version.json" -Context $codeSigningContext
 Test-BinaryLeak -Path $packagedDll
@@ -5225,6 +6148,7 @@ Write-ProtectionBuildReport `
     -BranchSanitizationReport $branchSanitizationReport `
     -RuntimeIntegritySidecarReport $runtimeIntegritySidecarReport `
     -ControlFlowObfuscationReport $controlFlowObfuscationReport `
+    -ExpressionMenuNormalizerReport $expressionMenuNormalizerReport `
     -InputDll $protectedInputDll `
     -ObfuscatedDll $obfuscatedDll `
     -SignedDll $packagedDll `
