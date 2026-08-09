@@ -98,8 +98,11 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Version 1.2.9 — Expression Menu Recovery Compatibility
+### Version 1.2.9 — Expression Menu and AAO Recovery Compatibility
 
+- Fixed valid AAO-generated meshes without active Bone Weights being incorrectly rejected by the mandatory mesh integrity check.
+- Preserved strict root-bone, used-bone, and prefab-reference validation for meshes that use Bone Weights.
+- Verified successful recovery, including AAO integrity validation, with both VRCA files reported by affected users in Unity 2022.3.22f1.
 - Preserved the existing recovery path for VRCA files whose Expression Menus are already restored by AssetRipper.
 - Added recovery for Expression Menus that previously appeared as Missing after extraction.
 - Verified restored Root Menus, SubMenus, controls, parameters, and icons in both the final and Raw prefabs before accepting the result.
@@ -115,7 +118,7 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
   - The Raw prefab is the AssetRipper-extracted state before AvatarRecovery's repair steps; it is not the creator's original Unity prefab.
   - Source data that was never stored in the VRCA, such as original FBX/PSD files, Modular Avatar or NDMF authoring setup, and source scripts, cannot be recovered.
   - When recovery cannot be verified safely, AvatarRecovery does not guess or overwrite the normal result; manual repair may still be required.
-- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.9.
+- If version 1.2.9 is already installed, refresh the repository in VCC or ALCOM and reinstall AvatarRecovery 1.2.9.
 
 ### Version 1.2.8 — Editor Responsiveness
 
