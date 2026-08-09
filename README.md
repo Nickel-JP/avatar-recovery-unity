@@ -50,21 +50,21 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current protected package is `com.nickel-jp.avatar-recovery-1.2.9.zip`.
+The current protected package is `com.nickel-jp.avatar-recovery-1.2.10.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.9.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.10.zip -Algorithm SHA256).Hash
 
-# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.9.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.9.sha256.txt.
+# Confirm that it matches the packages/com.nickel-jp.avatar-recovery-1.2.10.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.10.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.9.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.10.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -98,11 +98,16 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Version 1.2.9 — Expression Menu and AAO Recovery Compatibility
+### Version 1.2.10 — AAO Recovery Compatibility Hotfix
 
-- Fixed valid AAO-generated meshes without active Bone Weights being incorrectly rejected by the mandatory mesh integrity check.
+- Fixed the AvatarRecovery 1.2.9 regression that incorrectly rejected valid AAO-generated meshes without active Bone Weights.
 - Preserved strict root-bone, used-bone, and prefab-reference validation for meshes that use Bone Weights.
 - Verified successful recovery, including AAO integrity validation, with both VRCA files reported by affected users in Unity 2022.3.22f1.
+- Published the fix as version 1.2.10 so VCC and ALCOM retrieve the corrected package instead of reusing a cached 1.2.9 package.
+- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.10.
+
+### Version 1.2.9 — Expression Menu and AAO Recovery Compatibility
+
 - Preserved the existing recovery path for VRCA files whose Expression Menus are already restored by AssetRipper.
 - Added recovery for Expression Menus that previously appeared as Missing after extraction.
 - Verified restored Root Menus, SubMenus, controls, parameters, and icons in both the final and Raw prefabs before accepting the result.
@@ -118,7 +123,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
   - The Raw prefab is the AssetRipper-extracted state before AvatarRecovery's repair steps; it is not the creator's original Unity prefab.
   - Source data that was never stored in the VRCA, such as original FBX/PSD files, Modular Avatar or NDMF authoring setup, and source scripts, cannot be recovered.
   - When recovery cannot be verified safely, AvatarRecovery does not guess or overwrite the normal result; manual repair may still be required.
-- If version 1.2.9 is already installed, refresh the repository in VCC or ALCOM and reinstall AvatarRecovery 1.2.9.
 
 ### Version 1.2.8 — Editor Responsiveness
 
