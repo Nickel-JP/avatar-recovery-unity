@@ -1,11 +1,11 @@
 {
-    "format":  "AvatarRecovery detached signature v1",
-    "algorithm":  "RSA-SHA256-PKCS1",
-    "signedAtUtc":  "2026-08-09T03:23:40.8814802Z",
-    "target":  "index.json",
-    "targetSha256":  "57f1542cdd99da80a82860e8f5a113b761b6b7369ab029ce4dfe26a7050a2956",
-    "signerCertificate":  "certificates/avatar-recovery-self-signed-code-signing.cer",
-    "signerCertificatePem":  "certificates/avatar-recovery-self-signed-code-signing.cer.pem",
-    "signerThumbprint":  "960260D2C8E24599FD3BC639F393733DE07997E2",
-    "signatureBase64":  "J5l0PyUXCxMWO7fO+PLbmJkIDDMXE8OzAROWONyq0aJOuWlXc3a04NiGuagkCVDEAdFu6hNPMgzdbY2vZJXF7RMswZqW8y6hj5J6aMmRb+Mti28jl4JeE9vplicefsTzype3x+fIRBI3K0uydDdoM6zC3hOahayjnEIGNLqB8crMSE3vpxoxL3YWbjX+pg3DqgiOne5dO1OUM51dDuRh5ffZT2A6r13xuzNqXfT1h5M6Fug4uGyx4UsHg5gdIrSTk1dTqDvSLStuLVp3/7rFwI+bN5S05YV2Zm0Noaa/salfFkM7uUdAorIloLAVlNw92sQKbxnSuxhcHCoJIALsyHTieq1FiJB7RjMsOmpfqmIMZC8QE3Qha97jzUEbuYFOdtsQQVNJYFuvzTek7EsngwTsV+ZEHhX7TDdIzZYtF0bTcOqQNNgSfaVuO/iR6q5oplRxMfsxrRItyfzjPG5tzGBKt1U7y+GK4HKxkU0T1RU1+NF825IElqF21rjtzaRe"
+  "format": "AvatarRecovery detached signature v1",
+  "algorithm": "RSA-SHA256-PKCS1",
+  "signedAtUtc": "2026-08-20T05:33:41.1814543Z",
+  "target": "index.json",
+  "targetSha256": "9f2d64287223a898b34dd548aacaef722e2be40da66e0172ea3092bbdec2039b",
+  "signerCertificate": "certificates/avatar-recovery-self-signed-code-signing.cer",
+  "signerCertificatePem": "certificates/avatar-recovery-self-signed-code-signing.cer.pem",
+  "signerThumbprint": "960260D2C8E24599FD3BC639F393733DE07997E2",
+  "signatureBase64": "Jgt3qALuANxTGO8N7usoUIkfli5PGl1OGEzlhMF/004Swou8ve7yFaLYMC5uRnXSXLywQT7H/HFBCzq0Qn1/0xshVN7lhkQ/lJwgCzztq9dj46hocCUmixmZv82AwM8s3sQ3TP87J4QV7ejUCNrwob9N3ZURVBr6ycz3LSfo0M7VpmKoN2rBxi+vYQ9VgZthMhXHKFDIf6FcfDdg4TGY/0ZJ/tObyW70nGm2EpG+iZ/9rj9ZmycpPB0OkVmC5jPUVmo7I1lAVp0rm29gnJpy+UQ2V1JpoekKwdI3oP3+HNRkRUc1jETMLuKprId61xTaXqXA6BAT/MZh+6nu5GpTJJ0QL6zBu3cbXPcmkt11ID0xZLtqclsWMlDuXCC8dS3YLHLJPJMj0Q32+iTI+GyeSMXemOfF++xY0NH1fvyObFDoxaxIXI2/W6EEeDQGhINA0A6bXTnUEKetmeVdyBte5xlFwW73D7sh49YgVW8KyBx12ONjFeYavb46/UYrMvD8"
 }

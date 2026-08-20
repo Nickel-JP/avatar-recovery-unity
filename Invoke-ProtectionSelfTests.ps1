@@ -14,7 +14,7 @@ $RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
 $BinaryLeakRulesPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
 $PublishedCertificatePath = Join-Path $RepoRoot "certificates\avatar-recovery-self-signed-code-signing.cer"
 $PublishedCertificatePemPath = Join-Path $RepoRoot "certificates\avatar-recovery-self-signed-code-signing.cer.pem"
-$PublicBaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity"
+$ExpectedRepositoryBaseUrl = "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main"
 $PublishedVersionLimit = 3
 
 function ConvertTo-FullPath {
@@ -86,6 +86,35 @@ function New-TestZip {
     }
 }
 
+function Test-IsBundledWorkerSdkEntry {
+    param([Parameter(Mandatory = $true)][string]$EntryName)
+
+    $normalizedName = $EntryName.Replace('\', '/')
+    $segments = $normalizedName.Split(
+        [char[]]@('/'),
+        [System.StringSplitOptions]::None)
+    if ($segments.Count -lt 7 -or
+        @($segments | Where-Object { $_ -in @("", ".", "..") }).Count -gt 0 -or
+        $segments[0] -cne "Editor" -or
+        $segments[1] -cne "HotSwap" -or
+        $segments[3] -cne "WorkerTemplate~" -or
+        $segments[4] -cne "Packages") {
+        return $false
+    }
+
+    $allowedPackageIds = if ($segments[2] -ceq "HotSwap_Avtr") {
+        @("com.vrchat.avatars", "com.vrchat.base", "com.vrchat.core.vpm-resolver")
+    }
+    elseif ($segments[2] -ceq "HotSwap_wrld") {
+        @("com.vrchat.base", "com.vrchat.core.vpm-resolver", "com.vrchat.worlds")
+    }
+    else {
+        @()
+    }
+
+    return ($allowedPackageIds -ccontains $segments[5])
+}
+
 function Test-PackageZipGuard {
     param([Parameter(Mandatory = $true)][string]$ZipPath)
 
@@ -93,10 +122,17 @@ function Test-PackageZipGuard {
     $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
     try {
         $blocked = @($archive.Entries | Where-Object {
-            $_.FullName -match '(?i)\.(cs|pdb|mdb)$' -or
-            $_.FullName -match '(?i)\.(pfx|p12|pvk|key|snk|pem|map)$' -or
-            $_.FullName -match '(?i)(mapping|rename|report)' -or
-            $_.FullName -match '(?i)obfuscar'
+            $normalizedName = $_.FullName.Replace('\', '/')
+            $isBundledWorkerSdkEntry = Test-IsBundledWorkerSdkEntry -EntryName $normalizedName
+            $isBlockedSourceOrReport = (
+                $normalizedName -match '(?i)\.cs$' -or
+                $normalizedName -match '(?i)(mapping|rename|report)') -and
+                -not $isBundledWorkerSdkEntry
+
+            $isBlockedSourceOrReport -or
+            $normalizedName -match '(?i)\.(pdb|mdb)$' -or
+            $normalizedName -match '(?i)\.(pfx|p12|pvk|key|snk|pem|map)$' -or
+            $normalizedName -match '(?i)obfuscar'
         })
         if ($blocked.Count -gt 0) {
             throw "blocked zip entries: $($blocked.FullName -join ', ')"
@@ -298,9 +334,9 @@ function Test-PublishedVersionArtifacts {
             }
         }
 
-        $expectedPackageUrl = "$PublicBaseUrl/packages/$PackageId-$publishedVersion.zip"
+        $expectedPackageUrl = "$ExpectedRepositoryBaseUrl/packages/$PackageId-$publishedVersion.zip"
         if ([string]$indexManifest.url -cne $expectedPackageUrl -or
-            [string]$indexManifest.repo -cne "$PublicBaseUrl/index.json") {
+            [string]$indexManifest.repo -cne "$ExpectedRepositoryBaseUrl/index.json") {
             throw "published package URL or repository URL is invalid: $publishedVersion"
         }
 
@@ -349,6 +385,10 @@ function Test-PublishedVersionArtifacts {
                 throw (
                     "VPM index is missing package.json property " +
                     "$($zipProperty.Name): $publishedVersion")
+            }
+
+            if ($zipProperty.Name -in @("url", "repo")) {
+                continue
             }
 
             $zipValue = $zipProperty.Value | ConvertTo-Json -Depth 80 -Compress
@@ -811,6 +851,54 @@ $checksumPath = Join-Path $RepoRoot "checksums\$PackageId-$Version.sha256.txt"
         -IndexPath (Join-Path $RepoRoot "index.json")
 }))
 
+New-TestZip `
+    -Path (Join-Path $OutputRoot "bundled-worker-sdk-source.zip") `
+    -EntryName "Editor/HotSwap/HotSwap_Avtr/WorkerTemplate~/Packages/com.vrchat.base/Runtime/Allowed.cs" `
+    -Text "class Allowed {}"
+[void]$results.Add((Assert-Passes "A1 bundled Worker SDK source" {
+    Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "bundled-worker-sdk-source.zip")
+}))
+
+New-TestZip `
+    -Path (Join-Path $OutputRoot "worker-template-source-injection.zip") `
+    -EntryName "Editor/HotSwap/HotSwap_Avtr/WorkerTemplate~/Assets/Injected.cs" `
+    -Text "class Injected {}"
+[void]$results.Add((Assert-Fails "A2 non-SDK Worker template source injection" {
+    Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "worker-template-source-injection.zip")
+}))
+
+New-TestZip `
+    -Path (Join-Path $OutputRoot "bundled-worker-sdk-pdb-injection.zip") `
+    -EntryName "Editor/HotSwap/HotSwap_Avtr/WorkerTemplate~/Packages/com.vrchat.base/Runtime/Injected.pdb" `
+    -Text "debug symbols"
+[void]$results.Add((Assert-Fails "A3 bundled Worker SDK debug symbol" {
+    Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "bundled-worker-sdk-pdb-injection.zip")
+}))
+
+New-TestZip `
+    -Path (Join-Path $OutputRoot "arbitrary-worker-package-source.zip") `
+    -EntryName "Editor/HotSwap/HotSwap_Avtr/WorkerTemplate~/Packages/com.attacker/Injected.cs" `
+    -Text "class Injected {}"
+[void]$results.Add((Assert-Fails "A4 arbitrary Worker package source" {
+    Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "arbitrary-worker-package-source.zip")
+}))
+
+New-TestZip `
+    -Path (Join-Path $OutputRoot "lookalike-worker-package-source.zip") `
+    -EntryName "Editor/HotSwap/HotSwap_Avtr/WorkerTemplate~/Packages/com.nickel-jp.avatar-recovery-hotswap-worker/Leaked.cs" `
+    -Text "class Leaked {}"
+[void]$results.Add((Assert-Fails "A5 lookalike Worker package source" {
+    Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "lookalike-worker-package-source.zip")
+}))
+
+New-TestZip `
+    -Path (Join-Path $OutputRoot "worker-sdk-traversal-source.zip") `
+    -EntryName "Editor/HotSwap/HotSwap_Avtr/WorkerTemplate~/Packages/com.vrchat.base/../Assets/Injected.cs" `
+    -Text "class Injected {}"
+[void]$results.Add((Assert-Fails "A6 Worker SDK traversal source" {
+    Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "worker-sdk-traversal-source.zip")
+}))
+
 New-TestZip -Path (Join-Path $OutputRoot "source-injection.zip") -EntryName "Editor/Injected.cs" -Text "class Injected {}"
 [void]$results.Add((Assert-Fails "B source .cs injection" { Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "source-injection.zip") }))
 
@@ -1180,6 +1268,8 @@ else {
         displayName = "Avatar Recovery"
         version = $nextVersion
         unity = "2022.3"
+        url = "https://example.invalid/avatar-recovery/packages/$PackageId-$nextVersion.zip"
+        repo = "https://example.invalid/avatar-recovery/index.json"
         vpmDependencies = [ordered]@{
             "com.vrchat.base" = ">=3.7.0 <3.11.0"
         }

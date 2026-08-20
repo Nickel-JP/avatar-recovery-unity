@@ -5456,6 +5456,35 @@ function Invoke-ExpressionMenuNormalizerBuildAndStage {
     return $report
 }
 
+function Test-IsBundledWorkerSdkEntry {
+    param([Parameter(Mandatory = $true)][string]$EntryName)
+
+    $normalizedName = $EntryName.Replace('\', '/')
+    $segments = $normalizedName.Split(
+        [char[]]@('/'),
+        [System.StringSplitOptions]::None)
+    if ($segments.Count -lt 7 -or
+        @($segments | Where-Object { $_ -in @("", ".", "..") }).Count -gt 0 -or
+        $segments[0] -cne "Editor" -or
+        $segments[1] -cne "HotSwap" -or
+        $segments[3] -cne "WorkerTemplate~" -or
+        $segments[4] -cne "Packages") {
+        return $false
+    }
+
+    $allowedPackageIds = if ($segments[2] -ceq "HotSwap_Avtr") {
+        @("com.vrchat.avatars", "com.vrchat.base", "com.vrchat.core.vpm-resolver")
+    }
+    elseif ($segments[2] -ceq "HotSwap_wrld") {
+        @("com.vrchat.base", "com.vrchat.core.vpm-resolver", "com.vrchat.worlds")
+    }
+    else {
+        @()
+    }
+
+    return ($allowedPackageIds -ccontains $segments[5])
+}
+
 function Test-PackageZip {
     param(
         [Parameter(Mandatory = $true)][string]$ZipPath,
@@ -5467,10 +5496,17 @@ function Test-PackageZip {
     try {
         $blocked = $archive.Entries |
             Where-Object {
-                $_.FullName -match '(?i)\.(cs|pdb|mdb)$' -or
-                $_.FullName -match '(?i)\.(pfx|p12|pvk|key|snk|pem|map)$' -or
-                $_.FullName -match '(?i)(mapping|rename|report)' -or
-                $_.FullName -match '(?i)obfuscar'
+                $normalizedName = $_.FullName.Replace('\', '/')
+                $isBundledWorkerSdkEntry = Test-IsBundledWorkerSdkEntry -EntryName $normalizedName
+                $isBlockedSourceOrReport = (
+                    $normalizedName -match '(?i)\.cs$' -or
+                    $normalizedName -match '(?i)(mapping|rename|report)') -and
+                    -not $isBundledWorkerSdkEntry
+
+                $isBlockedSourceOrReport -or
+                $normalizedName -match '(?i)\.(pdb|mdb)$' -or
+                $normalizedName -match '(?i)\.(pfx|p12|pvk|key|snk|pem|map)$' -or
+                $normalizedName -match '(?i)obfuscar'
             }
 
         if ($blocked) {
