@@ -1,0 +1,12 @@
+# AvatarRecovery 1.3.0 public checksums
+# GeneratedAtUtc: 2026-08-20T06:05:46.5530549Z
+# PackageId: com.nickel-jp.avatar-recovery
+# SigningMode: SelfSigned
+# SignerSubject: CN=Nickel-JP AvatarRecovery Self-Signed Code Signing
+# SignerThumbprint: 960260D2C8E24599FD3BC639F393733DE07997E2
+# SignatureStatus: Valid
+d813af4b0bd10a3e8948ab581fa213a67319064cc520caf5664bd004df2de14e  certificates/avatar-recovery-self-signed-code-signing.cer
+b4bb373bdea7d709a51e247c6126a870d76c0d12a30a17d290ed270ed98b85a5  certificates/avatar-recovery-self-signed-code-signing.cer.pem
+a3cdbd59608d50346db9058ac8e18fee246f6ce53ca3ed92ef9d59f8fb8aab4a  packages/com.nickel-jp.avatar-recovery-1.3.0.zip
+fcd9e4aff29f5003ac6c63f7338f9d76be9337159182f06c4610500bd072a111  packages/com.nickel-jp.avatar-recovery-1.3.0.zip!/Editor/EditorTools.AvatarRecovery.Editor.dll
+b3b7a18c8de9aa8caa8b02b16cfcb2cf7e3cb0949a6dd02cf4c1565a230534c9  packages/com.nickel-jp.avatar-recovery-1.3.0.zip!/Editor/EditorTools.AvatarRecovery.Editor.dll.runtime.sig

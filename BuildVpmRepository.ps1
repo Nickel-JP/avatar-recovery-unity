@@ -128,7 +128,7 @@ function Get-StreamSha256Hex {
 
     $sha256 = [System.Security.Cryptography.SHA256]::Create()
     try {
-        return ([Convert]::ToHexString($sha256.ComputeHash($Stream))).ToLowerInvariant()
+        return ([BitConverter]::ToString($sha256.ComputeHash($Stream))).Replace("-", "").ToLowerInvariant()
     }
     finally {
         $sha256.Dispose()
@@ -140,7 +140,7 @@ function Get-BytesSha256Hex {
 
     $sha256 = [System.Security.Cryptography.SHA256]::Create()
     try {
-        return ([Convert]::ToHexString($sha256.ComputeHash($Bytes))).ToLowerInvariant()
+        return ([BitConverter]::ToString($sha256.ComputeHash($Bytes))).Replace("-", "").ToLowerInvariant()
     }
     finally {
         $sha256.Dispose()
