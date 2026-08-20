@@ -37,7 +37,7 @@
           },
           "url": "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/packages/com.nickel-jp.avatar-recovery-1.3.0.zip",
           "repo": "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/index.json",
-          "zipSHA256": "b4693f4c8edefc28ae1bec68d64186fc6a173248985bf61f55b532f59687990e"
+          "zipSHA256": "a3cdbd59608d50346db9058ac8e18fee246f6ce53ca3ed92ef9d59f8fb8aab4a"
         },
         "1.2.10": {
           "name": "com.nickel-jp.avatar-recovery",
