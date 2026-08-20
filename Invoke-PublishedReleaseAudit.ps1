@@ -232,7 +232,10 @@ function Assert-IndexManifestMatchesPackageZip {
     param(
         [Parameter(Mandatory = $true)][string]$ZipPath,
         [Parameter(Mandatory = $true)]$IndexManifest,
-        [Parameter(Mandatory = $true)][string]$PublishedVersion
+        [Parameter(Mandatory = $true)][string]$PublishedVersion,
+        [Parameter(Mandatory = $true)][string]$PackageId,
+        [string]$LegacyRepositoryBaseUrl = "",
+        [switch]$AllowLegacyRepositoryUrls
     )
 
     $zipManifest = Get-PackageManifestFromZip -ZipPath $ZipPath
@@ -244,12 +247,41 @@ function Assert-IndexManifestMatchesPackageZip {
         throw "index.json manifest properties do not match package.json for $PublishedVersion."
     }
 
+    $zipPackageUrl = [string]$zipManifest.url
+    $zipRepositoryUrl = [string]$zipManifest.repo
+    $indexPackageUrl = [string]$IndexManifest.url
+    $indexRepositoryUrl = [string]$IndexManifest.repo
+    $repositoryUrlsMatch = (
+        $zipPackageUrl -ceq $indexPackageUrl -and
+        $zipRepositoryUrl -ceq $indexRepositoryUrl)
+    if (-not $repositoryUrlsMatch) {
+        if (-not $AllowLegacyRepositoryUrls -or
+            [string]::IsNullOrWhiteSpace($LegacyRepositoryBaseUrl)) {
+            throw "index.json repository URLs do not match package.json for $PublishedVersion."
+        }
+
+        $normalizedLegacyRepositoryBaseUrl = $LegacyRepositoryBaseUrl.TrimEnd("/")
+        $expectedLegacyPackageUrl = (
+            "$normalizedLegacyRepositoryBaseUrl/packages/" +
+            "$PackageId-$PublishedVersion.zip")
+        $expectedLegacyRepositoryUrl = "$normalizedLegacyRepositoryBaseUrl/index.json"
+        if ($zipPackageUrl -cne $expectedLegacyPackageUrl -or
+            $zipRepositoryUrl -cne $expectedLegacyRepositoryUrl) {
+            throw "package.json repository URLs are not an allowed legacy pair for $PublishedVersion."
+        }
+    }
+
     foreach ($zipProperty in $zipManifest.PSObject.Properties) {
         $indexProperty = $IndexManifest.PSObject.Properties[$zipProperty.Name]
         if ($null -eq $indexProperty) {
             throw (
                 "index.json is missing package.json property " +
                 "$($zipProperty.Name) for $PublishedVersion.")
+        }
+
+        if (-not $repositoryUrlsMatch -and
+            ($zipProperty.Name -ceq "url" -or $zipProperty.Name -ceq "repo")) {
+            continue
         }
 
         $zipValue = $zipProperty.Value | ConvertTo-Json -Depth 80 -Compress
@@ -366,6 +398,35 @@ function Test-BinaryLeak {
     }
 }
 
+function Test-IsBundledWorkerSdkEntry {
+    param([Parameter(Mandatory = $true)][string]$EntryName)
+
+    $normalizedName = $EntryName.Replace('\', '/')
+    $segments = $normalizedName.Split(
+        [char[]]@('/'),
+        [System.StringSplitOptions]::None)
+    if ($segments.Count -lt 7 -or
+        @($segments | Where-Object { $_ -in @("", ".", "..") }).Count -gt 0 -or
+        $segments[0] -cne "Editor" -or
+        $segments[1] -cne "HotSwap" -or
+        $segments[3] -cne "WorkerTemplate~" -or
+        $segments[4] -cne "Packages") {
+        return $false
+    }
+
+    $allowedPackageIds = if ($segments[2] -ceq "HotSwap_Avtr") {
+        @("com.vrchat.avatars", "com.vrchat.base", "com.vrchat.core.vpm-resolver")
+    }
+    elseif ($segments[2] -ceq "HotSwap_wrld") {
+        @("com.vrchat.base", "com.vrchat.core.vpm-resolver", "com.vrchat.worlds")
+    }
+    else {
+        @()
+    }
+
+    return ($allowedPackageIds -ccontains $segments[5])
+}
+
 function Test-ZipPackage {
     param(
         [Parameter(Mandatory = $true)][string]$ZipPath,
@@ -376,10 +437,17 @@ function Test-ZipPackage {
     $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
     try {
         $blocked = @($archive.Entries | Where-Object {
-            $_.FullName -match '(?i)\.(cs|pdb|mdb)$' -or
-            $_.FullName -match '(?i)\.(pfx|p12|pvk|key|snk|pem|map)$' -or
-            $_.FullName -match '(?i)(mapping|rename|report)' -or
-            $_.FullName -match '(?i)obfuscar'
+            $normalizedName = $_.FullName.Replace('\', '/')
+            $isBundledWorkerSdkEntry = Test-IsBundledWorkerSdkEntry -EntryName $normalizedName
+            $isBlockedSourceOrReport = (
+                $normalizedName -match '(?i)\.cs$' -or
+                $normalizedName -match '(?i)(mapping|rename|report)') -and
+                -not $isBundledWorkerSdkEntry
+
+            $isBlockedSourceOrReport -or
+            $normalizedName -match '(?i)\.(pdb|mdb)$' -or
+            $normalizedName -match '(?i)\.(pfx|p12|pvk|key|snk|pem|map)$' -or
+            $normalizedName -match '(?i)obfuscar'
         })
         if ($blocked.Count -gt 0) {
             throw "配布 zip に含めてはいけないファイルがあります: $($blocked.FullName -join ', ')"
@@ -784,7 +852,10 @@ function Invoke-AuditOnce {
         Assert-IndexManifestMatchesPackageZip `
             -ZipPath $publishedZipPath `
             -IndexManifest $publishedManifest `
-            -PublishedVersion $publishedVersion
+            -PublishedVersion $publishedVersion `
+            -PackageId $PackageId `
+            -LegacyRepositoryBaseUrl $normalizedBaseUrl `
+            -AllowLegacyRepositoryUrls:($publishedVersion -cne $Version)
 
         $publishedChecksumText = Get-Content -LiteralPath $publishedChecksumPath -Raw
         foreach ($requiredHash in @($publishedZipHash, $certificateHash, $certificatePemHash)) {
