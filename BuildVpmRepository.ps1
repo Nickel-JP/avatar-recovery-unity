@@ -265,6 +265,46 @@ function Get-PackageInventory {
     }
 }
 
+function Assert-NoOrphanUnityMetaEntries {
+    param(
+        [Parameter(Mandatory = $true)]$Inventory,
+        [Parameter(Mandatory = $true)][string]$DisplayName
+    )
+
+    $materializedPaths = [System.Collections.Generic.HashSet[string]]::new(
+        [StringComparer]::OrdinalIgnoreCase)
+    foreach ($record in $Inventory.Files) {
+        $relativePath = [string]$record.RelativePath
+        [void]$materializedPaths.Add($relativePath)
+
+        $separatorIndex = $relativePath.IndexOf('/')
+        while ($separatorIndex -ge 0) {
+            [void]$materializedPaths.Add($relativePath.Substring(0, $separatorIndex))
+            $separatorIndex = $relativePath.IndexOf('/', $separatorIndex + 1)
+        }
+    }
+
+    $orphanMetaPaths = [System.Collections.Generic.List[string]]::new()
+    foreach ($record in $Inventory.Files) {
+        $relativePath = [string]$record.RelativePath
+        if (-not $relativePath.EndsWith('.meta', [StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+
+        $assetPath = $relativePath.Substring(0, $relativePath.Length - '.meta'.Length)
+        if (-not $materializedPaths.Contains($assetPath)) {
+            [void]$orphanMetaPaths.Add($relativePath)
+        }
+    }
+
+    if ($orphanMetaPaths.Count -gt 0) {
+        throw (
+            "$DisplayName contains Unity .meta entries whose assets or directories " +
+            "would be absent from the package: " +
+            ($orphanMetaPaths -join ', '))
+    }
+}
+
 function Assert-InventoryMatchesContractRecord {
     param(
         [Parameter(Mandatory = $true)]$Inventory,
@@ -634,6 +674,9 @@ try {
         }
 
         $sourceInventory = Get-PackageInventory -RootPath $packageRoot
+        Assert-NoOrphanUnityMetaEntries `
+            -Inventory $sourceInventory `
+            -DisplayName "Source package"
         if ($parsedVersion -ge $PrivateSdkBundledMinimumVersion) {
             Assert-BundledSdkLayout -PackageRoot $packageRoot
             $avatarTemplateInventory = Get-TemplateInventory `
@@ -704,6 +747,9 @@ try {
         }
 
         $stagingInventory = Get-PackageInventory -RootPath $stagingRoot
+        Assert-NoOrphanUnityMetaEntries `
+            -Inventory $stagingInventory `
+            -DisplayName "Staged package"
         Assert-InventoryMatchesContractRecord `
             -Inventory $stagingInventory `
             -ContractRecord $sourceInventory `
