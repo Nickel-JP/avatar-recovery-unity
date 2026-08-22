@@ -1,0 +1,18 @@
+{
+  "format": "AvatarRecovery private SDK-bundled inventory v1",
+  "packageId": "com.nickel-jp.avatar-recovery",
+  "version": "1.3.2",
+  "fileCount": 5574,
+  "totalBytes": 230264956,
+  "inventorySha256": "b38967b58dd34e47012041978224d12ae32e9be0194d3e0e606eba5d0c785b0b",
+  "avatarWorkerTemplate": {
+    "fileCount": 1663,
+    "totalBytes": 47753584,
+    "inventorySha256": "0e29fa736ac93cb1e1db52a0d4185677f74a4c86d4baebb3d80f7631f7549919"
+  },
+  "worldWorkerTemplate": {
+    "fileCount": 3861,
+    "totalBytes": 177310425,
+    "inventorySha256": "cfa9e1225e2aea3973c2576a286c820b52128116dc500288c899b2103046079b"
+  }
+}

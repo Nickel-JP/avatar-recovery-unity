@@ -1,11 +1,77 @@
 {
   "name": "Avatar Recovery Unity",
   "id": "com.nickel-jp.repos.avatar-recovery",
-  "url": "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/index.json",
+  "url": "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
   "author": "Nickel-JP",
   "packages": {
     "com.nickel-jp.avatar-recovery": {
       "versions": {
+        "1.3.2": {
+          "name": "com.nickel-jp.avatar-recovery",
+          "displayName": "Avatar Recovery",
+          "version": "1.3.2",
+          "unity": "2022.3",
+          "description": "Unity Editor tools for recovering VRChat avatar, world, and prop assets from VRCA/VRCW/VRCP files.",
+          "type": "tool",
+          "license": "SEE LICENSE IN LICENSE",
+          "keywords": [
+            "vrchat",
+            "avatar",
+            "world",
+            "prop",
+            "recovery",
+            "vrca",
+            "vrcw",
+            "vrcp",
+            "editor"
+          ],
+          "author": {
+            "name": "Nickel-JP",
+            "url": "https://github.com/Nickel-JP"
+          },
+          "vpmDependencies": {
+            "com.vrchat.base": ">=3.7.0 <3.11.0"
+          },
+          "legacyFolders": {
+            "Assets\\Editor\\AvatarRecovery": ""
+          },
+          "url": "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.3.2.zip",
+          "repo": "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
+          "zipSHA256": "2517c3cefaed3e2c84fc9bdf8002097af927cfd0313f9556d19901b9d720bae5"
+        },
+        "1.3.1": {
+          "name": "com.nickel-jp.avatar-recovery",
+          "displayName": "Avatar Recovery",
+          "version": "1.3.1",
+          "unity": "2022.3",
+          "description": "Unity Editor tools for recovering VRChat avatar, world, and prop assets from VRCA/VRCW/VRCP files.",
+          "type": "tool",
+          "license": "SEE LICENSE IN LICENSE",
+          "keywords": [
+            "vrchat",
+            "avatar",
+            "world",
+            "prop",
+            "recovery",
+            "vrca",
+            "vrcw",
+            "vrcp",
+            "editor"
+          ],
+          "author": {
+            "name": "Nickel-JP",
+            "url": "https://github.com/Nickel-JP"
+          },
+          "vpmDependencies": {
+            "com.vrchat.base": ">=3.7.0 <3.11.0"
+          },
+          "legacyFolders": {
+            "Assets\\Editor\\AvatarRecovery": ""
+          },
+          "url": "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.3.1.zip",
+          "repo": "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
+          "zipSHA256": "44e6c298d61c4a62f2cc7a67b7c29d87b824ed1390557af05c6d21835581f681"
+        },
         "1.3.0": {
           "name": "com.nickel-jp.avatar-recovery",
           "displayName": "Avatar Recovery",
@@ -35,75 +101,9 @@
           "legacyFolders": {
             "Assets\\Editor\\AvatarRecovery": ""
           },
-          "url": "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/packages/com.nickel-jp.avatar-recovery-1.3.0.zip",
-          "repo": "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/index.json",
+          "url": "https://nickel-jp.github.io/avatar-recovery-unity/packages/com.nickel-jp.avatar-recovery-1.3.0.zip",
+          "repo": "https://nickel-jp.github.io/avatar-recovery-unity/index.json",
           "zipSHA256": "a3cdbd59608d50346db9058ac8e18fee246f6ce53ca3ed92ef9d59f8fb8aab4a"
-        },
-        "1.2.10": {
-          "name": "com.nickel-jp.avatar-recovery",
-          "displayName": "Avatar Recovery",
-          "version": "1.2.10",
-          "unity": "2022.3",
-          "description": "Unity Editor tools for recovering VRChat avatar, world, and prop assets from VRCA/VRCW/VRCP files.",
-          "type": "tool",
-          "license": "SEE LICENSE IN LICENSE",
-          "keywords": [
-            "vrchat",
-            "avatar",
-            "world",
-            "prop",
-            "recovery",
-            "vrca",
-            "vrcw",
-            "vrcp",
-            "editor"
-          ],
-          "author": {
-            "name": "Nickel-JP",
-            "url": "https://github.com/Nickel-JP"
-          },
-          "vpmDependencies": {
-            "com.vrchat.base": ">=3.7.0 <3.11.0"
-          },
-          "legacyFolders": {
-            "Assets\\Editor\\AvatarRecovery": ""
-          },
-          "url": "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/packages/com.nickel-jp.avatar-recovery-1.2.10.zip",
-          "repo": "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/index.json",
-          "zipSHA256": "923a7ccbcd2becfeab805ee380e1989bc3955f2d3618a46eaf3f2d8def8f0b1f"
-        },
-        "1.2.9": {
-          "name": "com.nickel-jp.avatar-recovery",
-          "displayName": "Avatar Recovery",
-          "version": "1.2.9",
-          "unity": "2022.3",
-          "description": "Unity Editor tools for recovering VRChat avatar, world, and prop assets from VRCA/VRCW/VRCP files.",
-          "type": "tool",
-          "license": "SEE LICENSE IN LICENSE",
-          "keywords": [
-            "vrchat",
-            "avatar",
-            "world",
-            "prop",
-            "recovery",
-            "vrca",
-            "vrcw",
-            "vrcp",
-            "editor"
-          ],
-          "author": {
-            "name": "Nickel-JP",
-            "url": "https://github.com/Nickel-JP"
-          },
-          "vpmDependencies": {
-            "com.vrchat.base": ">=3.7.0 <3.11.0"
-          },
-          "legacyFolders": {
-            "Assets\\Editor\\AvatarRecovery": ""
-          },
-          "url": "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/packages/com.nickel-jp.avatar-recovery-1.2.9.zip",
-          "repo": "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/index.json",
-          "zipSHA256": "bfd408966033673f3be97129685a096f5167050c07146d4fad2b371c0d201967"
         }
       }
     }

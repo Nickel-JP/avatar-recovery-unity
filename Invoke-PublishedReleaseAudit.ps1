@@ -3,6 +3,7 @@ param(
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$ExpectedRepositoryBaseUrl = "",
+    [string]$LegacyRepositoryBaseUrl = "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main",
     [string]$OutputRoot = "",
     [string]$ExpectedCodeSigningCertificateThumbprint = $env:AVATAR_RECOVERY_PUBLISHED_CERTIFICATE_THUMBPRINT,
     [int]$RetryCount = 18,
@@ -739,6 +740,13 @@ function Invoke-AuditOnce {
     else {
         $ExpectedRepositoryBaseUrl.TrimEnd("/")
     }
+    $normalizedLegacyRepositoryBaseUrl = if (
+        [string]::IsNullOrWhiteSpace($LegacyRepositoryBaseUrl)) {
+        ""
+    }
+    else {
+        $LegacyRepositoryBaseUrl.TrimEnd("/")
+    }
     Remove-SafeAuditDirectory -Path $OutputRoot
     Ensure-Directory $OutputRoot
 
@@ -854,7 +862,7 @@ function Invoke-AuditOnce {
             -IndexManifest $publishedManifest `
             -PublishedVersion $publishedVersion `
             -PackageId $PackageId `
-            -LegacyRepositoryBaseUrl $normalizedBaseUrl `
+            -LegacyRepositoryBaseUrl $normalizedLegacyRepositoryBaseUrl `
             -AllowLegacyRepositoryUrls:($publishedVersion -cne $Version)
 
         $publishedChecksumText = Get-Content -LiteralPath $publishedChecksumPath -Raw
@@ -919,6 +927,7 @@ function Invoke-AuditOnce {
         Version = $Version
         BaseUrl = $normalizedBaseUrl
         ExpectedRepositoryBaseUrl = $normalizedExpectedRepositoryBaseUrl
+        LegacyRepositoryBaseUrl = $normalizedLegacyRepositoryBaseUrl
         ZipSHA256 = $zipHash
         CertificateSHA256 = $certificateHash
         ExpectedCertificateThumbprint = $expectedCertificateThumbprint

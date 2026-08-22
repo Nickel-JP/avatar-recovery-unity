@@ -40,7 +40,7 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
 
-Version 1.3.0 is available from the same public repository URL used by earlier releases. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then update `Avatar Recovery` to version 1.3.0.
+Version 1.3.2 is available from the same public repository URL used by earlier releases. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then update `Avatar Recovery` to version 1.3.2.
 
 ## AvatarRecovery Community Server
 
@@ -52,22 +52,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.3.0.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.3.2.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.3.0.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.3.2.zip -Algorithm SHA256).Hash
 
-# Confirm that it is A3CDBD59608D50346DB9058AC8E18FEE246F6CE53CA3ED92EF9D59F8FB8AAB4A
-# and matches the packages/com.nickel-jp.avatar-recovery-1.3.0.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.3.0.sha256.txt.
+# Confirm that it is 2517C3CEFAED3E2C84FC9BDF8002097AF927CFD0313F9556D19901B9D720BAE5
+# and matches the packages/com.nickel-jp.avatar-recovery-1.3.2.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.3.2.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.3.0.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.3.2.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -100,6 +100,26 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.3.2 — HotSwap Reliability and Performance
+
+- Fixed an issue that could prevent the dedicated Avatar HotSwap Unity environment from being prepared.
+- Fixed a compatibility issue that could reject recoverable older or unusually structured Avatar bundles during Avatar HotSwap validation.
+- Existing incomplete or outdated dedicated environments are safely prepared again without requiring users to delete folders or replace SDK files manually.
+- Preserved login handoff, Worker startup and resume behavior, and the existing alternate recovery flow.
+- Reduced World HotSwap processing time while preserving the existing workflow, validation, and recovery behavior.
+- Added drag-and-drop input for Avatar and World thumbnails and VRCA/VRCW files while keeping the existing Browse buttons.
+- Renamed the dedicated Unity displays and template assets so Avatar and World HotSwap environments are easier to identify.
+- Kept normal recovery, Expression Menu recovery, and the version 1.3.1 AAO improvements unchanged.
+- Use the existing `Prepare dedicated Unity for HotSwap` or Avatar HotSwap action normally; no additional recovery steps are required.
+
+### Version 1.3.1 — AAO Recovery Reliability and Faster Animation Processing
+
+- Expanded compatibility with valid AAO-generated mesh layouts that could previously be rejected as damaged.
+- When an AAO repair candidate cannot be adopted safely, recovery now continues with the verified reloadable Raw prefab instead of rolling back the whole result. Recovery still stops if the original prefab itself cannot be reloaded safely.
+- Reduced repeated AnimationClip discovery and import work. In the validation VRCA, total recovery time improved by about 13.8% and post-extraction processing by about 46%; actual results vary by avatar and system.
+- Preserved the existing per-clip Face animation separation, animation references, naming behavior, and recovered avatar appearance in regression validation.
+- Kept the existing public VPM repository URL. Refresh `Avatar Recovery Unity` in VCC or ALCOM, then update `Avatar Recovery` to version 1.3.1.
 
 ### Version 1.3.0 — Avatar and World HotSwap
 
