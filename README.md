@@ -59,7 +59,7 @@ After downloading the ZIP, verify the published hash before importing it:
 # 1. Calculate the ZIP SHA-256 hash.
 (Get-FileHash .\com.nickel-jp.avatar-recovery-1.3.2.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 31A3368C3AB4923EE51DBBEB02D696AAD1380651EAE35DD606C9A1EE461209C5
+# Confirm that it is 2517C3CEFAED3E2C84FC9BDF8002097AF927CFD0313F9556D19901B9D720BAE5
 # and matches the packages/com.nickel-jp.avatar-recovery-1.3.2.zip entry in
 # checksums/com.nickel-jp.avatar-recovery-1.3.2.sha256.txt.
 ```
@@ -101,12 +101,16 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Version 1.3.2 — Avatar HotSwap Setup Reliability
+### Version 1.3.2 — HotSwap Reliability and Performance
 
 - Fixed an issue that could prevent the dedicated Avatar HotSwap Unity environment from being prepared.
+- Fixed a compatibility issue that could reject recoverable older or unusually structured Avatar bundles during Avatar HotSwap validation.
 - Existing incomplete or outdated dedicated environments are safely prepared again without requiring users to delete folders or replace SDK files manually.
 - Preserved login handoff, Worker startup and resume behavior, and the existing alternate recovery flow.
-- Kept normal recovery, World HotSwap, Expression Menu recovery, and the version 1.3.1 AAO improvements unchanged.
+- Reduced World HotSwap processing time while preserving the existing workflow, validation, and recovery behavior.
+- Added drag-and-drop input for Avatar and World thumbnails and VRCA/VRCW files while keeping the existing Browse buttons.
+- Renamed the dedicated Unity displays and template assets so Avatar and World HotSwap environments are easier to identify.
+- Kept normal recovery, Expression Menu recovery, and the version 1.3.1 AAO improvements unchanged.
 - Use the existing `Prepare dedicated Unity for HotSwap` or Avatar HotSwap action normally; no additional recovery steps are required.
 
 ### Version 1.3.1 — AAO Recovery Reliability and Faster Animation Processing

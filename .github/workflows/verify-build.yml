@@ -78,6 +78,7 @@ jobs:
         run: |
           pwsh -NoProfile -ExecutionPolicy Bypass -File .\Invoke-PublishedReleaseAudit.ps1 `
             -Version $env:VERSION `
-            -ExpectedRepositoryBaseUrl "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main" `
+            -ExpectedRepositoryBaseUrl "https://nickel-jp.github.io/avatar-recovery-unity" `
+            -LegacyRepositoryBaseUrl "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main" `
             -RetryCount 24 `
             -RetryDelaySeconds 10

@@ -14,7 +14,8 @@ $RuntimeIntegritySidecarFileName = "$AssemblyFileName.runtime.sig"
 $BinaryLeakRulesPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
 $PublishedCertificatePath = Join-Path $RepoRoot "certificates\avatar-recovery-self-signed-code-signing.cer"
 $PublishedCertificatePemPath = Join-Path $RepoRoot "certificates\avatar-recovery-self-signed-code-signing.cer.pem"
-$ExpectedRepositoryBaseUrl = "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main"
+$ExpectedRepositoryBaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity"
+$LegacyRepositoryBaseUrl = "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main"
 $PublishedVersionLimit = 3
 
 function ConvertTo-FullPath {
@@ -1235,6 +1236,26 @@ function Test-PublishedVersionArtifacts {
         }
 
         $zipManifest = Get-PackageManifestFromZip -ZipPath $zipPath
+        $repositoryUrlsMatch = (
+            [string]$zipManifest.url -ceq [string]$indexManifest.url -and
+            [string]$zipManifest.repo -ceq [string]$indexManifest.repo)
+        if (-not $repositoryUrlsMatch) {
+            if ($publishedVersion -ceq $Version) {
+                throw "latest package.json repository URLs do not match the VPM index"
+            }
+
+            $expectedLegacyPackageUrl = (
+                "$LegacyRepositoryBaseUrl/packages/" +
+                "$PackageId-$publishedVersion.zip")
+            $expectedLegacyRepositoryUrl = "$LegacyRepositoryBaseUrl/index.json"
+            if ([string]$zipManifest.url -cne $expectedLegacyPackageUrl -or
+                [string]$zipManifest.repo -cne $expectedLegacyRepositoryUrl) {
+                throw (
+                    "historical package.json repository URLs are not the " +
+                    "allowed legacy pair: $publishedVersion")
+            }
+        }
+
         $zipPropertyNames = @($zipManifest.PSObject.Properties.Name)
         $indexPropertyNames = @($indexManifest.PSObject.Properties.Name)
         $expectedIndexPropertyNames = @($zipPropertyNames + @("zipSHA256"))
@@ -1253,7 +1274,8 @@ function Test-PublishedVersionArtifacts {
                     "$($zipProperty.Name): $publishedVersion")
             }
 
-            if ($zipProperty.Name -in @("url", "repo")) {
+            if (-not $repositoryUrlsMatch -and
+                $zipProperty.Name -in @("url", "repo")) {
                 continue
             }
 
