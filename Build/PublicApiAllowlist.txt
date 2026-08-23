@@ -9,5 +9,3 @@ EditorTools.AvatarRecovery.ViewAssetsInfoWindow
 EditorTools.AvatarRecovery.VrcaAutoBackupPreprocess
 EditorTools.AvatarRecovery.VrcaAutoBackupPostprocess
 EditorTools.AvatarRecovery.VrcaAutoBackupSdkCallback
-EditorTools.AvatarRecovery.HotSwapBuildPipelineCallback
-EditorTools.AvatarRecovery.HotSwapBuildPreflightCallback

@@ -16,6 +16,9 @@ Core\ExpressionMenuNormalizerRunner.cs|Reflection|JsonUtility|*
 # AssetRipper-exported AnimationClip bindings are restored through Unity type checks and Animator.StringToHash.
 Core\AnimationClipBindingRestorer.cs|Reflection|typeof\s*\(|*
 
+# AAO復元の予算値は、引数検証時の例外名をnameofで固定する。
+Core\AaoMeshIntegrityRestorer.cs|Reflection|nameof\s*\(|*
+
 # AnimationClip name sanitization excludes Scene assets before loading clip containers.
 Core\AnimationClipNameSanitizer.cs|Reflection|typeof\s*\(|*
 
@@ -119,3 +122,59 @@ Utils\EditorPrefsHelper.cs|Reflection|typeof\s*\(|*
 # VRC SDK build callbacks read backup settings and inspect avatar descriptor component types.
 Utils\VrcaAutoBackup.cs|EditorPrefs|EditorPrefs|*
 Utils\VrcaAutoBackup.cs|Reflection|\.GetType\s*\(|*
+
+# v1.3.5で継続する復元処理のコールバック、引数名、型検査、およびUnityシリアライズ契約。
+Core\AaoMeshIntegrityRestorer.cs|Reflection|\.Invoke\s*\(|*
+Core\AaoMeshIntegrityRestorer.cs|Reflection|FindProperty\s*\(|*
+Core\AaoMeshIntegrityRestorer.cs|Serialization|SerializedContract|*
+Core\AnimationClipPostProcessBatch.cs|Reflection|typeof\s*\(|*
+Core\AssetRipperBridge.cs|Reflection|\.Invoke\s*\(|*
+Core\AssetRipperBridge.cs|Reflection|nameof\s*\(|*
+Core\ExpressionMenuNormalizerRunner.cs|Reflection|\.Invoke\s*\(|*
+Core\ExpressionMenuNormalizerRunner.cs|Reflection|nameof\s*\(|*
+Core\ExpressionMenuNormalizerRunner.cs|Reflection|typeof\s*\(|*
+Core\GestureLayerMaskFixer.cs|Reflection|\.Invoke\s*\(|*
+Core\PipelineManagerBlueprintIdCleaner.cs|Reflection|nameof\s*\(|*
+Core\PoseResetter.cs|Reflection|\.Invoke\s*\(|*
+Core\RecoveryFileProcessSafety.cs|Reflection|nameof\s*\(|*
+Core\RecoveryFileProcessSafety.cs|Reflection|typeof\s*\(|*
+Core\RecoveryOutputTransaction.cs|Reflection|\.Invoke\s*\(|*
+Core\RecoveryOutputTransaction.cs|Reflection|nameof\s*\(|*
+Core\RecoveryResourceBudget.cs|Reflection|nameof\s*\(|*
+Core\ScriptGuidFixer.cs|Reflection|\.Invoke\s*\(|*
+Core\ScriptGuidFixer.cs|Reflection|nameof\s*\(|*
+Core\ScriptListWriter.cs|Reflection|\.Invoke\s*\(|*
+Core\ScriptListWriter.cs|Reflection|nameof\s*\(|*
+Core\ShaderGuidFixer.cs|Reflection|nameof\s*\(|*
+Core\ShaderListWriter.cs|Reflection|\.Invoke\s*\(|*
+Core\ShaderListWriter.cs|Reflection|nameof\s*\(|*
+Core\VrcaExtractor.cs|Reflection|\.Invoke\s*\(|*
+Core\VrcaExtractor.cs|Reflection|FindPropertyRelative\s*\(|*
+Core\VrcaLoader.cs|Reflection|\.Invoke\s*\(|*
+Core\VrcaLoader.cs|Reflection|nameof\s*\(|*
+UI\ShaderListViewerWindow.cs|Reflection|\.Invoke\s*\(|*
+Utils\GitHubUpdateHistoryService.cs|EditorPrefs|EditorPrefs|*
+Utils\LongPathIO.cs|Reflection|\.Invoke\s*\(|*
+Utils\LongPathIO.cs|Reflection|nameof\s*\(|*
+Utils\VrcaAutoBackup.cs|Reflection|\.Invoke\s*\(|*
+Utils\VrcaAutoBackup.cs|Reflection|nameof\s*\(|*
+Utils\VrcaAutoBackup.cs|Reflection|typeof\s*\(|*
+
+# 復元コア回帰テストは、意図したUnity SerializedObject・型検査・テスト用コールバックを使用する。
+Tests\Core\AaoMeshIntegrityRestorerBudgetTests.cs|Reflection|\.Invoke\s*\(|*
+Tests\Core\AaoMeshIntegrityRestorerBudgetTests.cs|Reflection|FindProperty\s*\(|*
+Tests\Core\AaoMeshIntegrityRestorerBudgetTests.cs|Serialization|SerializedContract|*
+Tests\Core\AnimationClipBindingCollisionSafetyTests.cs|Reflection|typeof\s*\(|*
+Tests\Core\AnimationClipPostProcessBatchTests.cs|Reflection|typeof\s*\(|*
+Tests\Core\AnimatorGraphAndSceneSafetyTests.cs|Serialization|SerializedContract|*
+Tests\Core\CoreRecoverySafetyRegressionTests.cs|Reflection|typeof\s*\(|*
+Tests\Core\CoreRecoverySafetyRegressionTests.cs|Serialization|SerializedContract|*
+Tests\Core\GestureLayerMaskFixerLifetimeTests.cs|Reflection|\.GetType\s*\(|*
+Tests\Core\GestureLayerMaskFixerLifetimeTests.cs|Reflection|FindProperty\s*\(|*
+Tests\Core\GestureLayerMaskFixerLifetimeTests.cs|Reflection|typeof\s*\(|*
+Tests\Core\GestureLayerMaskFixerLifetimeTests.cs|Serialization|SerializedContract|*
+Tests\Core\ShaderMaterialSafetyTests.cs|Reflection|\.GetType\s*\(|*
+Tests\Core\ShaderMaterialSafetyTests.cs|Reflection|FindProperty\s*\(|*
+Tests\Core\ShaderMaterialSafetyTests.cs|Reflection|FindPropertyRelative\s*\(|*
+Tests\Core\ShaderMaterialSafetyTests.cs|Reflection|typeof\s*\(|*
+Tests\Core\ShaderMaterialSafetyTests.cs|Serialization|SerializedContract|*

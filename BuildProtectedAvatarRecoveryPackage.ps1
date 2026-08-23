@@ -4,6 +4,9 @@
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
+    [string]$UnityCompileProjectRoot = "",
+    [string]$UnityCompileSeedProjectRoot = "",
+    [string]$UnityCompileAllowedRoot = "",
     [string]$BackupRoot = "",
     [string]$ObfuscarToolVersion = "2.2.50",
     [string]$ObfuscarExe = "",
@@ -53,10 +56,36 @@ $ReleaseRoot = Join-Path $WorkRoot "Release$($Version.Replace('.', ''))"
 $SourcePackageRoot = Join-Path $ReleaseRoot "SourcePackage\$PackageId"
 $ProjectRoot = Join-Path $ReleaseRoot "ProjectRoot"
 $ProjectPackageRoot = Join-Path $ProjectRoot "Packages\$PackageId"
-$CompileProjectRoot = Join-Path $WorkRoot "UnityCompile$($Version.Replace('.', ''))"
+$CompileProjectRoot = if ([string]::IsNullOrWhiteSpace($UnityCompileProjectRoot)) {
+    Join-Path $WorkRoot "UnityCompile$($Version.Replace('.', ''))"
+} else {
+    [System.IO.Path]::GetFullPath($UnityCompileProjectRoot)
+}
+$CompileProjectSeedRoot = if ([string]::IsNullOrWhiteSpace($UnityCompileSeedProjectRoot)) {
+    Join-Path $WorkRoot "UnityCompile$($PreviousVersion.Replace('.', ''))"
+} else {
+    [System.IO.Path]::GetFullPath($UnityCompileSeedProjectRoot)
+}
+$CompileProjectAllowedRoot = if ([string]::IsNullOrWhiteSpace($UnityCompileAllowedRoot)) {
+    $WorkRoot
+} else {
+    [System.IO.Path]::GetFullPath($UnityCompileAllowedRoot)
+}
 $ProtectionRoot = Join-Path $WorkRoot "Protection$($Version.Replace('.', ''))"
 $PrivateBackupRoot = Join-Path $BackupRoot "$Version-protection-private"
 $LocalPrivateBackupRoot = Join-Path $WorkRoot "Backups\$Version-protection-private"
+$BundledWorkerSdkMinimumVersion = [version]"1.3.0"
+$BundledWorkerSdkMaximumVersion = [version]"1.3.4"
+try {
+    $ParsedReleaseVersion = [version]$Version
+}
+catch {
+    throw "Package version is invalid: $Version"
+}
+$SupportsBundledWorkerSdk = (
+    $ParsedReleaseVersion -ge $BundledWorkerSdkMinimumVersion -and
+    $ParsedReleaseVersion -le $BundledWorkerSdkMaximumVersion)
+$RequiresHotSwapRemoval = $ParsedReleaseVersion -gt $BundledWorkerSdkMaximumVersion
 $AssemblyName = "EditorTools.AvatarRecovery.Editor"
 $AssemblyFileName = "$AssemblyName.dll"
 $PublicApiAllowlistPath = Join-Path $RepoRoot "Build\PublicApiAllowlist.txt"
@@ -211,13 +240,16 @@ function Assert-UnderPath {
 }
 
 function Remove-SafeDirectory {
-    param([Parameter(Mandatory = $true)][string]$Path)
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [string]$ParentPath = $WorkRoot
+    )
 
     if (-not (Test-Path $Path)) {
         return
     }
 
-    Assert-UnderPath -Path $Path -ParentPath $WorkRoot
+    Assert-UnderPath -Path $Path -ParentPath $ParentPath
     Remove-Item -LiteralPath $Path -Recurse -Force
 }
 
@@ -4177,6 +4209,11 @@ function Invoke-CecilAntiDecompile {
             $typeName = $type.FullName -replace '/', '+'
             $methodCountForType = 0
             foreach ($method in $type.Methods) {
+                if (-not $method.HasBody -or
+                    $method.Body.Instructions.Count -eq 0) {
+                    continue
+                }
+
                 $methodMatched = $false
                 foreach ($rule in $rules) {
                     if (Test-ProtectionTargetRuleMatch -Rule $rule -TypeName $typeName -MethodName $method.Name) {
@@ -4189,21 +4226,6 @@ function Invoke-CecilAntiDecompile {
                 }
 
                 $methodKey = "$typeName|$($method.Name)"
-                if (-not $method.HasBody) {
-                    [void]$skipped.Add([PSCustomObject]@{
-                        Method = $methodKey
-                        Reason = "NoMethodBody"
-                    })
-                    continue
-                }
-                if ($method.Body.Instructions.Count -eq 0) {
-                    [void]$skipped.Add([PSCustomObject]@{
-                        Method = $methodKey
-                        Reason = "NoInstructions"
-                    })
-                    continue
-                }
-
                 $method.Body.MaxStackSize = [Math]::Min([Math]::Max($method.Body.MaxStackSize + 2, 4), 16)
                 $methodCountForType++
                 $adjustedMethodCount++
@@ -5459,6 +5481,10 @@ function Invoke-ExpressionMenuNormalizerBuildAndStage {
 function Test-IsBundledWorkerSdkEntry {
     param([Parameter(Mandatory = $true)][string]$EntryName)
 
+    if (-not $SupportsBundledWorkerSdk) {
+        return $false
+    }
+
     $normalizedName = $EntryName.Replace('\', '/')
     $segments = $normalizedName.Split(
         [char[]]@('/'),
@@ -5494,6 +5520,28 @@ function Test-PackageZip {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
     try {
+        if ($RequiresHotSwapRemoval) {
+            $hotSwapEntries = @($archive.Entries | Where-Object {
+                $normalizedName = $_.FullName.Replace('\', '/')
+                [string]::Equals(
+                    $normalizedName,
+                    "Editor/HotSwap",
+                    [StringComparison]::OrdinalIgnoreCase) -or
+                [string]::Equals(
+                    $normalizedName,
+                    "Editor/HotSwap.meta",
+                    [StringComparison]::OrdinalIgnoreCase) -or
+                $normalizedName.StartsWith(
+                    "Editor/HotSwap/",
+                    [StringComparison]::OrdinalIgnoreCase)
+            })
+            if ($hotSwapEntries.Count -gt 0) {
+                throw (
+                    "HotSwapを分離したバージョンの配布 zip にHotSwap entryがあります: " +
+                    ($hotSwapEntries.FullName -join ', '))
+            }
+        }
+
         $blocked = $archive.Entries |
             Where-Object {
                 $normalizedName = $_.FullName.Replace('\', '/')
@@ -5511,6 +5559,29 @@ function Test-PackageZip {
 
         if ($blocked) {
             throw "配布 zip に含めてはいけないファイルがあります: $($blocked.FullName -join ', ')"
+        }
+
+        $runtimeSidecarEntryName = "Editor/$RuntimeIntegritySidecarFileName"
+        $runtimeSidecarMetaEntryName = "$runtimeSidecarEntryName.meta"
+        $runtimeSidecarEntries = @($archive.Entries | Where-Object {
+            [string]::Equals(
+                $_.FullName.Replace('\', '/'),
+                $runtimeSidecarEntryName,
+                [StringComparison]::Ordinal)
+        })
+        $runtimeSidecarMetaEntries = @($archive.Entries | Where-Object {
+            [string]::Equals(
+                $_.FullName.Replace('\', '/'),
+                $runtimeSidecarMetaEntryName,
+                [StringComparison]::Ordinal)
+        })
+        if ($runtimeSidecarEntries.Count -gt 1 -or
+            $runtimeSidecarMetaEntries.Count -gt 1 -or
+            (($runtimeSidecarEntries.Count -eq 1) -ne
+                ($runtimeSidecarMetaEntries.Count -eq 1))) {
+            throw (
+                "配布 zip の runtime sidecar と Unity metadata が対応していません: " +
+                "$runtimeSidecarEntryName / $runtimeSidecarMetaEntryName")
         }
 
         foreach ($entry in $archive.Entries) {
@@ -5873,11 +5944,31 @@ function Initialize-CompileProject {
         return
     }
 
-    Remove-SafeDirectory $CompileProjectRoot
+    Assert-UnderPath -Path $CompileProjectRoot -ParentPath $CompileProjectAllowedRoot
+    $fullCompileProjectRoot = (ConvertTo-FullPath $CompileProjectRoot).TrimEnd('\', '/')
+    $fullCompileProjectSeedRoot = (ConvertTo-FullPath $CompileProjectSeedRoot).TrimEnd('\', '/')
+    if ([string]::Equals(
+            $fullCompileProjectRoot,
+            $fullCompileProjectSeedRoot,
+            [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Unity compile target and seed project must be different: $fullCompileProjectRoot"
+    }
+    if (-not (Test-Path -LiteralPath $CompileProjectSeedRoot -PathType Container)) {
+        throw "Unity compile seed project was not found: $CompileProjectSeedRoot"
+    }
+
+    foreach ($requiredDirectory in @("Packages", "ProjectSettings", "Assets")) {
+        $requiredPath = Join-Path $CompileProjectSeedRoot $requiredDirectory
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Container)) {
+            throw "Unity compile seed directory was not found: $requiredPath"
+        }
+    }
+
+    Remove-SafeDirectory -Path $CompileProjectRoot -ParentPath $CompileProjectAllowedRoot
     Ensure-Directory $CompileProjectRoot
-    Copy-Item -LiteralPath (Join-Path $WorkRoot "UnityCompile$($PreviousVersion.Replace('.', ''))\Packages") -Destination $CompileProjectRoot -Recurse -Force
-    Copy-Item -LiteralPath (Join-Path $WorkRoot "UnityCompile$($PreviousVersion.Replace('.', ''))\ProjectSettings") -Destination $CompileProjectRoot -Recurse -Force
-    Copy-Item -LiteralPath (Join-Path $WorkRoot "UnityCompile$($PreviousVersion.Replace('.', ''))\Assets") -Destination $CompileProjectRoot -Recurse -Force
+    Copy-Item -LiteralPath (Join-Path $CompileProjectSeedRoot "Packages") -Destination $CompileProjectRoot -Recurse -Force
+    Copy-Item -LiteralPath (Join-Path $CompileProjectSeedRoot "ProjectSettings") -Destination $CompileProjectRoot -Recurse -Force
+    Copy-Item -LiteralPath (Join-Path $CompileProjectSeedRoot "Assets") -Destination $CompileProjectRoot -Recurse -Force
 
     $targetPackage = Join-Path $CompileProjectRoot "Packages\$PackageId"
     if (Test-Path $targetPackage) {
@@ -5907,8 +5998,89 @@ function Initialize-ProjectPackage {
         Copy-Item -LiteralPath $item.FullName -Destination $ProjectPackageRoot -Recurse -Force
     }
 
-    $dllMeta = Join-Path $WorkRoot "Release$($PreviousVersion.Replace('.', ''))\ProjectRoot\Packages\$PackageId\Editor\$AssemblyFileName.meta"
-    Copy-Item -LiteralPath $dllMeta -Destination (Join-Path $editorDir "$AssemblyFileName.meta") -Force
+    $previousProjectEditorRoot = Join-Path `
+        $WorkRoot `
+        "Release$($PreviousVersion.Replace('.', ''))\ProjectRoot\Packages\$PackageId\Editor"
+    $metadataContracts = @(
+        [PSCustomObject]@{
+            SourcePath = Join-Path $previousProjectEditorRoot "$AssemblyFileName.meta"
+            DestinationPath = Join-Path $editorDir "$AssemblyFileName.meta"
+            EntryName = "Editor/$AssemblyFileName.meta"
+        },
+        [PSCustomObject]@{
+            SourcePath = Join-Path $previousProjectEditorRoot "$RuntimeIntegritySidecarFileName.meta"
+            DestinationPath = Join-Path $editorDir "$RuntimeIntegritySidecarFileName.meta"
+            EntryName = "Editor/$RuntimeIntegritySidecarFileName.meta"
+        }
+    )
+    $missingMetadata = New-Object System.Collections.Generic.List[object]
+    foreach ($metadataContract in $metadataContracts) {
+        if (Test-Path -LiteralPath $metadataContract.SourcePath -PathType Leaf) {
+            Copy-Item `
+                -LiteralPath $metadataContract.SourcePath `
+                -Destination $metadataContract.DestinationPath `
+                -Force
+            continue
+        }
+
+        [void]$missingMetadata.Add($metadataContract)
+    }
+    if ($missingMetadata.Count -eq 0) {
+        return
+    }
+
+    # 再現可能な公開ビルドでは、直前バージョンの公開ZIPから同じUnity GUIDを継承する。
+    $previousZipPath = Join-Path $RepoRoot "packages\$PackageId-$PreviousVersion.zip"
+    if (-not (Test-Path -LiteralPath $previousZipPath -PathType Leaf)) {
+        throw (
+            "Previous Unity metadata was not found in the work tree or published package: " +
+            (($missingMetadata.SourcePath) -join ", ") +
+            " / $previousZipPath")
+    }
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead((ConvertTo-FullPath $previousZipPath))
+    try {
+        foreach ($metadataContract in $missingMetadata) {
+            $matchingEntries = @($archive.Entries | Where-Object {
+                [string]::Equals(
+                    $_.FullName.Replace('\', '/'),
+                    $metadataContract.EntryName,
+                    [StringComparison]::Ordinal)
+            })
+            if ($matchingEntries.Count -ne 1) {
+                throw (
+                    "Previous package must contain exactly one Unity metadata entry: " +
+                    $metadataContract.EntryName)
+            }
+            if ($matchingEntries[0].Length -le 0 -or $matchingEntries[0].Length -gt 65536) {
+                throw (
+                    "Previous Unity metadata entry has an invalid size: " +
+                    "$($metadataContract.EntryName) / $($matchingEntries[0].Length)")
+            }
+
+            $sourceStream = $matchingEntries[0].Open()
+            try {
+                $destinationStream = [System.IO.File]::Open(
+                    $metadataContract.DestinationPath,
+                    [System.IO.FileMode]::Create,
+                    [System.IO.FileAccess]::Write,
+                    [System.IO.FileShare]::None)
+                try {
+                    $sourceStream.CopyTo($destinationStream)
+                }
+                finally {
+                    $destinationStream.Dispose()
+                }
+            }
+            finally {
+                $sourceStream.Dispose()
+            }
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
 }
 
 if ($SkipUnityCompile) {

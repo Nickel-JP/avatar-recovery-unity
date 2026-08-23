@@ -25,6 +25,18 @@ $CertificatePemFileName = "avatar-recovery-self-signed-code-signing.cer.pem"
 $TrustedCertificatePath = Join-Path $RepoRoot "certificates\$CertificateFileName"
 $BinaryLeakRulesPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
 $PublishedVersionLimit = 3
+$BundledWorkerSdkMinimumVersion = [version]"1.3.0"
+$BundledWorkerSdkMaximumVersion = [version]"1.3.4"
+try {
+    $ParsedReleaseVersion = [version]$Version
+}
+catch {
+    throw "Package version is invalid: $Version"
+}
+$SupportsBundledWorkerSdk = (
+    $ParsedReleaseVersion -ge $BundledWorkerSdkMinimumVersion -and
+    $ParsedReleaseVersion -le $BundledWorkerSdkMaximumVersion)
+$RequiresHotSwapRemoval = $ParsedReleaseVersion -gt $BundledWorkerSdkMaximumVersion
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -402,6 +414,10 @@ function Test-BinaryLeak {
 function Test-IsBundledWorkerSdkEntry {
     param([Parameter(Mandatory = $true)][string]$EntryName)
 
+    if (-not $SupportsBundledWorkerSdk) {
+        return $false
+    }
+
     $normalizedName = $EntryName.Replace('\', '/')
     $segments = $normalizedName.Split(
         [char[]]@('/'),
@@ -437,6 +453,28 @@ function Test-ZipPackage {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
     try {
+        if ($RequiresHotSwapRemoval) {
+            $hotSwapEntries = @($archive.Entries | Where-Object {
+                $normalizedName = $_.FullName.Replace('\', '/')
+                [string]::Equals(
+                    $normalizedName,
+                    "Editor/HotSwap",
+                    [StringComparison]::OrdinalIgnoreCase) -or
+                [string]::Equals(
+                    $normalizedName,
+                    "Editor/HotSwap.meta",
+                    [StringComparison]::OrdinalIgnoreCase) -or
+                $normalizedName.StartsWith(
+                    "Editor/HotSwap/",
+                    [StringComparison]::OrdinalIgnoreCase)
+            })
+            if ($hotSwapEntries.Count -gt 0) {
+                throw (
+                    "HotSwap分離後の配布 zip にHotSwap entryがあります: " +
+                    ($hotSwapEntries.FullName -join ', '))
+            }
+        }
+
         $blocked = @($archive.Entries | Where-Object {
             $normalizedName = $_.FullName.Replace('\', '/')
             $isBundledWorkerSdkEntry = Test-IsBundledWorkerSdkEntry -EntryName $normalizedName
@@ -452,6 +490,29 @@ function Test-ZipPackage {
         })
         if ($blocked.Count -gt 0) {
             throw "配布 zip に含めてはいけないファイルがあります: $($blocked.FullName -join ', ')"
+        }
+
+        $runtimeSidecarEntryName = "Editor/$RuntimeIntegritySidecarFileName"
+        $runtimeSidecarMetaEntryName = "$runtimeSidecarEntryName.meta"
+        $runtimeSidecarEntries = @($archive.Entries | Where-Object {
+            [string]::Equals(
+                $_.FullName.Replace('\', '/'),
+                $runtimeSidecarEntryName,
+                [StringComparison]::Ordinal)
+        })
+        $runtimeSidecarMetaEntries = @($archive.Entries | Where-Object {
+            [string]::Equals(
+                $_.FullName.Replace('\', '/'),
+                $runtimeSidecarMetaEntryName,
+                [StringComparison]::Ordinal)
+        })
+        if ($runtimeSidecarEntries.Count -gt 1 -or
+            $runtimeSidecarMetaEntries.Count -gt 1 -or
+            (($runtimeSidecarEntries.Count -eq 1) -ne
+                ($runtimeSidecarMetaEntries.Count -eq 1))) {
+            throw (
+                "runtime sidecar and Unity metadata do not match: " +
+                "$runtimeSidecarEntryName / $runtimeSidecarMetaEntryName")
         }
 
         $dllEntry = $archive.Entries |

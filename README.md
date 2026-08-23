@@ -40,7 +40,7 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
 
-Version 1.3.4 is available from the same public repository URL used by earlier releases. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then update `Avatar Recovery` to version 1.3.4.
+Version 1.3.5 is available from the same public repository URL used by earlier releases. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then update `Avatar Recovery` to version 1.3.5.
 
 ## AvatarRecovery Community Server
 
@@ -52,22 +52,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.3.4.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.3.5.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.3.4.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.3.5.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 71EAEA90DB57A1CE314A15977551CC87C74B5CF5CF20759165B3E68AB3E8F789
-# and matches the packages/com.nickel-jp.avatar-recovery-1.3.4.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.3.4.sha256.txt.
+# Confirm that it is B3F286DF8F7C100E67DCB5029856D81D0A3797AE498EDDCB2C515F7B10BA97FA
+# and matches the packages/com.nickel-jp.avatar-recovery-1.3.5.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.3.5.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.3.4.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.3.5.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -90,8 +90,8 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 
 | Item | Details |
 |---|---|
-| Unity | Unity 2022.3.x |
-| VRChat SDK | `com.vrchat.base >=3.7.0 <3.11.0` |
+| Unity | Unity 2022.3.22f1 |
+| VRChat SDK | `com.vrchat.base >=3.10.4 <3.11.0` |
 | Package ID | `com.nickel-jp.avatar-recovery` |
 | Target OS | Windows 10 / 11 |
 | External extractor | AssetRipper.exe, obtained separately by the user |
@@ -100,6 +100,16 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.3.5 — HotSwap Separation and SDK 3.10.4
+
+- Removed Avatar and World HotSwap from the Unity package so AvatarRecovery remains focused on normal Avatar, World, and Prop recovery.
+- HotSwap will be provided separately as a desktop application instead of remaining coupled to the AvatarRecovery Unity package.
+- Preserved normal recovery, Expression Menu recovery, AAO compatibility, shader recovery, preview, and VRCA auto-backup workflows.
+- Removed the dedicated HotSwap Unity environments from the package, reducing package size and import work.
+- Fixed recovery failures when valid AssetRipper output omits folder `.meta` files; AvatarRecovery now safely completes only the missing folder metadata while keeping file metadata and final-output integrity checks strict.
+- Updated the supported environment to VRChat SDK 3.10.4 and Unity 2022.3.22f1.
+- Ran all 513 tests in the final integrated package: 508 passed, the remaining five matched existing environment-sensitive failures, and no new regression was found.
 
 ### Version 1.3.4 — AAO and Shader Recovery Safety
 

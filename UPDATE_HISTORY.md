@@ -2,6 +2,16 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.3.5 — HotSwap Separation and SDK 3.10.4
+
+- Removed Avatar and World HotSwap from the Unity package and kept AvatarRecovery focused on normal Avatar, World, and Prop recovery.
+- HotSwap will be distributed separately as a desktop application.
+- Preserved normal recovery, Expression Menu recovery, AAO compatibility, shader recovery, preview, and VRCA auto-backup workflows.
+- Removed the dedicated HotSwap Unity environments from the package, reducing package size and import work.
+- Fixed recovery failures when valid AssetRipper output omits folder `.meta` files; only missing folder metadata is completed, while file metadata and final-output integrity checks remain strict.
+- Updated compatibility to VRChat SDK 3.10.4 and Unity 2022.3.22f1.
+- Ran all 513 tests in the final integrated package: 508 passed, the remaining five matched existing environment-sensitive failures, and no new regression was found.
+
 ## Version 1.3.4 — AAO and Shader Recovery Safety
 
 - Fixed cases where recoverable AAO-optimized avatars and some older avatar layouts were rejected by integrity checks.
