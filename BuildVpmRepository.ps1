@@ -19,6 +19,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $PrivateSdkBundledMinimumVersion = [version]"1.3.0"
+$PrivateSdkBundledMaximumVersion = [version]"1.3.4"
 $PrivateSdkVersion = "3.10.2"
 $PrivateResolverVersion = "0.1.29"
 $InventoryContractFormat = "AvatarRecovery private SDK-bundled inventory v1"
@@ -302,6 +303,33 @@ function Assert-NoOrphanUnityMetaEntries {
             "$DisplayName contains Unity .meta entries whose assets or directories " +
             "would be absent from the package: " +
             ($orphanMetaPaths -join ', '))
+    }
+}
+
+function Assert-RemovedHotSwapEntriesAbsent {
+    param(
+        [Parameter(Mandatory = $true)]$Inventory,
+        [Parameter(Mandatory = $true)][string]$DisplayName
+    )
+
+    $hotSwapPaths = @($Inventory.Files | Where-Object {
+        $relativePath = [string]$_.RelativePath
+        [string]::Equals(
+            $relativePath,
+            "Editor/HotSwap",
+            [StringComparison]::OrdinalIgnoreCase) -or
+        [string]::Equals(
+            $relativePath,
+            "Editor/HotSwap.meta",
+            [StringComparison]::OrdinalIgnoreCase) -or
+        $relativePath.StartsWith(
+            "Editor/HotSwap/",
+            [StringComparison]::OrdinalIgnoreCase)
+    })
+    if ($hotSwapPaths.Count -gt 0) {
+        throw (
+            "$DisplayName contains HotSwap entries after HotSwap separation: " +
+            (($hotSwapPaths.RelativePath) -join ', '))
     }
 }
 
@@ -677,7 +705,13 @@ try {
         Assert-NoOrphanUnityMetaEntries `
             -Inventory $sourceInventory `
             -DisplayName "Source package"
-        if ($parsedVersion -ge $PrivateSdkBundledMinimumVersion) {
+        if ($parsedVersion -gt $PrivateSdkBundledMaximumVersion) {
+            Assert-RemovedHotSwapEntriesAbsent `
+                -Inventory $sourceInventory `
+                -DisplayName "Source package"
+        }
+        if ($parsedVersion -ge $PrivateSdkBundledMinimumVersion -and
+            $parsedVersion -le $PrivateSdkBundledMaximumVersion) {
             Assert-BundledSdkLayout -PackageRoot $packageRoot
             $avatarTemplateInventory = Get-TemplateInventory `
                 -PackageRoot $packageRoot `

@@ -17,6 +17,18 @@ $PublishedCertificatePemPath = Join-Path $RepoRoot "certificates\avatar-recovery
 $ExpectedRepositoryBaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity"
 $LegacyRepositoryBaseUrl = "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main"
 $PublishedVersionLimit = 3
+$BundledWorkerSdkMinimumVersion = [version]"1.3.0"
+$BundledWorkerSdkMaximumVersion = [version]"1.3.4"
+try {
+    $ParsedReleaseVersion = [version]$Version
+}
+catch {
+    throw "Package version is invalid: $Version"
+}
+$SupportsBundledWorkerSdk = (
+    $ParsedReleaseVersion -ge $BundledWorkerSdkMinimumVersion -and
+    $ParsedReleaseVersion -le $BundledWorkerSdkMaximumVersion)
+$RequiresHotSwapRemoval = $ParsedReleaseVersion -gt $BundledWorkerSdkMaximumVersion
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -90,6 +102,10 @@ function New-TestZip {
 function Test-IsBundledWorkerSdkEntry {
     param([Parameter(Mandatory = $true)][string]$EntryName)
 
+    if (-not $SupportsBundledWorkerSdk) {
+        return $false
+    }
+
     $normalizedName = $EntryName.Replace('\', '/')
     $segments = $normalizedName.Split(
         [char[]]@('/'),
@@ -122,6 +138,26 @@ function Test-PackageZipGuard {
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     $archive = [System.IO.Compression.ZipFile]::OpenRead($ZipPath)
     try {
+        if ($RequiresHotSwapRemoval) {
+            $hotSwapEntries = @($archive.Entries | Where-Object {
+                $normalizedName = $_.FullName.Replace('\', '/')
+                [string]::Equals(
+                    $normalizedName,
+                    "Editor/HotSwap",
+                    [StringComparison]::OrdinalIgnoreCase) -or
+                [string]::Equals(
+                    $normalizedName,
+                    "Editor/HotSwap.meta",
+                    [StringComparison]::OrdinalIgnoreCase) -or
+                $normalizedName.StartsWith(
+                    "Editor/HotSwap/",
+                    [StringComparison]::OrdinalIgnoreCase)
+            })
+            if ($hotSwapEntries.Count -gt 0) {
+                throw "HotSwap entries remain after separation: $($hotSwapEntries.FullName -join ', ')"
+            }
+        }
+
         $blocked = @($archive.Entries | Where-Object {
             $normalizedName = $_.FullName.Replace('\', '/')
             $isBundledWorkerSdkEntry = Test-IsBundledWorkerSdkEntry -EntryName $normalizedName
@@ -137,6 +173,29 @@ function Test-PackageZipGuard {
         })
         if ($blocked.Count -gt 0) {
             throw "blocked zip entries: $($blocked.FullName -join ', ')"
+        }
+
+        $runtimeSidecarEntryName = "Editor/$RuntimeIntegritySidecarFileName"
+        $runtimeSidecarMetaEntryName = "$runtimeSidecarEntryName.meta"
+        $runtimeSidecarEntries = @($archive.Entries | Where-Object {
+            [string]::Equals(
+                $_.FullName.Replace('\', '/'),
+                $runtimeSidecarEntryName,
+                [StringComparison]::Ordinal)
+        })
+        $runtimeSidecarMetaEntries = @($archive.Entries | Where-Object {
+            [string]::Equals(
+                $_.FullName.Replace('\', '/'),
+                $runtimeSidecarMetaEntryName,
+                [StringComparison]::Ordinal)
+        })
+        if ($runtimeSidecarEntries.Count -gt 1 -or
+            $runtimeSidecarMetaEntries.Count -gt 1 -or
+            (($runtimeSidecarEntries.Count -eq 1) -ne
+                ($runtimeSidecarMetaEntries.Count -eq 1))) {
+            throw (
+                "runtime sidecar and Unity metadata do not match: " +
+                "$runtimeSidecarEntryName / $runtimeSidecarMetaEntryName")
         }
 
         foreach ($entry in $archive.Entries) {
@@ -1719,8 +1778,10 @@ $checksumPath = Join-Path $RepoRoot "checksums\$PackageId-$Version.sha256.txt"
     Test-PackageZipGuard -ZipPath $zipPath
     Test-NoOrphanUnityMetaEntriesInZip -ZipPath $zipPath
     Test-PackageReadmeSecurityDisclosure -ZipPath $zipPath
-    Test-AvatarHotSwapCompletedArtifactConsistency -ZipPath $zipPath
-    Test-AvatarWorkerAssemblyLinkage -ZipPath $zipPath
+    if ($SupportsBundledWorkerSdk) {
+        Test-AvatarHotSwapCompletedArtifactConsistency -ZipPath $zipPath
+        Test-AvatarWorkerAssemblyLinkage -ZipPath $zipPath
+    }
     Assert-PublicApiMatchesAllowlist `
         -CurrentPublicTypes (Get-PublicTopLevelTypeNamesFromAssembly -Path (Get-PackagedDllPath))
     $zipHash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -1746,9 +1807,31 @@ New-TestZip `
     -Path (Join-Path $OutputRoot "bundled-worker-sdk-source.zip") `
     -EntryName "Editor/HotSwap/HotSwap_Avtr/WorkerTemplate~/Packages/com.vrchat.base/Runtime/Allowed.cs" `
     -Text "class Allowed {}"
-[void]$results.Add((Assert-Passes "A1 bundled Worker SDK source" {
-    Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "bundled-worker-sdk-source.zip")
-}))
+if ($SupportsBundledWorkerSdk) {
+    [void]$results.Add((Assert-Passes "A1 bundled Worker SDK source" {
+        Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "bundled-worker-sdk-source.zip")
+    }))
+}
+else {
+    [void]$results.Add((Assert-Fails "A1 removed Worker SDK source" {
+        Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "bundled-worker-sdk-source.zip")
+    }))
+}
+
+New-TestZip `
+    -Path (Join-Path $OutputRoot "removed-hotswap-content.zip") `
+    -EntryName "Editor/HotSwap/HotSwap_Avtr/Placeholder.asset" `
+    -Text "placeholder"
+if ($RequiresHotSwapRemoval) {
+    [void]$results.Add((Assert-Fails "A1b removed HotSwap content" {
+        Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "removed-hotswap-content.zip")
+    }))
+}
+else {
+    [void]$results.Add((Assert-Passes "A1b legacy HotSwap content" {
+        Test-PackageZipGuard -ZipPath (Join-Path $OutputRoot "removed-hotswap-content.zip")
+    }))
+}
 
 New-TestZip `
     -Path (Join-Path $OutputRoot "worker-template-source-injection.zip") `
