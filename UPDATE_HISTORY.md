@@ -2,6 +2,15 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.3.3 — Low-Spec HotSwap Reliability
+
+- Avatar HotSwap now keeps waiting while the dedicated Unity environment is making valid progress, including slower PCs and first-time preparation.
+- Temporary file, access, and connection failures are retried, while incomplete previous attempts are recovered without interfering with an active run.
+- Thumbnail and input-file problems are reported before startup with clear guidance in the HotSwap window.
+- The existing VCC, ALCOM, and VRChat SDK login workflow is unchanged. Run HotSwap from a Unity Editor where VRChat SDK login is already confirmed; the official VRChat consent confirmation may still appear when required by the SDK.
+- No folder deletion, SDK replacement, or additional login setup is required for this update.
+- Validation covered Unity 2022.3.22f1, a clean first-time preparation exceeding two minutes, 43 automated HotSwap tests, and the signed release-artifact self-test.
+
 ## Recent Older Releases
 
 ### Version 1.2.9 — Expression Menu Recovery Compatibility
