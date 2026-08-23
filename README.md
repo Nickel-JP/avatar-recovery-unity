@@ -40,7 +40,7 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
 
-Version 1.3.3 is available from the same public repository URL used by earlier releases. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then update `Avatar Recovery` to version 1.3.3.
+Version 1.3.4 is available from the same public repository URL used by earlier releases. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then update `Avatar Recovery` to version 1.3.4.
 
 ## AvatarRecovery Community Server
 
@@ -52,22 +52,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.3.3.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.3.4.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.3.3.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.3.4.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 93076F6067327EB530E4750A8A4FD7C4A0BADF098DC40FBA16117EEB01C5C7D4
-# and matches the packages/com.nickel-jp.avatar-recovery-1.3.3.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.3.3.sha256.txt.
+# Confirm that it is 71EAEA90DB57A1CE314A15977551CC87C74B5CF5CF20759165B3E68AB3E8F789
+# and matches the packages/com.nickel-jp.avatar-recovery-1.3.4.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.3.4.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.3.3.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.3.4.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -100,6 +100,16 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.3.4 — AAO and Shader Recovery Safety
+
+- Fixed cases where recoverable AAO-optimized avatars and some older avatar layouts were rejected by integrity checks.
+- Improved shader restoration safety: ambiguous, duplicate, and unresolved candidates are no longer guessed, and multi-material updates are applied only when the whole set can be verified.
+- Preserved the existing `Shaders.txt` and `MaterialShaderMap` recovery and review workflow.
+- Strengthened temporary-output and final-output handling so unverified results are not adopted when file state cannot be confirmed safely.
+- Restored Unity rendering state even when texture reading stops with an error, preventing the failed operation from affecting later Editor work.
+- Kept the published Avatar and World HotSwap implementation, setup, and compatibility unchanged.
+- Verified in Unity 2022.3.22f1 with 388 core regression tests, 16 AAO budget tests, 9 older-layout compatibility tests, one replacement-conflict safety test, and a successful real 0Polygon recovery from an ALCOM-installed 1.3.4 package.
 
 ### Version 1.3.3 — Low-Spec HotSwap Reliability
 
