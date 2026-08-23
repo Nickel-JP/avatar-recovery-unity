@@ -2,6 +2,16 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.3.4 — AAO and Shader Recovery Safety
+
+- Fixed cases where recoverable AAO-optimized avatars and some older avatar layouts were rejected by integrity checks.
+- Improved shader restoration safety so ambiguous, duplicate, and unresolved candidates are not guessed; multi-material updates are accepted only when the complete set can be verified.
+- Preserved the existing `Shaders.txt` and `MaterialShaderMap` workflow.
+- Strengthened temporary-output and final-output handling so unverified results are not adopted when file state cannot be confirmed safely.
+- Restored Unity rendering state after texture-read failures to prevent follow-on Editor issues.
+- Kept the published Avatar and World HotSwap behavior and compatibility unchanged.
+- Validation covered Unity 2022.3.22f1, with 388 core regression tests, 16 AAO budget tests, 9 older-layout compatibility tests, one replacement-conflict safety test, and a successful real 0Polygon recovery from an ALCOM-installed 1.3.4 package.
+
 ## Version 1.3.3 — Low-Spec HotSwap Reliability
 
 - Avatar HotSwap now keeps waiting while the dedicated Unity environment is making valid progress, including slower PCs and first-time preparation.
