@@ -2,6 +2,14 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.3.6 — Expression Menu Icon Compatibility
+
+- Fixed a recovery failure where valid PNG icons in restored Expression Menus could be rejected because Unity represents the loaded image using a different compatible texture format.
+- Expression Menu icon verification now compares the resulting RGBA pixels instead of rejecting a normal Unity texture solely because of its storage format.
+- Kept output-path, existing-file, and image-size boundaries while allowing Unity-readable icon formats to complete normal recovery.
+- Preserved the HotSwap-separated package layout and the Unity 2022.3.22f1 / VRChat SDK 3.10.4 environment from version 1.3.5.
+- Ran all 517 tests in the final integrated source package: 512 passed, the remaining five matched the same environment-sensitive failures as version 1.3.5, and no new regression was found.
+
 ## Version 1.3.5 — HotSwap Separation and SDK 3.10.4
 
 - Removed Avatar and World HotSwap from the Unity package and kept AvatarRecovery focused on normal Avatar, World, and Prop recovery.
