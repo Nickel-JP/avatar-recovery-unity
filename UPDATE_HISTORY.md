@@ -2,6 +2,15 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.12 — Bundled AssetRipper
+
+- Bundled AssetRipper 1.3.14 and the related files required for it to run.
+- Removed separate AssetRipper downloads, arbitrary version selection, path settings, and external executable discovery. AvatarRecovery now uses only the bundled version.
+- Extracts the bundled files under the Unity project's `Library/AvatarRecovery` folder on first use, outside Unity's imported Assets and script assemblies.
+- Preserved the version 1.2.11 recovery workflow, AAO compatibility, Expression Menu recovery, shader recovery, and Missing Script handling. No HotSwap or animation-performance changes are included.
+- Verified in Unity 2022.3.22f1 with a successful package build, EditorWindow smoke test, AssetRipper startup, and all 7 available EditMode tests passing.
+- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.12.
+
 ## Version 1.2.11 — AAO Recovery Reliability
 
 - Fixed recurring recovery failures for valid AAO-generated avatar layouts that do not require conventional skinning data.

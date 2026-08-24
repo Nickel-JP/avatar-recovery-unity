@@ -25,6 +25,7 @@
     [string]$SignPathSigningPolicySlug = $env:SIGNPATH_SIGNING_POLICY_SLUG,
     [string]$SignPathApiToken = $env:SIGNPATH_API_TOKEN,
     [string]$SignPathExpectedCertificateThumbprint = $env:SIGNPATH_CERTIFICATE_THUMBPRINT,
+    [string]$AssetRipperZip = $env:AVATAR_RECOVERY_ASSETRIPPER_ZIP,
     [switch]$DisableSelfSignedCertificate,
     [switch]$TrustSelfSignedCertificateForAuthenticode,
     [switch]$SkipUnityCompile,
@@ -97,6 +98,8 @@ $StringEncryptionAllowlistPath = Join-Path $RepoRoot "Build\StringEncryptionAllo
 $ControlFlowObfuscationAllowlistPath = Join-Path $RepoRoot "Build\ControlFlowObfuscationAllowlist.txt"
 $AntiDecompileAllowlistPath = Join-Path $RepoRoot "Build\AntiDecompileAllowlist.txt"
 $ExpressionMenuNormalizerProjectPath = Join-Path $RepoRoot "Build\ExpressionMenuNormalizer\ExpressionMenuNormalizer.csproj"
+$AssetRipperStageScriptPath = Join-Path $RepoRoot "Build\StageBundledAssetRipper.ps1"
+$ExpectedAssetRipperZipSha256 = "ff0517cb3bbb0ecde46880726b567ec77623c591e88fce646891aa94df57a68c"
 $ExpressionMenuNormalizerTargetFramework = "net48"
 $ExpressionMenuNormalizerConfiguration = "Release"
 $ExpressionMenuNormalizerStageRoot = Join-Path $SourcePackageRoot "Tools~\ExpressionMenuNormalizer"
@@ -1678,7 +1681,12 @@ function Get-SourceScan {
     param([Parameter(Mandatory = $true)][string]$SourceRoot)
 
     $sourceFiles = Get-ChildItem -LiteralPath $SourceRoot -Recurse -Filter "*.cs" -File
-    $uiToolkitFiles = @(Get-ChildItem -LiteralPath $SourceRoot -Recurse -File -Include "*.uxml", "*.uss" -ErrorAction SilentlyContinue)
+    # Windows PowerShell 5.1 では -LiteralPath と -Include の併用時に
+    # 拡張子フィルターが適用されないため、列挙後に明示的に絞り込む。
+    $uiToolkitFiles = @(
+        Get-ChildItem -LiteralPath $SourceRoot -Recurse -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Extension -in @(".uxml", ".uss") }
+    )
     $attributeMethods = New-Object System.Collections.Generic.List[object]
     $attributeUsages = New-Object System.Collections.Generic.List[object]
     $vrcSdkCallbackTypes = New-Object System.Collections.Generic.List[string]
@@ -6102,6 +6110,20 @@ if ($SkipUnityCompile) {
 }
 
 Initialize-SourcePackage
+if ([string]::IsNullOrWhiteSpace($AssetRipperZip)) {
+    throw (
+        "AssetRipper ZIP must be specified with -AssetRipperZip or " +
+        "AVATAR_RECOVERY_ASSETRIPPER_ZIP.")
+}
+if (-not (Test-Path -LiteralPath $AssetRipperStageScriptPath -PathType Leaf)) {
+    throw "AssetRipper staging script was not found: $AssetRipperStageScriptPath"
+}
+& powershell -NoProfile -ExecutionPolicy Bypass -File $AssetRipperStageScriptPath `
+    -SourcePackageRoot $SourcePackageRoot `
+    -AssetRipperZip $AssetRipperZip
+if ($LASTEXITCODE -ne 0) {
+    throw "Bundled AssetRipper staging failed."
+}
 if (-not (Test-Path $UnityExe)) {
     throw "Unity executable was not found: $UnityExe"
 }
@@ -6278,6 +6300,19 @@ Get-ChildItem -LiteralPath $outputDir -Force |
     }
 
 Initialize-ProjectPackage
+$packagedAssetRipperZip = Join-Path `
+    $ProjectPackageRoot `
+    "Tools~\AssetRipper\AssetRipper.zip"
+if (-not (Test-Path -LiteralPath $packagedAssetRipperZip -PathType Leaf)) {
+    throw "Bundled AssetRipper ZIP was not copied into the project package."
+}
+$packagedAssetRipperZipSha256 = Get-Sha256HexLower `
+    -Path $packagedAssetRipperZip
+if ($packagedAssetRipperZipSha256 -cne $ExpectedAssetRipperZipSha256) {
+    throw (
+        "Packaged AssetRipper ZIP hash mismatch: " +
+        $packagedAssetRipperZipSha256)
+}
 $packagedExpressionMenuNormalizerRoot = Join-Path `
     $ProjectPackageRoot `
     "Tools~\ExpressionMenuNormalizer"

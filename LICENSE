@@ -45,13 +45,13 @@ You may not:
 
 3. Third-party components
 
-AvatarRecovery does not include AssetRipper binaries and does not include SARS
-source code. AvatarRecovery may call AssetRipper as an external process when
-the user has separately obtained and configured AssetRipper.
+For AssetRipper, this package includes only AssetRipper.exe and the related
+files required for it to run. AssetRipper source code and SARS source code are
+not included.
 
 AssetRipper and SARS are separate projects governed by their own licenses.
-You are responsible for complying with those licenses when obtaining or using
-those projects.
+The restrictions in this AvatarRecovery Custom License do not apply to files
+under Tools~/AssetRipper; those files are governed by their included licenses.
 
 4. No warranty
 

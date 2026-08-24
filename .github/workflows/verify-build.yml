@@ -27,7 +27,7 @@ permissions:
   contents: read
 
 env:
-  VERSION: 1.2.11
+  VERSION: 1.2.12
 
 jobs:
   verify:
@@ -41,6 +41,7 @@ jobs:
         run: |
           $scripts = @(
             ".\BuildProtectedAvatarRecoveryPackage.ps1",
+            ".\Build\StageBundledAssetRipper.ps1",
             ".\BuildVpmRepository.ps1",
             ".\Invoke-ProtectionSelfTests.ps1",
             ".\Invoke-PublishedReleaseAudit.ps1"
