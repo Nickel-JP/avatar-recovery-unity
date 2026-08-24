@@ -27,7 +27,7 @@ $BinaryLeakRulesPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
 $PublishedVersionLimit = 3
 $BundledWorkerSdkMinimumVersion = [version]"1.3.0"
 $BundledWorkerSdkMaximumVersion = [version]"1.3.4"
-$RuntimeSidecarUnityMetadataMinimumVersion = [version]"1.3.0"
+$RuntimeSidecarUnityMetadataMinimumVersion = [version]"1.2.11"
 try {
     $ParsedReleaseVersion = [version]$Version
 }
