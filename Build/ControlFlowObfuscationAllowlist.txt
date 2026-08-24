@@ -4,7 +4,7 @@
 
 EditorTools.AvatarRecovery.RecoveryNameUtility|BuildShortBlueprintId
 EditorTools.AvatarRecovery.RecoveryNameUtility|IsWeakName
-EditorTools.AvatarRecovery.RecoveryNameUtility|SanitizePathComponent
+EditorTools.AvatarRecovery.RecoveryNameUtility|SanitizeFileName
 EditorTools.AvatarRecovery.VrcaLoader|StartsWithMagic
 EditorTools.AvatarRecovery.VrcaLoader|ParseUnityVersion
 EditorTools.AvatarRecovery.ShaderRemapper|FindBestShader
