@@ -19,6 +19,7 @@ $LegacyRepositoryBaseUrl = "https://raw.githubusercontent.com/Nickel-JP/avatar-r
 $PublishedVersionLimit = 3
 $BundledWorkerSdkMinimumVersion = [version]"1.3.0"
 $BundledWorkerSdkMaximumVersion = [version]"1.3.4"
+$RuntimeSidecarUnityMetadataMinimumVersion = [version]"1.3.0"
 try {
     $ParsedReleaseVersion = [version]$Version
 }
@@ -29,6 +30,8 @@ $SupportsBundledWorkerSdk = (
     $ParsedReleaseVersion -ge $BundledWorkerSdkMinimumVersion -and
     $ParsedReleaseVersion -le $BundledWorkerSdkMaximumVersion)
 $RequiresHotSwapRemoval = $ParsedReleaseVersion -gt $BundledWorkerSdkMaximumVersion
+$RequiresRuntimeSidecarUnityMetadata = (
+    $ParsedReleaseVersion -ge $RuntimeSidecarUnityMetadataMinimumVersion)
 
 function ConvertTo-FullPath {
     param([Parameter(Mandatory = $true)][string]$Path)
@@ -189,10 +192,14 @@ function Test-PackageZipGuard {
                 $runtimeSidecarMetaEntryName,
                 [StringComparison]::Ordinal)
         })
+        $hasRuntimeSidecar = $runtimeSidecarEntries.Count -eq 1
+        $hasRuntimeSidecarMeta = $runtimeSidecarMetaEntries.Count -eq 1
         if ($runtimeSidecarEntries.Count -gt 1 -or
             $runtimeSidecarMetaEntries.Count -gt 1 -or
-            (($runtimeSidecarEntries.Count -eq 1) -ne
-                ($runtimeSidecarMetaEntries.Count -eq 1))) {
+            ($RequiresRuntimeSidecarUnityMetadata -and
+                ($hasRuntimeSidecar -ne $hasRuntimeSidecarMeta)) -or
+            (-not $RequiresRuntimeSidecarUnityMetadata -and
+                $hasRuntimeSidecarMeta)) {
             throw (
                 "runtime sidecar and Unity metadata do not match: " +
                 "$runtimeSidecarEntryName / $runtimeSidecarMetaEntryName")
