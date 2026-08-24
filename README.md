@@ -4,7 +4,7 @@ VPM repository for `com.nickel-jp.avatar-recovery`.
 
 AvatarRecovery is a Unity Editor extension for inspecting VRChat `.vrca`, `.vrcw`, and `.vrcp` AssetBundles and recovering their contents into a Unity project when you have permission to do so.
 
-AvatarRecovery launches `AssetRipper.exe` as an external process, then applies its own C# post-processing to help safely restore script and shader GUIDs, handle missing scripts, select the appropriate prefab, and reset poses. AssetRipper itself and the SARS source code are not included.
+AvatarRecovery launches the bundled AssetRipper 1.3.14 files as an external process, then applies its own C# post-processing to help safely restore script and shader GUIDs, handle missing scripts, select the appropriate prefab, and reset poses. A separate AssetRipper download or path setting is not required. AssetRipper and SARS source code are not included.
 
 ## VPM Repository
 
@@ -40,7 +40,7 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
 
-Version 1.2.11 is the current public stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.11. Existing 1.3.x installations are not downgraded automatically.
+Version 1.2.12 is the current public stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.12. Existing 1.3.x installations are not downgraded automatically.
 
 ## AvatarRecovery Community Server
 
@@ -52,22 +52,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.2.11.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.2.12.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.11.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.12.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 9E734C18920BE3F2DD490C114FDFEB598CBC3C43F7C697A04B5B65F703FAB88F
-# and matches the packages/com.nickel-jp.avatar-recovery-1.2.11.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.11.sha256.txt.
+# Confirm that it is F326D6F226BFCDB78BFD0902F0E6EEAA03670271858CCBD64B0B4684A42248D4
+# and matches the packages/com.nickel-jp.avatar-recovery-1.2.12.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.12.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.11.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.12.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -94,14 +94,23 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 | VRChat SDK | `com.vrchat.base >=3.7.0 <3.11.0` |
 | Package ID | `com.nickel-jp.avatar-recovery` |
 | Target OS | Windows 10 / 11 |
-| External extractor | AssetRipper.exe, obtained separately by the user |
+| External extractor | Bundled AssetRipper 1.3.14 |
 | License | AvatarRecovery Custom License |
 
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
 
-### Current Public Version — 1.2.11 AAO Recovery Reliability
+### Current Public Version — 1.2.12 Bundled AssetRipper
+
+- Bundled AssetRipper 1.3.14 and the related files required for it to run.
+- Removed separate AssetRipper downloads, arbitrary version selection, path settings, and external executable discovery. AvatarRecovery now uses only the bundled version.
+- Extracts the bundled files under the Unity project's `Library/AvatarRecovery` folder on first use, outside Unity's imported Assets and script assemblies.
+- Preserved the version 1.2.11 recovery workflow, AAO compatibility, Expression Menu recovery, shader recovery, and Missing Script handling. No HotSwap or animation-performance changes are included.
+- Verified in Unity 2022.3.22f1 with a successful package build, EditorWindow smoke test, AssetRipper startup, and all 7 available EditMode tests passing.
+- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.12.
+
+### Version 1.2.11 — AAO Recovery Reliability
 
 - Fixed recurring recovery failures for valid AAO-generated avatar layouts that do not require conventional skinning data.
 - If an AAO repair candidate cannot be accepted, recovery now keeps the original Raw prefab only when that prefab can be reloaded successfully.
@@ -302,7 +311,7 @@ AvatarRecovery v1.1.0 and later are distributed under the AvatarRecovery Custom 
 
 Earlier AvatarRecovery releases published under the MIT License remain governed by their original license terms.
 
-AssetRipper and SARS are separate projects governed by their own licenses. AvatarRecovery does not bundle AssetRipper binaries or SARS source code.
+AssetRipper and SARS are separate projects governed by their own licenses. For AssetRipper, AvatarRecovery bundles only AssetRipper.exe and the related files required for it to run. AssetRipper and SARS source code are not included.
 
 ## Ethical Use
 
