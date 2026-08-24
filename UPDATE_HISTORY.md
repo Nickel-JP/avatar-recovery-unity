@@ -2,6 +2,14 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.11 — AAO Recovery Reliability
+
+- Fixed recurring recovery failures for valid AAO-generated avatar layouts that do not require conventional skinning data.
+- If an AAO repair candidate cannot be accepted, recovery now keeps the original Raw prefab only when that prefab can be reloaded successfully.
+- Kept the version 1.2.10 workflow and compatibility. HotSwap and animation-processing changes from the withdrawn 1.3.x line are not included.
+- Verified in Unity 2022.3.22f1 with all 15 focused AAO recovery regression tests passing, including validation against a recovered AAO avatar fixture.
+- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.11.
+
 ## Version 1.3.6 — Expression Menu Icon Compatibility
 
 - Fixed a recovery failure where valid PNG icons in restored Expression Menus could be rejected because Unity represents the loaded image using a different compatible texture format.

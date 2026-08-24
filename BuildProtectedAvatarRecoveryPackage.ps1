@@ -6011,6 +6011,7 @@ function Initialize-ProjectPackage {
             SourcePath = Join-Path $previousProjectEditorRoot "$RuntimeIntegritySidecarFileName.meta"
             DestinationPath = Join-Path $editorDir "$RuntimeIntegritySidecarFileName.meta"
             EntryName = "Editor/$RuntimeIntegritySidecarFileName.meta"
+            FallbackPath = Join-Path $RepoRoot "Build\RuntimeIntegritySidecar.meta"
         }
     )
     $missingMetadata = New-Object System.Collections.Generic.List[object]
@@ -6048,6 +6049,16 @@ function Initialize-ProjectPackage {
                     $metadataContract.EntryName,
                     [StringComparison]::Ordinal)
             })
+            if ($matchingEntries.Count -eq 0 -and
+                $metadataContract.PSObject.Properties.Name -contains "FallbackPath" -and
+                (Test-Path -LiteralPath $metadataContract.FallbackPath -PathType Leaf)) {
+                # 補助ファイルが存在しない旧版から更新するときは、公開済みGUIDを継承する。
+                Copy-Item `
+                    -LiteralPath $metadataContract.FallbackPath `
+                    -Destination $metadataContract.DestinationPath `
+                    -Force
+                continue
+            }
             if ($matchingEntries.Count -ne 1) {
                 throw (
                     "Previous package must contain exactly one Unity metadata entry: " +

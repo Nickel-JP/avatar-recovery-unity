@@ -40,7 +40,7 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
 
-Version 1.2.10 is the current public stable version. Newer 1.3.x releases have been withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.10. Existing 1.3.x installations are not downgraded automatically.
+Version 1.2.11 is the current public stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.11. Existing 1.3.x installations are not downgraded automatically.
 
 ## AvatarRecovery Community Server
 
@@ -52,22 +52,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.2.10.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.2.11.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.10.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.11.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 923A7CCBCD2BECFEAB805EE380E1989BC3955F2D3618A46EAF3F2D8DEF8F0B1F
-# and matches the packages/com.nickel-jp.avatar-recovery-1.2.10.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.10.sha256.txt.
+# Confirm that it is 9E734C18920BE3F2DD490C114FDFEB598CBC3C43F7C697A04B5B65F703FAB88F
+# and matches the packages/com.nickel-jp.avatar-recovery-1.2.11.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.11.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.10.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.11.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -101,7 +101,15 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Current Public Version — Rollback to 1.2.10
+### Current Public Version — 1.2.11 AAO Recovery Reliability
+
+- Fixed recurring recovery failures for valid AAO-generated avatar layouts that do not require conventional skinning data.
+- If an AAO repair candidate cannot be accepted, recovery now keeps the original Raw prefab only when that prefab can be reloaded successfully.
+- Kept the version 1.2.10 workflow and compatibility. HotSwap and animation-processing changes from the withdrawn 1.3.x line are not included.
+- Verified in Unity 2022.3.22f1 with all 15 focused AAO recovery regression tests passing, including validation against a recovered AAO avatar fixture.
+- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.11.
+
+### Rollback to 1.2.10
 
 - Restored version 1.2.10 as the current supported public release because of reliability issues reported in later versions.
 - Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then manually select AvatarRecovery 1.2.10.
