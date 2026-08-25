@@ -2,6 +2,14 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.13 — AnimatorController Reference Recovery
+
+- Fixed recovered AnimatorControllers that could keep transitions pointing to states outside the controller.
+- Prevented Console errors such as `AnyState -> Default` reporting that the destination state does not exist in the controller.
+- Preserved the version 1.2.12 recovery workflow, bundled AssetRipper, AAO compatibility, Expression Menu recovery, shader recovery, and Missing Script handling.
+- Verified in Unity 2022.3.22f1 with both focused EditMode tests passing and a successful recovery of the supplied VRCA. The real recovery checked 8 controllers, corrected 3 controllers containing 14 affected states and 4 transition references, and produced zero target missing-state errors.
+- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.13.
+
 ## Version 1.2.12 — Bundled AssetRipper
 
 - Bundled AssetRipper 1.3.14 and the related files required for it to run.
