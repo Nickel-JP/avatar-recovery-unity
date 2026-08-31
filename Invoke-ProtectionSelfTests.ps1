@@ -17,6 +17,11 @@ $PublishedCertificatePemPath = Join-Path $RepoRoot "certificates\avatar-recovery
 $ExpectedRepositoryBaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity"
 $LegacyRepositoryBaseUrl = "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main"
 $PublishedVersionLimit = 3
+$SharedSdkPackageId = "com.vrchat.base"
+$ProjectSpecificSdkPackageIds = @(
+    "com.vrchat.avatars",
+    "com.vrchat.worlds"
+)
 $BundledWorkerSdkMinimumVersion = [version]"1.3.0"
 $BundledWorkerSdkMaximumVersion = [version]"1.3.4"
 $RuntimeSidecarUnityMetadataMinimumVersion = [version]"1.2.11"
@@ -99,6 +104,35 @@ function New-TestZip {
     }
     finally {
         $archive.Dispose()
+    }
+}
+
+function Assert-AvatarAndWorldProjectCompatibleManifest {
+    param(
+        [Parameter(Mandatory = $true)]$Manifest,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+
+    $vpmDependenciesProperty = $Manifest.PSObject.Properties["vpmDependencies"]
+    if ($null -eq $vpmDependenciesProperty -or
+        $null -eq $vpmDependenciesProperty.Value) {
+        throw "latest package is missing vpmDependencies: $Context"
+    }
+
+    $vpmDependencies = $vpmDependenciesProperty.Value
+    $baseDependency = $vpmDependencies.PSObject.Properties[$SharedSdkPackageId]
+    if ($null -eq $baseDependency -or
+        [string]::IsNullOrWhiteSpace([string]$baseDependency.Value)) {
+        throw "latest package is missing ${SharedSdkPackageId}: $Context"
+    }
+
+    foreach ($projectSpecificPackageId in $ProjectSpecificSdkPackageIds) {
+        if ($null -ne $vpmDependencies.PSObject.Properties[$projectSpecificPackageId]) {
+            throw (
+                "latest package requires project-specific SDK package " +
+                "$projectSpecificPackageId and is not selectable in both Avatar " +
+                "and World projects: $Context")
+        }
     }
 }
 
@@ -1302,6 +1336,11 @@ function Test-PublishedVersionArtifacts {
         }
 
         $zipManifest = Get-PackageManifestFromZip -ZipPath $zipPath
+        if ($publishedVersion -ceq $Version) {
+            Assert-AvatarAndWorldProjectCompatibleManifest `
+                -Manifest $zipManifest `
+                -Context "package ZIP version $publishedVersion"
+        }
         $repositoryUrlsMatch = (
             [string]$zipManifest.url -ceq [string]$indexManifest.url -and
             [string]$zipManifest.repo -ceq [string]$indexManifest.repo)
@@ -2362,6 +2401,55 @@ else {
             "VPM build failed for an unexpected reason." +
             [Environment]::NewLine +
             ($buildOutput -join [Environment]::NewLine))
+    }
+}))
+
+[void]$results.Add((Assert-Passes "U VPM build rejects project-specific SDK dependencies" {
+    foreach ($projectSpecificPackageId in $ProjectSpecificSdkPackageIds) {
+        $fixtureName = $projectSpecificPackageId.Replace("com.vrchat.", "")
+        $fixtureRoot = Join-Path $OutputRoot "vpm-project-type-dependency-$fixtureName"
+        $fixtureProjectRoot = Join-Path $fixtureRoot "project"
+        $fixturePackageRoot = Join-Path $fixtureProjectRoot "Packages\$PackageId"
+        Ensure-Directory $fixturePackageRoot
+
+        $fixtureVersion = "1.2.8"
+        $fixtureManifest = [ordered]@{
+            name = $PackageId
+            displayName = "Avatar Recovery"
+            version = $fixtureVersion
+            unity = "2022.3"
+            url = "https://example.invalid/avatar-recovery/packages/$PackageId-$fixtureVersion.zip"
+            repo = "https://example.invalid/avatar-recovery/index.json"
+            vpmDependencies = [ordered]@{
+                "com.vrchat.base" = ">=3.7.0 <3.11.0"
+                $projectSpecificPackageId = ">=3.10.2 <3.11.0"
+            }
+        }
+        [System.IO.File]::WriteAllText(
+            (Join-Path $fixturePackageRoot "package.json"),
+            ($fixtureManifest | ConvertTo-Json -Depth 10),
+            [System.Text.UTF8Encoding]::new($false))
+
+        $buildOutput = @(
+            & powershell -NoProfile -ExecutionPolicy Bypass `
+                -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") `
+                -ProjectRoot $fixtureProjectRoot `
+                -OutputRoot $fixtureRoot `
+                -BaseUrl "https://example.invalid/avatar-recovery" `
+                -MinimumPublishedVersion "1.0.0" `
+                -MaximumPublishedVersion $fixtureVersion `
+                -MaximumPublishedVersionCount 3 2>&1
+        )
+        if ($LASTEXITCODE -eq 0) {
+            throw "VPM build accepted project-specific SDK dependency $projectSpecificPackageId."
+        }
+        if (($buildOutput -join [Environment]::NewLine) -notmatch
+            'must not require project-specific SDK package') {
+            throw (
+                "VPM build rejected $projectSpecificPackageId for an unexpected reason." +
+                [Environment]::NewLine +
+                ($buildOutput -join [Environment]::NewLine))
+        }
     }
 }))
 
