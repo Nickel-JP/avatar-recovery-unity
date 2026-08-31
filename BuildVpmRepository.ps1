@@ -24,6 +24,11 @@ $PrivateSdkVersion = "3.10.2"
 $PrivateResolverVersion = "0.1.29"
 $InventoryContractFormat = "AvatarRecovery private SDK-bundled inventory v1"
 $FixedZipTimestamp = [DateTimeOffset]::new(1980, 1, 1, 0, 0, 0, [TimeSpan]::Zero)
+$SharedSdkPackageId = "com.vrchat.base"
+$ProjectSpecificSdkPackageIds = @(
+    "com.vrchat.avatars",
+    "com.vrchat.worlds"
+)
 
 if ($IndexOnly -and [string]::IsNullOrWhiteSpace($MaximumPublishedVersion)) {
     throw "MaximumPublishedVersion is required in IndexOnly mode."
@@ -48,6 +53,39 @@ function Set-JsonProperty {
     }
     else {
         $Object.$Name = $Value
+    }
+}
+
+function Assert-AvatarAndWorldProjectCompatibleManifest {
+    param(
+        [Parameter(Mandatory = $true)]$Manifest,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+
+    $vpmDependenciesProperty = $Manifest.PSObject.Properties["vpmDependencies"]
+    if ($null -eq $vpmDependenciesProperty -or
+        $null -eq $vpmDependenciesProperty.Value) {
+        throw (
+            "AvatarRecovery must declare the shared VRChat SDK Base dependency " +
+            "so it remains selectable in both Avatar and World projects: $Context")
+    }
+
+    $vpmDependencies = $vpmDependenciesProperty.Value
+    $baseDependency = $vpmDependencies.PSObject.Properties[$SharedSdkPackageId]
+    if ($null -eq $baseDependency -or
+        [string]::IsNullOrWhiteSpace([string]$baseDependency.Value)) {
+        throw (
+            "AvatarRecovery must declare $SharedSdkPackageId so it remains " +
+            "selectable in both Avatar and World projects: $Context")
+    }
+
+    foreach ($projectSpecificPackageId in $ProjectSpecificSdkPackageIds) {
+        if ($null -ne $vpmDependencies.PSObject.Properties[$projectSpecificPackageId]) {
+            throw (
+                "AvatarRecovery must not require project-specific SDK package " +
+                "$projectSpecificPackageId because that prevents selection in either " +
+                "Avatar or World projects: $Context")
+        }
     }
 }
 
@@ -889,6 +927,11 @@ try {
                 @{ Expression = { $_.Version }; Descending = $true } |
             Select-Object -First $MaximumPublishedVersionCount
     )
+
+    $latestSelectedEntry = $selectedVersionEntries | Select-Object -First 1
+    Assert-AvatarAndWorldProjectCompatibleManifest `
+        -Manifest $latestSelectedEntry.Manifest `
+        -Context "latest selected package version $($latestSelectedEntry.Version)"
 
     $versions = [ordered]@{}
     foreach ($entry in $selectedVersionEntries) {

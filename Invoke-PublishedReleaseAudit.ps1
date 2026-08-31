@@ -25,6 +25,11 @@ $CertificatePemFileName = "avatar-recovery-self-signed-code-signing.cer.pem"
 $TrustedCertificatePath = Join-Path $RepoRoot "certificates\$CertificateFileName"
 $BinaryLeakRulesPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
 $PublishedVersionLimit = 3
+$SharedSdkPackageId = "com.vrchat.base"
+$ProjectSpecificSdkPackageIds = @(
+    "com.vrchat.avatars",
+    "com.vrchat.worlds"
+)
 $BundledWorkerSdkMinimumVersion = [version]"1.3.0"
 $BundledWorkerSdkMaximumVersion = [version]"1.3.4"
 $RuntimeSidecarUnityMetadataMinimumVersion = [version]"1.2.11"
@@ -241,6 +246,35 @@ function Get-PackageManifestFromZip {
     }
     finally {
         $archive.Dispose()
+    }
+}
+
+function Assert-AvatarAndWorldProjectCompatibleManifest {
+    param(
+        [Parameter(Mandatory = $true)]$Manifest,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+
+    $vpmDependenciesProperty = $Manifest.PSObject.Properties["vpmDependencies"]
+    if ($null -eq $vpmDependenciesProperty -or
+        $null -eq $vpmDependenciesProperty.Value) {
+        throw "latest package is missing vpmDependencies: $Context"
+    }
+
+    $vpmDependencies = $vpmDependenciesProperty.Value
+    $baseDependency = $vpmDependencies.PSObject.Properties[$SharedSdkPackageId]
+    if ($null -eq $baseDependency -or
+        [string]::IsNullOrWhiteSpace([string]$baseDependency.Value)) {
+        throw "latest package is missing ${SharedSdkPackageId}: $Context"
+    }
+
+    foreach ($projectSpecificPackageId in $ProjectSpecificSdkPackageIds) {
+        if ($null -ne $vpmDependencies.PSObject.Properties[$projectSpecificPackageId]) {
+            throw (
+                "latest package requires project-specific SDK package " +
+                "$projectSpecificPackageId and is not selectable in both Avatar " +
+                "and World projects: $Context")
+        }
     }
 }
 
@@ -876,6 +910,11 @@ function Invoke-AuditOnce {
         $publishedManifest = $versionProperty.Value
         if ([string]$publishedManifest.version -cne $publishedVersion) {
             throw "index.json version key and package version differ: $publishedVersion"
+        }
+        if ($publishedVersion -ceq $Version) {
+            Assert-AvatarAndWorldProjectCompatibleManifest `
+                -Manifest $publishedManifest `
+                -Context "published index version $publishedVersion"
         }
 
         $expectedPackageUrl = (

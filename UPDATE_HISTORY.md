@@ -2,6 +2,14 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.14 — Avatar and World Project Compatibility
+
+- Restored AvatarRecovery version selection and installation in both VCC/ALCOM Avatar projects and World projects.
+- World projects no longer need the Avatars SDK package just to install AvatarRecovery; Avatar-only features remain available when the Avatars SDK is present.
+- Preserved the version 1.2.13 recovery workflow and AnimatorController reference correction.
+- Verified the final package in Unity 2022.3.22f1 with VRChat SDK 3.10.4 Avatar and World projects. All 30 package self-tests passed.
+- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.14.
+
 ## Version 1.2.13 — AnimatorController Reference Recovery
 
 - Fixed recovered AnimatorControllers that could keep transitions pointing to states outside the controller.
