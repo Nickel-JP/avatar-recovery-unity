@@ -47,6 +47,9 @@ Core\AvatarRecoveryValidators.cs|Reflection|FindProperty\s*\(|*
 Core\AvatarRecoveryValidators.cs|Serialization|SerializedContract|*
 
 # Component restoration uses RequireComponent metadata and Unity TypeCache.
+# 部品の直接復元は、設定画面と同じ既定出力先定数を参照する。
+Core\VrcaExtractor.cs|EditorPrefs|EditorPrefs|return EditorPrefsHelper.DefaultAvatarPartOutput;
+
 Core\ComponentDependencyResolver.cs|Reflection|TypeCache\.|*
 Core\ComponentDependencyResolver.cs|Reflection|typeof\s*\(|*
 
