@@ -2,6 +2,16 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.15 — Avatar Parts and Shader Name Copy
+
+- Added `.vrcap` support as a separate Avatar Parts category, with file import, preview, recovery history, and a dedicated output folder.
+- Preserved avatar-part poses by skipping avatar-only pose and Gesture Layer adjustments.
+- Added right-click Copy Shader Name to the Original Shader column in Shader Lists, including full-length names and shaders not installed in the project.
+- Preserved existing Avatar, World, and Prop recovery, settings, and history compatibility.
+- Components unavailable in the project remain subject to the existing Missing Scripts setting.
+- Verified the final package in Unity 2022.3.22f1 with VRChat SDK 3.10.4: 14 Avatar-project tests and 13 World-project tests passed, including a real VRCAP recovery. All 30 package self-tests passed.
+- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.15.
+
 ## Version 1.2.14 — Avatar and World Project Compatibility
 
 - Restored AvatarRecovery version selection and installation in both VCC/ALCOM Avatar projects and World projects.
