@@ -22,6 +22,16 @@ Core\AaoMeshIntegrityRestorer.cs|Reflection|nameof\s*\(|*
 # AnimationClip name sanitization excludes Scene assets before loading clip containers.
 Core\AnimationClipNameSanitizer.cs|Reflection|typeof\s*\(|*
 
+# Animationの保存前後検証はUnityのシリアライズ済み参照とJSONを読み取る。
+Core\AnimationRecoveryValidator.cs|Reflection|nameof\s*\(|*
+Core\AnimationRecoveryValidator.cs|Reflection|\.GetType\s*\(|*
+Core\AnimationRecoveryValidator.cs|Reflection|JsonUtility|*
+Core\AnimationRecoveryValidator.cs|Reflection|SerializeReference|// SerializeReferenceのJSON格納パスは通常フィールドと異なる。
+Core\AnimationRecoveryValidator.cs|Serialization|SerializedContract|*
+
+# 同期LayerのoverrideではUnityが保存するState参照キーだけを再配線する。
+Core\AnimatorControllerStateReferenceFixer.cs|Serialization|SerializedContract|*
+
 # PipelineManager Blueprint ID cleanup identifies the SDK component and updates its serialized string field.
 Core\PipelineManagerBlueprintIdCleaner.cs|Reflection|\.GetType\s*\(|*
 Core\PipelineManagerBlueprintIdCleaner.cs|Reflection|typeof\s*\(|*
