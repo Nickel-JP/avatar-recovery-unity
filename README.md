@@ -4,7 +4,7 @@ VPM repository for `com.nickel-jp.avatar-recovery`.
 
 AvatarRecovery is a Unity Editor extension for inspecting VRChat `.vrca`, `.vrcw`, `.vrcp`, and `.vrcap` AssetBundles and recovering their contents into a Unity project when you have permission to do so.
 
-AvatarRecovery launches the bundled AssetRipper 1.3.14 files as an external process, then applies its own C# post-processing to help safely restore script and shader GUIDs, handle missing scripts, select the appropriate prefab, and reset poses. A separate AssetRipper download or path setting is not required. AssetRipper and SARS source code are not included.
+AvatarRecovery launches the bundled AssetRipper 1.3.14 files as an external process, then applies its own C# post-processing to help restore script and animation references, record original shader information, handle missing scripts, select the appropriate prefab, and reset poses. Shader assignment is managed through Shader Lists; automatic shader replacement options have been removed. A separate AssetRipper download or path setting is not required. AssetRipper and SARS source code are not included.
 
 ## VPM Repository
 
@@ -39,9 +39,9 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
-Version 1.2.15 can be selected and installed from both Avatar projects and World projects.
+Version 1.2.16 can be selected and installed from both Avatar projects and World projects.
 
-Version 1.2.15 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.15. Existing 1.3.x installations are not downgraded automatically.
+Version 1.2.16 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.16. Existing 1.3.x installations are not downgraded automatically.
 
 ## AvatarRecovery Community Server
 
@@ -53,22 +53,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.2.15.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.2.16.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.15.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.16.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 3B5F91B118D35142A8E8EC5B301FD323C7657C60338A687EAAD9DD5761294739
-# and matches the packages/com.nickel-jp.avatar-recovery-1.2.15.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.15.sha256.txt.
+# Confirm that it is 409F1BBA84853AE609BC82F187E2DB10CAE266AB7C022B0FA68D8FB0043BFB40
+# and matches the packages/com.nickel-jp.avatar-recovery-1.2.16.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.16.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.15.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.16.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -102,7 +102,19 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Current Public Version — 1.2.15 Avatar Parts and Shader Name Copy
+### Current Public Version — 1.2.16 Recovery Reliability and Lighter Logging
+
+- Improved recovery of Animator states with Behaviours and synchronized layers while preserving their settings and references.
+- Fixed recovery stopping because unrelated script types in different assemblies share the same name.
+- Improved Animation post-processing consistency and reduced unnecessary recovery rejection. AssetRipper selection no longer silently switches to direct recovery.
+- Removed Shader Error Fix and Auto-Reassign Shaders, including their saved settings. Shader Lists and its report output remain unchanged.
+- Aggregated routine logs and removed unnecessary routine stack traces while preserving warnings and errors. Direct recovery now shares one asset retrieval within each operation.
+- Source-level regression checks and three real-input recoveries passed in Unity 2022.3.22f1. Performance gains depend on the project and cache state.
+- Verified the final package in Unity 2022.3.22f1 with VRChat SDK 3.10.4: 15 Avatar-project tests (including two real VRCA recoveries) and 13 World-project tests passed. All 30 local package self-tests passed.
+- Known limitations: direct recovery can still encounter Material GUID errors; reported Unity shutdowns remain under investigation. This update does not claim to fix every crash.
+- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.16.
+
+### Version 1.2.15 — Avatar Parts and Shader Name Copy
 
 - Added `.vrcap` support as a separate Avatar Parts category, with file import, preview, recovery history, and a dedicated output folder.
 - Preserved avatar-part poses by skipping avatar-only pose and Gesture Layer adjustments.

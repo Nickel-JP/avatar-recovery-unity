@@ -2,6 +2,18 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.16 — Recovery Reliability and Lighter Logging
+
+- Improved recovery of Animator states with Behaviours and synchronized layers while preserving their settings and references.
+- Fixed recovery stopping because unrelated script types in different assemblies share the same name.
+- Improved Animation post-processing consistency and reduced unnecessary recovery rejection. AssetRipper selection no longer silently switches to direct recovery.
+- Removed Shader Error Fix and Auto-Reassign Shaders, including their saved settings. Shader Lists and its report output remain unchanged.
+- Aggregated routine logs and removed unnecessary routine stack traces while preserving warnings and errors. Direct recovery now shares one asset retrieval within each operation.
+- Source-level regression checks and three real-input recoveries passed in Unity 2022.3.22f1. Performance gains depend on the project and cache state.
+- Verified the final package in Unity 2022.3.22f1 with VRChat SDK 3.10.4: 15 Avatar-project tests (including two real VRCA recoveries) and 13 World-project tests passed. All 30 local package self-tests passed.
+- Known limitations: direct recovery can still encounter Material GUID errors; reported Unity shutdowns remain under investigation. This update does not claim to fix every crash.
+- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.16.
+
 ## Version 1.2.15 — Avatar Parts and Shader Name Copy
 
 - Added `.vrcap` support as a separate Avatar Parts category, with file import, preview, recovery history, and a dedicated output folder.
