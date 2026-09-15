@@ -2,6 +2,18 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.17 — Recovery References and Live Progress
+
+- Improved AnimatorController recovery for external states, transitions, shared structures, BlendTrees, and synchronized-layer overrides while preserving their settings and source references.
+- Improved animation binding recovery and handling of valid empty clips, reducing unnecessary rejection of recoverable assets.
+- Reduced confusing asset-name warnings while retaining checks for broken references and preserving meaningful original names.
+- Added an English progress console with colored outcomes, persistent version information, the selected filename, and per-file log reset. The Run button sits above the console, which fills the remaining panel space.
+- Renamed File Select to File Recovery (ファイル復元) and updated the related help text.
+- Preserved Avatar, World, Prop, and Avatar Parts recovery, Shader Lists, backup, history, and settings workflows.
+- In Unity 2022.3.22f1, all 33 available EditMode tests passed (26 Controller regression cases and 7 SDK tests). All 30 local package self-tests passed.
+- The final distribution package completed a real VRCA recovery through the Unity GUI with no Console errors; the recovered Blueprint ID and Expression references were checked. The test environment used VRChat SDK 3.10.5.
+- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.17.
+
 ## Version 1.2.16 — Recovery Reliability and Lighter Logging
 
 - Improved recovery of Animator states with Behaviours and synchronized layers while preserving their settings and references.
