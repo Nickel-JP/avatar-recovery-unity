@@ -3,6 +3,21 @@
 # RelativePath|Category|Pattern|Normalized source text
 # Wildcards are allowed only where the whole file intentionally owns that contract.
 
+# 1.2.17: Controller構造の型確認と同期Layer参照、Animation参照の読取りを担当する既存契約。
+Core\AnimatorControllerStateReferenceFixer.cs|Reflection|typeof\s*\(|*
+Core\AnimatorControllerStateReferenceFixer.cs|Reflection|FindProperty\s*\(|*
+Core\AnimatorControllerStateReferenceFixer.cs|Reflection|FindPropertyRelative\s*\(|*
+Core\AnimatorControllerStateReferenceFixer.cs|Reflection|\.GetType\s*\(|*
+Core\AnimationClipBindingRestorer.cs|Serialization|SerializedContract|*
+
+# 1.2.17: コンソールの表示通知、表示障害の型名、Unity EditorWindowの即時再描画。
+Core\RecoveryConsoleLog.cs|Reflection|\.Invoke\s*\(|*
+Core\RecoveryConsoleLog.cs|Reflection|\.GetType\s*\(|*
+UI\AvatarRecoveryWindow.cs|Reflection|\.GetType\s*\(|*
+UI\RecoveryConsolePanel.cs|Reflection|\.GetType\s*\(|*
+UI\RecoveryConsoleRepaint.cs|Reflection|typeof\s*\(|*
+UI\RecoveryConsoleRepaint.cs|Reflection|\.Invoke\s*\(|*
+
 # AssetRipper path setting and imported descriptor metadata rely on EditorPrefs and SerializedObject names.
 Core\AssetRipperBridge.cs|EditorPrefs|EditorPrefs|*
 Core\AssetRipperBridge.cs|Reflection|\.GetType\s*\(|*

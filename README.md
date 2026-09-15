@@ -39,9 +39,9 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
-Version 1.2.16 can be selected and installed from both Avatar projects and World projects.
+Version 1.2.17 can be selected and installed from both Avatar projects and World projects.
 
-Version 1.2.16 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.16. Existing 1.3.x installations are not downgraded automatically.
+Version 1.2.17 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.17. Existing 1.3.x installations are not downgraded automatically.
 
 ## AvatarRecovery Community Server
 
@@ -53,22 +53,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.2.16.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.2.17.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.16.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.17.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 409F1BBA84853AE609BC82F187E2DB10CAE266AB7C022B0FA68D8FB0043BFB40
-# and matches the packages/com.nickel-jp.avatar-recovery-1.2.16.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.16.sha256.txt.
+# Confirm that it is 9F17D4C55700CD589E2FC98F9A95A9CF8534B08A53D03E1EF2401F99DF429D75
+# and matches the packages/com.nickel-jp.avatar-recovery-1.2.17.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.17.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.16.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.17.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -102,7 +102,19 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Current Public Version — 1.2.16 Recovery Reliability and Lighter Logging
+### Current Public Version — 1.2.17 Recovery References and Live Progress
+
+- Improved AnimatorController recovery for external states, transitions, shared structures, BlendTrees, and synchronized-layer overrides while preserving their settings and source references.
+- Improved animation binding recovery and handling of valid empty clips, reducing unnecessary rejection of recoverable assets.
+- Reduced confusing asset-name warnings while retaining checks for broken references and preserving meaningful original names.
+- Added a lightweight English progress console with colored outcomes, persistent version information, the selected filename, and per-file log reset. The Run button sits above the console, which fills the remaining panel space.
+- Renamed File Select to File Recovery (ファイル復元) and updated the related help text.
+- Preserved Avatar, World, Prop, and Avatar Parts recovery, Shader Lists, backup, history, and settings workflows.
+- In Unity 2022.3.22f1, all 33 available EditMode tests passed (26 Controller regression cases and 7 SDK tests). All 30 local package self-tests passed.
+- The final distribution package completed a real VRCA recovery through the Unity GUI with no Console errors; the recovered Blueprint ID and Expression references were checked. The test environment used VRChat SDK 3.10.5.
+- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.17.
+
+### Version 1.2.16 — Recovery Reliability and Lighter Logging
 
 - Improved recovery of Animator states with Behaviours and synchronized layers while preserving their settings and references.
 - Fixed recovery stopping because unrelated script types in different assemblies share the same name.
