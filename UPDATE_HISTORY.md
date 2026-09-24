@@ -2,6 +2,13 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.18 — Mesh Import Reliability
+
+- Fixed recoveries that completed without an error while some avatar meshes remained invisible in Unity.
+- Preserved mesh references and the existing shader assignment workflow. Use an empty output folder to recover an avatar again; previously restored folders are not changed automatically.
+- Validated the final signed package with a real VRCA in Unity 2022.3.22f1 and VRChat SDK 3.10.5: 159 of 159 meshes imported and 0 missing mesh references across 150 SkinnedMeshRenderers. Package self-tests passed 23 applicable checks; 7 were skipped and 0 failed.
+- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.18.
+
 ## Version 1.2.17 — Recovery References and Live Progress
 
 - Improved AnimatorController recovery for external states, transitions, shared structures, BlendTrees, and synchronized-layer overrides while preserving their settings and source references.
