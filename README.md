@@ -39,9 +39,9 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
-Version 1.2.17 can be selected and installed from both Avatar projects and World projects.
+Version 1.2.18 can be selected and installed from both Avatar projects and World projects.
 
-Version 1.2.17 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.17. Existing 1.3.x installations are not downgraded automatically.
+Version 1.2.18 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.18. Existing 1.3.x installations are not downgraded automatically.
 
 ## AvatarRecovery Community Server
 
@@ -53,22 +53,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.2.17.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.2.18.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.17.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.18.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 9F17D4C55700CD589E2FC98F9A95A9CF8534B08A53D03E1EF2401F99DF429D75
-# and matches the packages/com.nickel-jp.avatar-recovery-1.2.17.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.17.sha256.txt.
+# Confirm that it is B2E39E79D85ED96AA72B175EFE871CF7721D397501D80838927D10494BA9831D
+# and matches the packages/com.nickel-jp.avatar-recovery-1.2.18.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.18.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.17.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.18.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -102,7 +102,14 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Current Public Version — 1.2.17 Recovery References and Live Progress
+### Current Public Version — 1.2.18 Mesh Import Reliability
+
+- Fixed recoveries that finished successfully while some avatar meshes remained invisible in Unity.
+- Preserved the recovered mesh references and the existing shader assignment workflow. Previously restored folders are unchanged; recover into an empty output folder to obtain the corrected result.
+- Verified the final signed package with a real VRCA in Unity 2022.3.22f1 and VRChat SDK 3.10.5: all 159 meshes imported, and none of the 150 SkinnedMeshRenderers had a missing mesh. Package self-tests passed 23 applicable checks, with 7 skipped and 0 failed.
+- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.18.
+
+### Version 1.2.17 — Recovery References and Live Progress
 
 - Improved AnimatorController recovery for external states, transitions, shared structures, BlendTrees, and synchronized-layer overrides while preserving their settings and source references.
 - Improved animation binding recovery and handling of valid empty clips, reducing unnecessary rejection of recoverable assets.
