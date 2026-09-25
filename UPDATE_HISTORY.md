@@ -2,6 +2,13 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.19 — Shader Version Visibility
+
+- Added a collapsible version label beneath Original Shader in Shader Lists when a recognizable version remains in a recovered shader property's display text. Reports created before this update continue to load and show an unknown version when no version metadata was recorded.
+- Aligned the Material, Original Shader, Match, and Path columns while preserving the `_ShaderReport` folder and three report-file entry points. Existing shader-name identification and manual shader reassignment are unchanged.
+- Validated a real VRCA with 15 shader entries and 16 material rows in Unity 2022.3.22f1. An older six-column CSV remained readable, and the folder and three report-file paths resolved to the same Shader List. The final signed package was visually checked in Unity 2022.3.22f1 with VRChat SDK 3.10.5 using a 39-row report. Package self-tests passed 23 applicable checks; 7 were skipped and 0 failed.
+- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.19.
+
 ## Version 1.2.18 — Mesh Import Reliability
 
 - Fixed recoveries that completed without an error while some avatar meshes remained invisible in Unity.
