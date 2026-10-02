@@ -2,6 +2,16 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.20 — Material Settings and Render Queues
+
+- Fixed custom render queues being reset during shader reassignment while preserving recovered material settings and texture references.
+- Added numeric render queue display from source-bundle data, including when the original shader is unavailable. Unknown values remain clearly marked; users can choose the assigned shader's default queue or skip the material.
+- Kept skipped materials unchanged and separated assignment/save failures from success, including native Unity file-write failures. Shader reassignment does not automatically roll back changes.
+- Corrected 3D texture dimensions and pixel layout. Direct recovery now reports references it cannot persist and recommends AssetRipper instead of completing with invalid shader or runtime-texture references.
+- Preserved compatibility with older reports and Unity 2022.3.22f1 / VRChat SDK 3.10.5. Recover again into an empty output folder to generate reports containing queue metadata.
+- The final signed package passed 20 targeted EditMode tests in Unity 2022.3.22f1 / VRChat SDK 3.10.5, including real-input recovery and numeric display for 27 material rows without the original shaders installed. All 30 package self-tests passed. Source-level validation also covered 15 assignment scenarios and pixel preservation for 3D and array textures.
+- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.20.
+
 ## Version 1.2.19 — Shader Version Visibility
 
 - Added a collapsible version label beneath Original Shader in Shader Lists when a recognizable version remains in a recovered shader property's display text. Reports created before this update continue to load and show an unknown version when no version metadata was recorded.
