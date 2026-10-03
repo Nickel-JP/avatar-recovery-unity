@@ -2,6 +2,15 @@
 
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
+## Version 1.2.21 — Shader Version Detection
+
+- Fixed Shader Lists displaying unrelated conversion values or SDK versions as the original shader version.
+- Improved reading version labels containing attributes, multiline declarations, or escaped quotes. Missing or conflicting version information is shown as unknown instead of choosing an unsupported value.
+- Existing ShaderReports remain readable. Recover again into an empty output folder to regenerate incorrect version labels; existing reports and restored materials are not rewritten automatically.
+- Preserved material settings, render queues, shader reassignment, and Unity 2022.3.22f1 / VRChat SDK 3.10.5 compatibility.
+- The final signed package passed all 61 EditMode tests (54 targeted regression tests and 7 SDK tests), including version-label parsing, 15 real-data Poiyomi shader labels, CSV-to-list value preservation, material reassignment, save-failure handling, and real-input recovery with 27 numeric material queues. All 30 local package self-tests passed.
+- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.21.
+
 ## Version 1.2.20 — Material Settings and Render Queues
 
 - Fixed custom render queues being reset during shader reassignment while preserving recovered material settings and texture references.

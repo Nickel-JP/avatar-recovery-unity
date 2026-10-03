@@ -39,9 +39,9 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
-Version 1.2.20 can be selected and installed from both Avatar projects and World projects.
+Version 1.2.21 can be selected and installed from both Avatar projects and World projects.
 
-Version 1.2.20 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.20. Existing 1.3.x installations are not downgraded automatically.
+Version 1.2.21 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.21. Existing 1.3.x installations are not downgraded automatically.
 
 ## AvatarRecovery Community Server
 
@@ -53,22 +53,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.2.20.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.2.21.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.20.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.21.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 9D099A4DFB05D7277B34252E343388446531D03492D0FA3FCB23902A53E09156
-# and matches the packages/com.nickel-jp.avatar-recovery-1.2.20.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.20.sha256.txt.
+# Confirm that it is 574499CA36F5608E7DFFF82735883741911669FC148CD60BB503C4B7B9AA8F1B
+# and matches the packages/com.nickel-jp.avatar-recovery-1.2.21.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.21.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.20.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.21.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -102,7 +102,16 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Current Public Version — 1.2.20 Material Settings and Render Queues
+### Current Public Version — 1.2.21 Shader Version Detection
+
+- Fixed Shader Lists displaying unrelated conversion values or SDK versions as the original shader version.
+- Improved reading version labels containing attributes, multiline declarations, or escaped quotes. Missing or conflicting version information is shown as unknown instead of choosing an unsupported value.
+- Existing ShaderReports remain readable. Recover again into an empty output folder to regenerate incorrect version labels; existing reports and restored materials are not rewritten automatically.
+- Preserved material settings, render queues, shader reassignment, and Unity 2022.3.22f1 / VRChat SDK 3.10.5 compatibility.
+- The final signed package passed all 61 EditMode tests (54 targeted regression tests and 7 SDK tests), including version-label parsing, 15 real-data Poiyomi shader labels, CSV-to-list value preservation, material reassignment, save-failure handling, and real-input recovery with 27 numeric material queues. All 30 local package self-tests passed.
+- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.21.
+
+### Version 1.2.20 — Material Settings and Render Queues
 
 - Fixed shader reassignment resetting custom render queues, including repeated assignment. Recovered material settings and texture references are preserved.
 - Shader Lists now displays numeric render queues recorded from the source bundle, even when the original shader is not installed. Values that cannot be determined are shown as unknown. Users can choose the assigned shader's default queue or skip materials with unavailable queue information.
