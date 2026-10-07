@@ -43,6 +43,8 @@ Version 1.2.21 can be selected and installed from both Avatar projects and World
 
 Version 1.2.21 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.21. Existing 1.3.x installations are not downgraded automatically.
 
+The withdrawn 1.3.x ZIP files have been removed from the current `packages/` directory. Their historical changelog entries describe withdrawn versions, not supported installation choices. Git history and tags are retained; removing a current download does not erase historical copies.
+
 ## AvatarRecovery Community Server
 
 Join the official AvatarRecovery Discord server for update announcements, bug reports, troubleshooting, and discussion with other users.
@@ -81,6 +83,16 @@ $signature
 ($cert.Thumbprint -replace '\s', '').ToUpperInvariant()
 ```
 
+## Reproducible Tests
+
+The public regression suite in [Tests](Tests/README.md) runs against the unchanged signed 1.2.21 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
+
+The standard CI checks repository version consistency, signed update metadata, package integrity, and the absence of withdrawn downloads. Unity tests use the separate **Public Unity regression tests** workflow and require a licensed Windows runner. A successful standard CI run alone does not mean the Unity suite ran.
+
+Older changelog test counts are historical local validation records, not this public suite. In particular, the withdrawn 1.3.6 record describes 512 passed and 5 failed tests out of 517; it is not a claim of 517 passing tests for 1.2.21.
+
+The [local result snapshot from 2026-10-08](Tests/Results/1.2.21-20261008/summary.json) records 35 passed, 0 failed, and 0 skipped public EditMode tests. [NUnit XML](Tests/Results/1.2.21-20261008/results.xml) and the test source are included so the run can be repeated. This snapshot is a local run, not a GitHub Actions result.
+
 ## Security Model and Limits
 
 Published verification information supports distribution-integrity checks. Obtain expected values through an independently trusted channel; information downloaded only from the same compromised origin cannot establish trust by itself.
@@ -102,7 +114,7 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ## Update History
 
-### Current Public Version — 1.2.21 Shader Version Detection
+### Version 1.2.21 — Shader Version Detection
 
 - Fixed Shader Lists displaying unrelated conversion values or SDK versions as the original shader version.
 - Improved reading version labels containing attributes, multiline declarations, or escaped quotes. Missing or conflicting version information is shown as unknown instead of choosing an unsupported value.
