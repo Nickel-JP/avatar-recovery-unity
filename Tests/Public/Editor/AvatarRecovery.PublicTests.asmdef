@@ -1,0 +1,7 @@
+{
+  "name": "AvatarRecovery.PublicTests",
+  "references": [],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}

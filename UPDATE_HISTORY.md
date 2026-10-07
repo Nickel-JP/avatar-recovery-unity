@@ -1,5 +1,13 @@
 # AvatarRecovery Update History
 
+## Repository maintenance — 2026-10-08
+
+- Corrected the latest README version heading so the unchanged 1.2.21 package recognizes 1.2.21 as current and offers an update to 1.2.20 installations. Refreshed the legacy update metadata to 1.2.21.
+- Removed the seven withdrawn 1.3.x ZIP files and their signatures from the current package directory, reducing ZIP storage from about 1,006 MB to 527 MB. Existing supported 1.2.x package files are unchanged. Historical Git objects are retained.
+- Added public synthetic-input EditMode tests, a repeatable Windows runner, and separate Unity workflow configuration. The local Unity 2022.3.22f1 run passed all 35 public tests with no failures or skips. A configured, licensed runner is still required for GitHub Actions execution.
+- Added CI checks for version agreement, signed update metadata, withdrawn downloads, and package size. All 23 repository-check regression cases passed; the two modified-signature cases were rejected. Package self-tests passed 23 checks, skipped 7 private-report checks, and failed none.
+- Historical test counts describe their original local runs. The withdrawn 1.3.6 result was 512 passed and 5 failed out of 517, not a passing 517-test result for the current version.
+
 Recent release notes are shown in [README.md](README.md). This page keeps the older entries so the GitHub project overview stays shorter.
 
 ## Version 1.2.21 — Shader Version Detection

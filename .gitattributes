@@ -1,5 +1,7 @@
 index.json text eol=lf
 index.json.sig text eol=lf
+update-manifest.json text eol=lf
+Tests/Results/** text eol=lf
 checksums/*.sha256.txt text eol=lf
 checksums/*.sha256.txt.sig text eol=lf
 packages/*.zip.sig text eol=lf

@@ -1,0 +1,43 @@
+name: Public Unity regression tests
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avatar-recovery-public-unity
+  cancel-in-progress: false
+
+jobs:
+  editmode:
+    # 公開PRを利用者のPCで自動実行しないため、所有者によるmain実行に限定します。
+    if: github.ref == 'refs/heads/main' && github.actor == github.repository_owner
+    runs-on: [self-hosted, Windows, X64, avatar-recovery-unity-2022]
+    timeout-minutes: 45
+    steps:
+      - name: Checkout selected main commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Run public EditMode tests against the signed package
+        shell: pwsh
+        run: |
+          .\Build\Invoke-PublicUnityTests.ps1 `
+            -ProjectPath "G:\UnityTest\AvatarRecovery-CI-${{ github.run_id }}-${{ github.run_attempt }}" `
+            -ResultsPath "$env:RUNNER_TEMP\avatar-recovery-test-results"
+
+      - name: Publish test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-unity-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/avatar-recovery-test-results/results.xml
+            ${{ runner.temp }}/avatar-recovery-test-results/summary.json
+            ${{ runner.temp }}/avatar-recovery-test-results/unity.log
+          if-no-files-found: error
+          retention-days: 30

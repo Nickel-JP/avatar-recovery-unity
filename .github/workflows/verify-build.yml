@@ -15,6 +15,7 @@ on:
       - Invoke-ProtectionSelfTests.ps1
       - Invoke-PublishedReleaseAudit.ps1
       - README.md
+      - Tests/**
       - index.json
       - index.json.sig
       - update-manifest.json
@@ -42,6 +43,11 @@ jobs:
           $scripts = @(
             ".\BuildProtectedAvatarRecoveryPackage.ps1",
             ".\Build\StageBundledAssetRipper.ps1",
+            ".\Build\Test-PublicRepository.ps1",
+            ".\Build\Tests\Test-PublicRepository.Tests.ps1",
+            ".\Build\Test-UpdateManifest.ps1",
+            ".\Build\UpdateNotificationManifest.psm1",
+            ".\Build\Invoke-PublicUnityTests.ps1",
             ".\BuildVpmRepository.ps1",
             ".\Invoke-ProtectionSelfTests.ps1",
             ".\Invoke-PublishedReleaseAudit.ps1"
@@ -56,6 +62,18 @@ jobs:
               exit 1
             }
           }
+
+      - name: Public repository regression tests
+        shell: pwsh
+        run: pwsh -NoProfile -File .\Build\Tests\Test-PublicRepository.Tests.ps1
+
+      - name: Verify public versions and package inventory
+        shell: pwsh
+        run: pwsh -NoProfile -File .\Build\Test-PublicRepository.ps1
+
+      - name: Verify signed update manifest and rejection cases
+        shell: pwsh
+        run: pwsh -NoProfile -File .\Build\Test-UpdateManifest.ps1
 
       - name: Protection self tests
         shell: pwsh
