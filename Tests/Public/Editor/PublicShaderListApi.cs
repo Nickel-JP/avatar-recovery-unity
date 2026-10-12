@@ -3,6 +3,7 @@ using System.Collections;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Text.RegularExpressions;
 
 using UnityEngine;
 
@@ -51,9 +52,44 @@ namespace AvatarRecovery.PublicTests
             RequireField("_useShaderDefaultForUnknownQueue").SetValue(_window, enabled);
         }
 
-        internal void Reassign()
+        internal sealed class ReassignmentSummary
         {
-            Invoke("ReassignSelectedMaterialShaders", false);
+            internal int SuccessCount;
+            internal int SkippedCount;
+            internal int FailedCount;
+            internal int PreservedQueueCount;
+            internal int DefaultCount;
+        }
+
+        internal ReassignmentSummary Reassign()
+        {
+            string resultLog = null;
+            Application.LogCallback onLog = (message, stackTrace, type) =>
+            {
+                if (message.Contains("Material Shader 再割り当て結果")) resultLog = message;
+            };
+            Application.logMessageReceived += onLog;
+            try { Invoke("ReassignSelectedMaterialShaders", false); }
+            finally { Application.logMessageReceived -= onLog; }
+            if (resultLog == null) throw new InvalidOperationException("再割り当ての結果ログがありません。");
+            // 内部結果型のフィールド名ではなく、製品が表示する結果件数を検証します。
+            var plainLog = Regex.Replace(resultLog, "<[^>]*>", string.Empty);
+            return new ReassignmentSummary
+            {
+                SuccessCount = ReadCount(plainLog, "Succeeded", "成功"),
+                SkippedCount = ReadCount(plainLog, "Skipped", "スキップ"),
+                FailedCount = ReadCount(plainLog, "Failed", "適用失敗"),
+                PreservedQueueCount = ReadCount(plainLog, "Current queue kept", "現在キュー設定を保持"),
+                DefaultCount = ReadCount(plainLog, "Shader default", "既定値で仮置き換え")
+            };
+        }
+
+        private static int ReadCount(string log, string english, string japanese)
+        {
+            var matches = Regex.Matches(log, "(?m)^(?:" + Regex.Escape(english) + "|" +
+                Regex.Escape(japanese) + ")\\s*:\\s*([0-9]+)\\s*$");
+            if (matches.Count != 1) throw new InvalidOperationException("結果件数を一意に取得できません: " + english);
+            return int.Parse(matches[0].Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
         }
 
         internal string QueueLabel(int index)

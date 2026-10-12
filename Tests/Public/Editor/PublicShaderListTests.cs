@@ -16,8 +16,8 @@ namespace AvatarRecovery.PublicTests
     public sealed class PublicShaderListTests
     {
         private const string PackageId = "com.nickel-jp.avatar-recovery";
-        private const string ExpectedVersion = "1.2.21";
-        private const string ExpectedDllSha256 = "4f650465f851f00172d373a06dba6fb9985b9d49b00b5abd7ec15ffd34bdffac";
+        private const string ExpectedVersion = "1.2.22";
+        private const string ExpectedDllSha256 = "449087e90dfbfb8d7ea4962880267b0d96d1055d4af12f769b9f074792f18dc9";
         private const string FolderPrefix = "Assets/__AvatarRecoveryPublicTests_";
         private const string Header = "MaterialName,MaterialPath,OriginalShaderName,RenderQueue,ShaderDefaultQueue,ShaderVersion\n";
         private const int OriginalQueue = 2100;
@@ -26,6 +26,17 @@ namespace AvatarRecovery.PublicTests
         private static readonly Vector2 TextureOffset = new Vector2(0.125f, -0.25f);
         private static readonly Vector4 VectorValue = new Vector4(1, 2, 3, 4);
         private static readonly Color ColorValue = new Color(0.25f, 0.5f, 0.75f, 1);
+        private static readonly Dictionary<string, float> RenderingValues = new Dictionary<string, float>
+        {
+            { "_SrcBlend", 5 }, { "_DstBlend", 10 },
+            { "_SrcBlendAlpha", 1 }, { "_DstBlendAlpha", 10 },
+            { "_BlendOp", 2 }, { "_BlendOpAlpha", 4 },
+            { "_Cull", 0 }, { "_ZWrite", 0 }, { "_ZTest", 4 },
+            { "_StencilRef", 37 }, { "_StencilReadMask", 127 }, { "_StencilWriteMask", 63 },
+            { "_StencilComp", 3 }, { "_StencilPass", 2 }, { "_StencilFail", 1 }, { "_StencilZFail", 3 },
+            { "_ColorMask", 7 }, { "_AlphaToMask", 1 },
+            { "_OffsetFactor", 1.25f }, { "_OffsetUnits", -2.5f }
+        };
         private static readonly Color32[] TexturePixels =
         {
             new Color32(255, 0, 0, 255), new Color32(0, 255, 0, 128),
@@ -50,12 +61,11 @@ namespace AvatarRecovery.PublicTests
             var package = UnityEditor.PackageManager.PackageInfo.GetAllRegisteredPackages()
                 .Single(item => item.name == PackageId);
             Assert.AreEqual(ExpectedVersion, package.version, "検証対象の配布バージョンが違います。");
-            var dllPath = Path.Combine(package.resolvedPath, "Editor/EditorTools.AvatarRecovery.Editor.dll");
-            using (var stream = File.OpenRead(dllPath))
+            using (var stream = File.OpenRead(Path.Combine(package.resolvedPath, "Editor/EditorTools.AvatarRecovery.Editor.dll")))
             using (var sha256 = SHA256.Create())
             {
                 var digest = BitConverter.ToString(sha256.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
-                Assert.AreEqual(ExpectedDllSha256, digest, "公開1.2.21のDLLと一致しません。");
+                Assert.AreEqual(ExpectedDllSha256, digest, "公開候補1.2.22のDLLと一致しません。");
             }
         }
 
@@ -145,24 +155,65 @@ namespace AvatarRecovery.PublicTests
             AssertReportUnchanged();
         }
 
-        [TestCase("", false)]
-        [TestCase("", true)]
-        [TestCase("5001", false)]
-        [TestCase("5001", true)]
-        [TestCase("invalid", false)]
-        [TestCase("invalid", true)]
-        public void UnknownQueueFollowsSelectedPolicy(string queue, bool useDefault)
+        public static IEnumerable<TestCaseData> UnknownQueueCases()
         {
-            var path = CreateMaterial("Unknown.mat", OriginalQueue);
-            var originalBytes = File.ReadAllBytes(path);
+            foreach (var queue in new[] { "", "5001", "invalid", "-2" })
+            foreach (var currentQueue in new[] { -1, 0, OriginalQueue, 5000 })
+            foreach (var useDefault in new[] { false, true })
+                yield return new TestCaseData(queue, currentQueue, useDefault);
+        }
+
+        [TestCaseSource(nameof(UnknownQueueCases))]
+        public void UnknownQueueNeverSkipsOrRollsBack(string queue, int currentQueue, bool useDefault)
+        {
+            var path = CreateMaterial("Unknown.mat", currentQueue);
             LoadReport(Header + MaterialRow("Unknown", "Unknown.mat", queue));
             _viewer.SelectAll(true);
             _viewer.UseShaderDefaultForUnknownQueue(useDefault);
-            _viewer.Reassign();
-            AssertMaterialState(path, useDefault ? _targetShader : _sourceShader, useDefault ? -1 : OriginalQueue);
-            if (!useDefault)
-                CollectionAssert.AreEqual(originalBytes, File.ReadAllBytes(path), "スキップしたMaterialが変更されました。");
+            var result = _viewer.Reassign();
+            AssertMaterialState(path, _targetShader, useDefault ? -1 : currentQueue);
+            AssertResult(result, useDefault ? 0 : 1, useDefault ? 1 : 0);
+            Assert.That(_viewer.QueueLabel(0), Is.EqualTo("Unknown").Or.EqualTo("不明"));
+
+            var firstSave = File.ReadAllBytes(path);
+            result = _viewer.Reassign();
+            AssertMaterialState(path, _targetShader, useDefault ? -1 : currentQueue);
+            AssertResult(result, useDefault ? 0 : 1, useDefault ? 1 : 0);
+            CollectionAssert.AreEqual(firstSave, File.ReadAllBytes(path), "再実行でShaderが戻るか保存値が変化しました。");
             AssertReportUnchanged();
+        }
+
+        [Test]
+        public void LegacyReportWithoutQueueStillAssignsShader()
+        {
+            var path = CreateMaterial("Legacy.mat", OriginalQueue);
+            LoadReport("MaterialName,MaterialPath,OriginalShaderName,ShaderFileID,ShaderGuid,Status\n" +
+                CsvRow("Legacy", "Legacy.mat", _targetShader.name, "4800000", "test", "Missing"));
+            _viewer.SelectAll(true);
+            AssertResult(_viewer.Reassign(), 1, 0);
+            AssertMaterialState(path, _targetShader, OriginalQueue);
+            AssertReportUnchanged();
+        }
+
+        [Test]
+        public void UnknownShaderDefaultLabelDoesNotBlockReportedMinusOneQueue()
+        {
+            var path = CreateMaterial("Default.mat", OriginalQueue);
+            LoadReport(Header + CsvRow("Default", "Default.mat", _targetShader.name, "-1", "", ""));
+            Assert.That(_viewer.QueueLabel(0), Is.EqualTo("Unknown").Or.EqualTo("不明"));
+            _viewer.SelectAll(true);
+            AssertResult(_viewer.Reassign(), 0, 0);
+            AssertMaterialState(path, _targetShader, -1);
+            AssertReportUnchanged();
+        }
+
+        private static void AssertResult(PublicShaderListApi.ReassignmentSummary result, int preservedCount, int defaultCount)
+        {
+            Assert.AreEqual(1, result.SuccessCount);
+            Assert.AreEqual(0, result.SkippedCount);
+            Assert.AreEqual(0, result.FailedCount);
+            Assert.AreEqual(preservedCount, result.PreservedQueueCount);
+            Assert.AreEqual(defaultCount, result.DefaultCount);
         }
 
         [TestCase(false)]
@@ -293,6 +344,7 @@ namespace AvatarRecovery.PublicTests
                 material.SetColor("_Color", ColorValue);
                 material.SetFloat("_FloatValue", 0.375f);
                 material.SetVector("_VectorValue", VectorValue);
+                foreach (var pair in RenderingValues) material.SetFloat(pair.Key, pair.Value);
                 var path = _folder + "/" + name;
                 AssetDatabase.CreateAsset(material, path);
                 AssetDatabase.SaveAssetIfDirty(material);
@@ -344,7 +396,15 @@ namespace AvatarRecovery.PublicTests
                 "_Color (\"Color\", Color) = (1,1,1,1)\n" +
                 "_FloatValue (\"Float\", Float) = 0\n" +
                 "_VectorValue (\"Vector\", Vector) = (0,0,0,0)\n" +
-                "} SubShader { Tags { \"Queue\"=\"" + queue + "\" } Pass {} } }\n";
+                string.Join("\n", RenderingValues.Select(pair => pair.Key +
+                    " (\"Rendering state\", Float) = " + (pair.Value == 0 ? "1" : "0"))) +
+                "\n} SubShader { Tags { \"Queue\"=\"" + queue + "\" } Pass {\n" +
+                "Blend [_SrcBlend] [_DstBlend], [_SrcBlendAlpha] [_DstBlendAlpha]\n" +
+                "BlendOp [_BlendOp], [_BlendOpAlpha]\nCull [_Cull]\nZWrite [_ZWrite]\nZTest [_ZTest]\n" +
+                "ColorMask [_ColorMask]\nAlphaToMask [_AlphaToMask]\nOffset [_OffsetFactor], [_OffsetUnits]\n" +
+                "Stencil { Ref [_StencilRef] ReadMask [_StencilReadMask] WriteMask [_StencilWriteMask] " +
+                "Comp [_StencilComp] Pass [_StencilPass] Fail [_StencilFail] ZFail [_StencilZFail] }\n" +
+                "} } }\n";
             File.WriteAllText(path, text, Utf8);
             AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
             var shader = AssetDatabase.LoadAssetAtPath<Shader>(path);
@@ -377,6 +437,10 @@ namespace AvatarRecovery.PublicTests
             AssertColorComponent("A", savedColor.a, actualColor.a);
             Assert.AreEqual(0.375f, material.GetFloat("_FloatValue"));
             Assert.AreEqual(VectorValue, material.GetVector("_VectorValue"));
+            foreach (var pair in RenderingValues)
+                Assert.AreEqual(BitConverter.ToInt32(BitConverter.GetBytes(pair.Value), 0),
+                    BitConverter.ToInt32(BitConverter.GetBytes(material.GetFloat(pair.Key)), 0),
+                    "保存済み描画設定が変化しました: " + pair.Key);
             CollectionAssert.AreEqual(TexturePixels, _texture.GetPixels32());
             CollectionAssert.AreEqual(_textureBytes, File.ReadAllBytes(_folder + "/Texture.asset"),
                 "参照先Textureの保存内容が変化しました。");

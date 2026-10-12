@@ -50,9 +50,9 @@ function Update-FixturePayload {
     $payload = [PSCustomObject]@{
         format = 'AvatarRecovery update notification payload v1'
         packageId = $packageId
-        latestStableVersion = '1.2.21'
+        latestStableVersion = '1.2.22'
         sourceIndexSha256 = (Get-FileHash -LiteralPath (Join-Path $Root 'index.json') -Algorithm SHA256).Hash.ToLowerInvariant()
-        packageSha256 = $index.packages.$packageId.versions.'1.2.21'.zipSHA256
+        packageSha256 = $index.packages.$packageId.versions.'1.2.22'.zipSHA256
     }
     & $Mutation $payload
     # fixtureでは署名を生成しない。暗号検証はCIの別手順で行う。
@@ -66,10 +66,10 @@ function Update-FixturePayload {
 function New-Fixture {
     param([string]$Root)
     [void][IO.Directory]::CreateDirectory((Join-Path $Root 'packages'))
-    Write-Text (Join-Path $Root 'README.md') "# Fixture`n### Version 1.2.21 — Fixture`n### Version 1.2.20 — History`n"
-    Write-Text (Join-Path $Root '.github/workflows/verify-build.yml') "env:`n  VERSION: 1.2.21`n"
+    Write-Text (Join-Path $Root 'README.md') "# Fixture`n### Version 1.2.22 — Fixture`n### Version 1.2.21 — History`n"
+    Write-Text (Join-Path $Root '.github/workflows/verify-build.yml') "env:`n  VERSION: 1.2.22`n"
     $versions = [ordered]@{}
-    foreach ($version in @('1.2.21', '1.2.20', '1.2.19')) {
+    foreach ($version in @('1.2.22', '1.2.21', '1.2.20')) {
         $manifest = [ordered]@{
             name = $packageId
             version = $version
@@ -88,7 +88,7 @@ function New-Fixture {
 }
 
 function Change-Package {
-    param([string]$Root, [scriptblock]$Mutation = {}, [string]$AdditionalEntry = '', [string]$Version = '1.2.21')
+    param([string]$Root, [scriptblock]$Mutation = {}, [string]$AdditionalEntry = '', [string]$Version = '1.2.22')
     $indexPath = Join-Path $Root 'index.json'
     $index = Read-Json $indexPath
     $manifest = $index.packages.$packageId.versions.$Version | ConvertTo-Json -Depth 30 | ConvertFrom-Json
@@ -130,23 +130,23 @@ try {
     Invoke-Case '整合した公開データ' ''
     Invoke-Case '古いREADME' 'README_VERSION' {
         param($root)
-        Write-Text (Join-Path $root 'README.md') '### Version 1.2.20'
+        Write-Text (Join-Path $root 'README.md') '### Version 1.2.21'
     }
     Invoke-Case '旧形式の最新見出し' 'README_HEADING' {
         param($root)
-        Write-Text (Join-Path $root 'README.md') "### Current Public Version — 1.2.21`n### Version 1.2.21"
+        Write-Text (Join-Path $root 'README.md') "### Current Public Version — 1.2.22`n### Version 1.2.22"
     }
     Invoke-Case '先頭の不正なVersion見出し' 'README_VERSION' {
         param($root)
-        Write-Text (Join-Path $root 'README.md') "### Version upcoming`n### Version 1.2.21"
+        Write-Text (Join-Path $root 'README.md') "### Version upcoming`n### Version 1.2.22"
     }
     Invoke-Case '先頭が先行公開版の見出し' 'README_VERSION' {
         param($root)
-        Write-Text (Join-Path $root 'README.md') "### Version 1.2.21-preview`n### Version 1.2.21"
+        Write-Text (Join-Path $root 'README.md') "### Version 1.2.22-preview`n### Version 1.2.22"
     }
     Invoke-Case '古いCI版番号' 'CI_VERSION' {
         param($root)
-        Write-Text (Join-Path $root '.github/workflows/verify-build.yml') "env:`n  VERSION: 1.2.20`n"
+        Write-Text (Join-Path $root '.github/workflows/verify-build.yml') "env:`n  VERSION: 1.2.21`n"
     }
     Invoke-Case '古い更新通知' 'UPDATE_VERSION' {
         param($root)
@@ -170,11 +170,11 @@ try {
     }
     Invoke-Case '公開ZIP欠落' 'MISSING_FILE' {
         param($root)
-        Remove-Item -LiteralPath (Join-Path $root "packages/$packageId-1.2.20.zip")
+        Remove-Item -LiteralPath (Join-Path $root "packages/$packageId-1.2.21.zip")
     }
     Invoke-Case '公開ZIP改変' 'ZIP_HASH' {
         param($root)
-        Write-Text (Join-Path $root "packages/$packageId-1.2.21.zip") 'changed'
+        Write-Text (Join-Path $root "packages/$packageId-1.2.22.zip") 'changed'
     }
     Invoke-Case 'ZIP内版番号不一致' 'ZIP_IDENTITY' {
         param($root)
@@ -204,22 +204,22 @@ try {
         param($root)
         $path = Join-Path $root 'index.json'
         $index = Read-Json $path
-        $index.packages.$packageId.versions | Add-Member -NotePropertyName '../1.2.21' -NotePropertyValue $index.packages.$packageId.versions.'1.2.21'
-        $index.packages.$packageId.versions.PSObject.Properties.Remove('1.2.21')
+        $index.packages.$packageId.versions | Add-Member -NotePropertyName '../1.2.22' -NotePropertyValue $index.packages.$packageId.versions.'1.2.22'
+        $index.packages.$packageId.versions.PSObject.Properties.Remove('1.2.22')
         Write-Json $path $index
     }
     Invoke-Case '外部ZIPへのURL変更' 'INDEX_URL' {
         param($root)
         $path = Join-Path $root 'index.json'
         $index = Read-Json $path
-        $index.packages.$packageId.versions.'1.2.21'.url = 'https://example.invalid/package.zip'
+        $index.packages.$packageId.versions.'1.2.22'.url = 'https://example.invalid/package.zip'
         Write-Json $path $index
     }
     Invoke-Case '旧版ZIPの公開時URL保持' '' {
         param($root)
-        Change-Package $root -Version '1.2.20' -Mutation {
+        Change-Package $root -Version '1.2.21' -Mutation {
             param($manifest)
-            $manifest.url = "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/packages/$packageId-1.2.20.zip"
+            $manifest.url = "https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/packages/$packageId-1.2.21.zip"
             $manifest.repo = 'https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/index.json'
         }
     }
