@@ -1,6 +1,6 @@
 # Public package regression tests
 
-This suite exercises the distributed AvatarRecovery 1.2.21 Editor package. It creates synthetic inputs at runtime and does not require product source, private test helpers, or avatar files.
+This suite exercises the distributed AvatarRecovery 1.2.22 Editor package. It creates synthetic inputs at runtime and does not require product source, private test helpers, or avatar files.
 
 ## Requirements
 
@@ -16,7 +16,7 @@ From the repository root, use PowerShell 7:
 
 ```powershell
 .\Build\Invoke-PublicUnityTests.ps1 `
-  -ProjectPath 'G:\UnityTest\AvatarRecovery-1.2.21-PublicValidation' `
+  -ProjectPath 'G:\UnityTest\AvatarRecovery-1.2.22-PublicValidation' `
   -UnityPath 'C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe'
 ```
 
@@ -26,7 +26,9 @@ Each run writes a new directory below `.work/PublicUnityTests/`. `results.xml`, 
 
 ## Coverage
 
-The 35 test cases cover render-queue labels and boundary values, shader reassignment, selection behavior, persistence of material properties and texture references after reimport, repeated assignment, unknown queues, missing shaders, CSV version-label preservation, older CSV columns, and empty input. The checks call the packaged Editor behavior and inspect the resulting assets.
+The 63 test cases cover render-queue labels and boundary values, shader reassignment, selection behavior, persistence of material properties and texture references after reimport, repeated assignment, unknown queues, missing shaders, CSV version-label preservation, older CSV columns, and empty input. Unknown queues are checked with four current queue settings under both supported policies. Material checks include 20 saved rendering properties for Blend, Cull, ZWrite, ZTest, Stencil, masks, and offsets. The checks call the packaged Editor behavior and inspect the resulting assets.
+
+The historical 1.2.21 result snapshot retains its original 35-test count and package identity. The current runner and test source are pinned to 1.2.22; use the corresponding repository revision to repeat an older suite.
 
 This is not the historical 517-test suite. It does not cover real-avatar recovery, original shader-file version extraction, GUI appearance, SDK lower-bound decisions, or recovery from an operating-system file-write denial. Historical local tests using private input remain separate evidence.
 

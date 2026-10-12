@@ -1,5 +1,15 @@
 # AvatarRecovery Update History
 
+## Version 1.2.22 — Shader Reassignment with Unknown Queues
+
+- Fixed selected material shader reassignment being skipped when the original render queue is unknown or invalid, including older ShaderReports without queue data.
+- Unknown queues now keep the material's current queue setting by default. Users can still choose the assigned shader's default. Unknown queue data does not cause reassignment to be skipped or automatically rolled back; reports continue to show unknown source values accurately.
+- Preserved material properties, including Blend, Cull, ZWrite, ZTest, Stencil, color, UV settings, and texture references. A kept shader-default queue setting uses the assigned shader's default rather than guaranteeing the same numeric drawing order.
+- Set the shared VRChat SDK Base requirement to `>=3.10.5 <3.11.0`, matching the validated SDK environment. Avatar and World projects remain supported; update older SDK installations before installing 1.2.22.
+- The signed package passed all 63 public EditMode tests in Unity 2022.3.22f1 / VRChat SDK 3.10.5, including 20 saved rendering properties and both unknown-queue policies. All 30 local package self-tests and 23 repository-check regression cases passed. Visual comparisons of user avatars were not performed.
+- A synthetic source bundle with eight materials also retained all 20 rendering-property values through extraction, reassignment, repeated assignment, unknown-queue assignment, and reimport using the signed DLL.
+- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.22.
+
 ## Repository maintenance — 2026-10-08
 
 - Corrected the latest README version heading so the unchanged 1.2.21 package recognizes 1.2.21 as current and offers an update to 1.2.20 installations. Refreshed the legacy update metadata to 1.2.21.
