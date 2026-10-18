@@ -2,6 +2,8 @@
 
 ## Demo walkthrough
 
+https://github.com/user-attachments/assets/807bd64e-f076-4663-8ec1-2b1d4eaf148f
+
 **4:46 · English captions · 1440p / 60fps**
 
 Watch VCC installation, Unity recovery, lilToon shader reassignment, and the recovered expression menus in Gesture Manager.
