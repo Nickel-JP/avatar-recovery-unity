@@ -1,6 +1,6 @@
 # AvatarRecovery Unity
 
-## Demo walkthrough
+## AvatarRecover Demonstration Movie
 
 https://github.com/user-attachments/assets/807bd64e-f076-4663-8ec1-2b1d4eaf148f
 
