@@ -4,17 +4,7 @@
 
 https://github.com/user-attachments/assets/807bd64e-f076-4663-8ec1-2b1d4eaf148f
 
-**4:46 · English captions · 1440p / 60fps**
-
-Watch VCC installation, Unity recovery, lilToon shader reassignment, and the recovered expression menus in Gesture Manager.
-
 Music: [youth — Toby Schay](https://www.youtube.com/watch?v=1fjAWslBuRA).
-
-VPM repository for `com.nickel-jp.avatar-recovery`.
-
-AvatarRecovery is a Unity Editor extension for inspecting VRChat `.vrca`, `.vrcw`, `.vrcp`, and `.vrcap` AssetBundles and recovering their contents into a Unity project when you have permission to do so.
-
-AvatarRecovery launches the bundled AssetRipper 1.3.14 files as an external process, then applies its own C# post-processing to help restore script and animation references, record original shader information, handle missing scripts, select the appropriate prefab, and reset poses. Shader assignment is managed through Shader Lists; automatic shader replacement options have been removed. A separate AssetRipper download or path setting is not required. AssetRipper and SARS source code are not included.
 
 ## VPM Repository
 
