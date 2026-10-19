@@ -16,8 +16,8 @@ namespace AvatarRecovery.PublicTests
     public sealed class PublicShaderListTests
     {
         private const string PackageId = "com.nickel-jp.avatar-recovery";
-        private const string ExpectedVersion = "1.2.22";
-        private const string ExpectedDllSha256 = "449087e90dfbfb8d7ea4962880267b0d96d1055d4af12f769b9f074792f18dc9";
+        private const string ExpectedVersion = "1.2.23";
+        private const string ExpectedDllSha256 = "982c72100bdb6e6a7b01466a4e6f4d6edca7c99261f978a764f7bd46df28f668";
         private const string FolderPrefix = "Assets/__AvatarRecoveryPublicTests_";
         private const string Header = "MaterialName,MaterialPath,OriginalShaderName,RenderQueue,ShaderDefaultQueue,ShaderVersion\n";
         private const int OriginalQueue = 2100;
@@ -65,7 +65,7 @@ namespace AvatarRecovery.PublicTests
             using (var sha256 = SHA256.Create())
             {
                 var digest = BitConverter.ToString(sha256.ComputeHash(stream)).Replace("-", "").ToLowerInvariant();
-                Assert.AreEqual(ExpectedDllSha256, digest, "公開候補1.2.22のDLLと一致しません。");
+                Assert.AreEqual(ExpectedDllSha256, digest, "公開候補1.2.23のDLLと一致しません。");
             }
         }
 
