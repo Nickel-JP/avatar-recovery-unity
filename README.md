@@ -2,7 +2,9 @@
 
 ## AvatarRecover Demonstration Movie
 
-[Watch AvatarRecover Demonstration Movie](https://github.com/user-attachments/assets/28ff7547-1e2a-449c-a3a8-f90abfeb63a2)
+[![Watch AvatarRecover Demonstration Movie](assets/demo/avatarrecover-demonstration.jpg)](https://nickel-jp.github.io/avatar-recovery-unity/demo/)
+
+[Watch AvatarRecover Demonstration Movie](https://nickel-jp.github.io/avatar-recovery-unity/demo/)
 
 Music: [youth — Toby Schay](https://www.youtube.com/watch?v=1fjAWslBuRA).
 
