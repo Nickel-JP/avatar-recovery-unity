@@ -1,6 +1,6 @@
 #requires -Version 7.2
 param(
-    [string]$ProjectPath = 'G:\UnityTest\AvatarRecovery-1.2.22-PublicValidation',
+    [string]$ProjectPath = 'G:\UnityTest\AvatarRecovery-1.2.23-PublicValidation',
     [string]$UnityPath = 'C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe',
     [string]$ResultsPath = '',
     [switch]$PrepareOnly
@@ -9,10 +9,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $unityVersion = '2022.3.22f1'
-$packageVersion = '1.2.22'
+$packageVersion = '1.2.23'
 $packageId = 'com.nickel-jp.avatar-recovery'
-$packageSha256 = '07fb8f2cf18c35636c6e1b0f3631680d53bc5120acebfda46f3e389b3bac5809'
-$assemblySha256 = '449087e90dfbfb8d7ea4962880267b0d96d1055d4af12f769b9f074792f18dc9'
+$packageSha256 = 'be7e14c52bea9f14c9172dcef713f03af263d01db58b9e13dcc47db7141fa59f'
+$assemblySha256 = '982c72100bdb6e6a7b01466a4e6f4d6edca7c99261f978a764f7bd46df28f668'
 $allowedRoot = [IO.Path]::GetFullPath('G:\UnityTest')
 $projectRoot = [IO.Path]::GetFullPath($ProjectPath).TrimEnd('\')
 $runId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
@@ -82,14 +82,20 @@ function Save-PublicText {
     $stream = [IO.File]::Open($Source, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::ReadWrite)
     $reader = [IO.StreamReader]::new($stream)
     try { $value = $reader.ReadToEnd() } finally { $reader.Dispose() }
-    foreach ($path in @($projectRoot, $repoRoot, [Environment]::GetFolderPath('UserProfile'))) {
+    foreach ($path in @($resultRoot, $projectRoot, $repoRoot, [Environment]::GetFolderPath('UserProfile'))) {
         if ($path) {
-            $value = $value.Replace($path, '[local-path]').Replace($path.Replace('\', '/'), '[local-path]')
+            $value = $value.Replace($path, '[local-path]').Replace($path.Replace([char]92, [char]47), '[local-path]')
         }
     }
     # 認証識別子を公開ログへ転記せず、エラー本文と実行結果は残します。
     $value = [regex]::Replace($value, '(?im)^.*(?:Machine Id:|Session Id:|Correlation Id:|External correlation Id:|Serial number assigned to:).*(\r?\n|$)', '')
+    $value = [regex]::Replace($value, '(?i)LicenseClient-' + [regex]::Escape([Environment]::UserName), 'LicenseClient-[local-user]')
     $value = $value.Replace("`r`n", "`n").Replace("`r", "`n")
+    if ([IO.Path]::GetExtension($Destination) -eq '.log') {
+        # 環境変数のダンプを公開せず、実行結果と診断メッセージは残します。
+        $value = [regex]::Replace($value, '(?m)^Environment Variables:[ \t]*\n(?:[^\r\n]*=[^\r\n]*(?:\n|$))+', "Environment Variables: [omitted]`n")
+        $value = [regex]::Replace($value, '(?m)[ \t]+$', '')
+    }
     Assert-NoReparsePoint -Path $Destination
     [IO.File]::WriteAllText($Destination, $value, [Text.UTF8Encoding]::new($false))
 }
