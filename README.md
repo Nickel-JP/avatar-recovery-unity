@@ -118,7 +118,7 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 ### Version 1.2.25
 
-- 微細なバグ修正
+- Minor bug fixes
 
 ### Version 1.2.24 - UnityAssetBundle Recovery
 
