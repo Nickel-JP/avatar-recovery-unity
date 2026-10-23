@@ -1,0 +1,33 @@
+{
+  "format": "AvatarRecovery public Unity test result v1",
+  "packageVersion": "1.2.24",
+  "packageSha256": "f0e8346f9e2fc0f93d59c3a8d4068c83b89ddd4bd14b6e0bf5bd8b58bd59655d",
+  "assemblySha256": "7b86fada49076dc6e546949dc643847079ca5e987d36c89703334a072d6386ed",
+  "unityVersion": "2022.3.22f1",
+  "sdkVersion": "3.10.5",
+  "testAssembly": "AvatarRecovery.PublicTests",
+  "executionEnvironment": "local",
+  "startedAtUtc": "2026-10-22T23:26:13.0698073Z",
+  "completedAtUtc": "2026-10-22T23:27:25.2654027Z",
+  "unityExitCode": 0,
+  "result": "Passed",
+  "total": 63,
+  "passed": 63,
+  "failed": 0,
+  "skipped": 0,
+  "testXmlSha256": "4d349ebdcb499991d72fb36fdd85a0da62fad2441dc743a08d6725cfbee9e23b",
+  "dependencies": [
+    {
+      "id": "com.vrchat.base",
+      "url": "https://github.com/vrchat/packages/releases/download/3.10.5/com.vrchat.base-3.10.5.zip",
+      "sha256": "fbfb3e7a38778dcb55d7a860286819e6f0726d10d5039f61474bd1b9c629029e",
+      "version": "3.10.5"
+    },
+    {
+      "id": "com.vrchat.avatars",
+      "url": "https://github.com/vrchat/packages/releases/download/3.10.5/com.vrchat.avatars-3.10.5.zip",
+      "sha256": "03bdea0c24257070f0e7a73c9033742a1ce0f67463b12a6c2ad29608b1f33a77",
+      "version": "3.10.5"
+    }
+  ]
+}

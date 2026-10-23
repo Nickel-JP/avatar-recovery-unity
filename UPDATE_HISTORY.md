@@ -1,5 +1,18 @@
 # AvatarRecovery Update History
 
+## Version 1.2.24 - UnityAssetBundle Recovery
+
+- Added a UnityAssetBundle category for files with any extension, or no extension, whose header starts with `UnityFS\0`. These files use AssetRipper and have a separate output folder. Existing `.vrca`, `.vrcw`, `.vrcp`, and `.vrcap` files keep their existing recovery routes.
+- UnityAssetBundle recovery supports scenes and individual assets without requiring a prefab. It skips avatar-specific pose, AAO, Gesture Layer, and Expression Menu post-processing. Updated the English and Japanese Manual, settings, and recovery history for the new category.
+- Reduced unnecessary recovery stops when an older or unrecognized PipelineManager type prevents Blueprint ID cleanup. Recovery continues with a warning; check and clear any remaining Blueprint IDs before uploading.
+- Recovery is classified as failed when AssetRipper reports an error or the final output contains only JSON data. Cancellation, invalid input, and incomplete saves remain separate outcomes. Recoverable post-processing problems produce warnings, with rollback limited to the affected assets where possible.
+- Increased the shader queue-reading limit to 1800 seconds. Skipping or timing out this step leaves unavailable queues marked as unknown and allows recovery to continue.
+- Improved texture-array correction for long paths, incomplete image data, and failed image or metadata writes. Preserved the existing 1 GiB decoded-image limit, output dimensions, and pixel layout.
+- Validated in Unity 2022.3.22f1 with VRChat SDK 3.10.5: all 63 public EditMode tests, 84 targeted source tests, and 30 package self-tests passed. Seven synthetic recovery cases passed against both the source build and the final signed package, covering generic bundles and all four existing VRChat extensions.
+- A real VRCA and a byte-identical copy renamed to `.bundle` both recovered successfully. Their six meshes, 199 PNG images, and 940 animation clips matched byte for byte; recorded prefab transforms, renderer data, and menu references also matched. Avatar-specific post-processing intentionally differs. Both runs had zero missing scripts, while 18 material shader references remained unresolved in each because the original shaders were unavailable. Rendering, VRChat runtime behavior, and Unity 6000 were not tested.
+- One validation Editor crashed during its initial startup, before recovery began; restarting it with the same settings completed successfully. The native startup crash was investigated, but this release does not claim to fix it. Successful recovery runs still emitted asset-name warnings.
+- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.24. Use an empty output folder when retrying a recovery; existing recovered folders are not rewritten automatically.
+
 ## Version 1.2.23 - Large Array Texture Recovery
 
 - Fixed recovery stopping during texture-array correction when the decoded image exceeded 512 MiB. Images up to 1 GiB are now accepted within the existing 16384-pixel output dimensions, with every slice and pixel preserved.
