@@ -9,10 +9,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $unityVersion = '2022.3.22f1'
-$packageVersion = '1.2.23'
+$packageVersion = '1.2.24'
 $packageId = 'com.nickel-jp.avatar-recovery'
-$packageSha256 = 'be7e14c52bea9f14c9172dcef713f03af263d01db58b9e13dcc47db7141fa59f'
-$assemblySha256 = '982c72100bdb6e6a7b01466a4e6f4d6edca7c99261f978a764f7bd46df28f668'
+$packageSha256 = 'f0e8346f9e2fc0f93d59c3a8d4068c83b89ddd4bd14b6e0bf5bd8b58bd59655d'
+$assemblySha256 = '7b86fada49076dc6e546949dc643847079ca5e987d36c89703334a072d6386ed'
 $allowedRoot = [IO.Path]::GetFullPath('G:\UnityTest')
 $projectRoot = [IO.Path]::GetFullPath($ProjectPath).TrimEnd('\')
 $runId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
