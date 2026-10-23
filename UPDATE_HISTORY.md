@@ -1,5 +1,9 @@
 # AvatarRecovery Update History
 
+## Version 1.2.25
+
+- 微細なバグ修正
+
 ## Version 1.2.24 - UnityAssetBundle Recovery
 
 - Added a UnityAssetBundle category for files with any extension, or no extension, whose header starts with `UnityFS\0`. These files use AssetRipper and have a separate output folder. Existing `.vrca`, `.vrcw`, `.vrcp`, and `.vrcap` files keep their existing recovery routes.
