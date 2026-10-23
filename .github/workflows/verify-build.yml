@@ -28,7 +28,7 @@ permissions:
   contents: read
 
 env:
-  VERSION: 1.2.24
+  VERSION: 1.2.25
 
 jobs:
   verify:
@@ -45,6 +45,9 @@ jobs:
             ".\Build\StageBundledAssetRipper.ps1",
             ".\Build\Test-PublicRepository.ps1",
             ".\Build\Tests\Test-PublicRepository.Tests.ps1",
+            ".\Build\StringLiteralContract.psm1",
+            ".\Build\Test-StringLiteralContract.ps1",
+            ".\Build\Tests\Test-StringLiteralContract.Tests.ps1",
             ".\Build\Test-UpdateManifest.ps1",
             ".\Build\UpdateNotificationManifest.psm1",
             ".\Build\Invoke-PublicUnityTests.ps1",

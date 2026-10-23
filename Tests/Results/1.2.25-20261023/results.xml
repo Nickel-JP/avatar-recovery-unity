@@ -1,0 +1,1065 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-run id="2" testcasecount="63" result="Passed" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0" engine-version="3.5.0.0" clr-version="4.0.30319.42000" start-time="2026-10-23 02:24:50Z" end-time="2026-10-23 02:25:05Z" duration="14.3136892">
+  <test-suite type="TestSuite" id="1093" name="AvatarRecovery-1.2.25-LiteralContract-PublicValidation" fullname="AvatarRecovery-1.2.25-LiteralContract-PublicValidation" runstate="Runnable" testcasecount="70" result="Passed" start-time="2026-10-23 02:24:50Z" end-time="2026-10-23 02:25:05Z" duration="14.313689" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties />
+    <test-suite type="Assembly" id="1164" name="AvatarRecovery.PublicTests.dll" fullname="[local-path]/Library/ScriptAssemblies/AvatarRecovery.PublicTests.dll" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-10-23 02:24:50Z" end-time="2026-10-23 02:25:05Z" duration="14.302992" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties>
+        <property name="_PID" value="17636" />
+        <property name="_APPDOMAIN" value="Unity Child Domain" />
+        <property name="platform" value="EditMode" />
+      </properties>
+      <test-suite type="TestSuite" id="1165" name="AvatarRecovery" fullname="AvatarRecovery" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-10-23 02:24:50Z" end-time="2026-10-23 02:25:05Z" duration="14.302498" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestSuite" id="1166" name="PublicTests" fullname="AvatarRecovery.PublicTests" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-10-23 02:24:50Z" end-time="2026-10-23 02:25:05Z" duration="14.302285" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="TestFixture" id="1094" name="PublicShaderListTests" fullname="AvatarRecovery.PublicTests.PublicShaderListTests" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-10-23 02:24:50Z" end-time="2026-10-23 02:25:05Z" duration="14.301402" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-suite type="ParameterizedMethod" id="1159" name="CsvVersionLabelSurvivesReportLoading" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-10-23 02:24:50Z" end-time="2026-10-23 02:24:51Z" duration="0.303226" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1155" name="CsvVersionLabelSurvivesReportLoading(&quot;Shader 1.2.3&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading(&quot;Shader 1.2.3&quot;)" methodname="CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="63353037" result="Passed" start-time="2026-10-23 02:24:50Z" end-time="2026-10-23 02:24:50Z" duration="0.099212" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1156" name="CsvVersionLabelSurvivesReportLoading(&quot;Shader \&quot;Edition, A\&quot; 1.2.3&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading(&quot;Shader \&quot;Edition, A\&quot; 1.2.3&quot;)" methodname="CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1074224317" result="Passed" start-time="2026-10-23 02:24:50Z" end-time="2026-10-23 02:24:51Z" duration="0.067228" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1157" name="CsvVersionLabelSurvivesReportLoading(&quot;Shader 1.2.3\n追加情報&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading(&quot;Shader 1.2.3\n追加情報&quot;)" methodname="CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="596933775" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.065033" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1158" name="CsvVersionLabelSurvivesReportLoading(&quot;シェーダー 1.2.3&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading(&quot;シェーダー 1.2.3&quot;)" methodname="CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="524027470" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.066662" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1163" name="EmptyReportLoadsWithoutRows" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.EmptyReportLoadsWithoutRows" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.138000" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1161" name="EmptyReportLoadsWithoutRows(&quot;&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.EmptyReportLoadsWithoutRows(&quot;&quot;)" methodname="EmptyReportLoadsWithoutRows" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1504530666" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.068838" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 0
+Succeeded: 0
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+
+]]></output>
+              </test-case>
+              <test-case id="1162" name="EmptyReportLoadsWithoutRows(&quot;MaterialName,MaterialPath,OriginalShaderName,RenderQueue,ShaderDefaultQueue,ShaderVersion\n&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.EmptyReportLoadsWithoutRows(&quot;MaterialName,MaterialPath,OriginalShaderName,RenderQueue,ShaderDefaultQueue,ShaderVersion\n&quot;)" methodname="EmptyReportLoadsWithoutRows" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="461024414" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.066962" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 0
+Succeeded: 0
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-case id="1160" name="LegacyCsvWithoutQueueOrVersionLoadsAsUnknown" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.LegacyCsvWithoutQueueOrVersionLoadsAsUnknown" methodname="LegacyCsvWithoutQueueOrVersionLoadsAsUnknown" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1535590111" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.068029" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1148" name="LegacyReportWithoutQueueStillAssignsShader" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.LegacyReportWithoutQueueStillAssignsShader" methodname="LegacyReportWithoutQueueStillAssignsShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1544583652" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.266019" asserts="0">
+              <properties />
+              <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_1d7151aa28c848d1b9dfcc1a3fcb9f85/Legacy.mat: AvatarRecoveryPublicTests/1d7151aa28c848d1b9dfcc1a3fcb9f85/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+            </test-case>
+            <test-case id="1154" name="MissingOriginalShaderLeavesSelectedMaterialUnchanged" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.MissingOriginalShaderLeavesSelectedMaterialUnchanged" methodname="MissingOriginalShaderLeavesSelectedMaterialUnchanged" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="624981923" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.204649" asserts="0">
+              <properties />
+              <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 0
+Current queue kept: 0
+Shader default: 0
+Skipped: 1
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_dd153de94acc4360a6d581dad8ba05ba/MissingShader.mat: no exact shader match (AvatarRecoveryPublicTests/NotInstalled)
+
+]]></output>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1105" name="QueueLabelsUseReportValuesWithoutInstalledShader" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="10" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:52Z" duration="0.716585" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1095" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;3077&quot;,&quot;3077&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;3077&quot;,&quot;3077&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="343377933" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.070821" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1096" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;0&quot;,&quot;2000&quot;,&quot;0&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;0&quot;,&quot;2000&quot;,&quot;0&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="753778686" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:51Z" duration="0.067342" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1097" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;2450&quot;,&quot;2000&quot;,&quot;2450&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;2450&quot;,&quot;2000&quot;,&quot;2450&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="283578098" result="Passed" start-time="2026-10-23 02:24:51Z" end-time="2026-10-23 02:24:52Z" duration="0.076833" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1098" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;5000&quot;,&quot;2000&quot;,&quot;5000&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;5000&quot;,&quot;2000&quot;,&quot;5000&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="838465710" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:52Z" duration="0.077898" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1099" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="301180178" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:52Z" duration="0.068950" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1100" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;-1&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;-1&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1636005564" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:52Z" duration="0.069323" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1101" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;&quot;,&quot;2000&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;&quot;,&quot;2000&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1693555238" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:52Z" duration="0.071436" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1102" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-2&quot;,&quot;2000&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-2&quot;,&quot;2000&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="44405944" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:52Z" duration="0.068934" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1103" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;5001&quot;,&quot;2000&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;5001&quot;,&quot;2000&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="68595698" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:52Z" duration="0.071507" asserts="0">
+                <properties />
+              </test-case>
+              <test-case id="1104" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;invalid&quot;,&quot;2000&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;invalid&quot;,&quot;2000&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="610549760" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:52Z" duration="0.067922" asserts="0">
+                <properties />
+              </test-case>
+            </test-suite>
+            <test-suite type="ParameterizedMethod" id="1114" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:54Z" duration="2.154667" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1106" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(-1)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(-1)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1730620441" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:52Z" duration="0.246933" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_10dc120b2f5c4336859618b84feb359b/Example.mat: AvatarRecoveryPublicTests/10dc120b2f5c4336859618b84feb359b/Target / Queue: -1
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_10dc120b2f5c4336859618b84feb359b/Example.mat: AvatarRecoveryPublicTests/10dc120b2f5c4336859618b84feb359b/Target / Queue: -1
+
+]]></output>
+              </test-case>
+              <test-case id="1107" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(0)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(0)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1003564696" result="Passed" start-time="2026-10-23 02:24:52Z" end-time="2026-10-23 02:24:53Z" duration="0.281803" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_d068a8b8b92b44dbab9b7e85c2a35278/Example.mat: AvatarRecoveryPublicTests/d068a8b8b92b44dbab9b7e85c2a35278/Target / Queue: 0
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_d068a8b8b92b44dbab9b7e85c2a35278/Example.mat: AvatarRecoveryPublicTests/d068a8b8b92b44dbab9b7e85c2a35278/Target / Queue: 0
+
+]]></output>
+              </test-case>
+              <test-case id="1108" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2000)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2000)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1133845588" result="Passed" start-time="2026-10-23 02:24:53Z" end-time="2026-10-23 02:24:53Z" duration="0.318837" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_52624a3bc4814874a80cddf0c62e230a/Example.mat: AvatarRecoveryPublicTests/52624a3bc4814874a80cddf0c62e230a/Target / Queue: 2000
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_52624a3bc4814874a80cddf0c62e230a/Example.mat: AvatarRecoveryPublicTests/52624a3bc4814874a80cddf0c62e230a/Target / Queue: 2000
+
+]]></output>
+              </test-case>
+              <test-case id="1109" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2450)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2450)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1590781133" result="Passed" start-time="2026-10-23 02:24:53Z" end-time="2026-10-23 02:24:53Z" duration="0.307662" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_258b9d18b60c4fd2b9e555ac30865a9d/Example.mat: AvatarRecoveryPublicTests/258b9d18b60c4fd2b9e555ac30865a9d/Target / Queue: 2450
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_258b9d18b60c4fd2b9e555ac30865a9d/Example.mat: AvatarRecoveryPublicTests/258b9d18b60c4fd2b9e555ac30865a9d/Target / Queue: 2450
+
+]]></output>
+              </test-case>
+              <test-case id="1110" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2500)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2500)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="315552142" result="Passed" start-time="2026-10-23 02:24:53Z" end-time="2026-10-23 02:24:53Z" duration="0.236581" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_a92d11e78479472298cae40ed9ce72a8/Example.mat: AvatarRecoveryPublicTests/a92d11e78479472298cae40ed9ce72a8/Target / Queue: 2500
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_a92d11e78479472298cae40ed9ce72a8/Example.mat: AvatarRecoveryPublicTests/a92d11e78479472298cae40ed9ce72a8/Target / Queue: 2500
+
+]]></output>
+              </test-case>
+              <test-case id="1111" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(3100)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(3100)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="762322355" result="Passed" start-time="2026-10-23 02:24:53Z" end-time="2026-10-23 02:24:54Z" duration="0.249836" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_a1c946e3d39946f79bda62e2e0080a35/Example.mat: AvatarRecoveryPublicTests/a1c946e3d39946f79bda62e2e0080a35/Target / Queue: 3100
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_a1c946e3d39946f79bda62e2e0080a35/Example.mat: AvatarRecoveryPublicTests/a1c946e3d39946f79bda62e2e0080a35/Target / Queue: 3100
+
+]]></output>
+              </test-case>
+              <test-case id="1112" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(4000)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(4000)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1988936147" result="Passed" start-time="2026-10-23 02:24:54Z" end-time="2026-10-23 02:24:54Z" duration="0.253147" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_38b5dc02741744479a3967fca21e382b/Example.mat: AvatarRecoveryPublicTests/38b5dc02741744479a3967fca21e382b/Target / Queue: 4000
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_38b5dc02741744479a3967fca21e382b/Example.mat: AvatarRecoveryPublicTests/38b5dc02741744479a3967fca21e382b/Target / Queue: 4000
+
+]]></output>
+              </test-case>
+              <test-case id="1113" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(5000)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(5000)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1745412063" result="Passed" start-time="2026-10-23 02:24:54Z" end-time="2026-10-23 02:24:54Z" duration="0.255760" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_a2a0ea98482f4bb18a1e269efbc9042c/Example.mat: AvatarRecoveryPublicTests/a2a0ea98482f4bb18a1e269efbc9042c/Target / Queue: 5000
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_a2a0ea98482f4bb18a1e269efbc9042c/Example.mat: AvatarRecoveryPublicTests/a2a0ea98482f4bb18a1e269efbc9042c/Target / Queue: 5000
+
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-case id="1153" name="SelectingOneRowLeavesOtherMaterialUnchanged" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectingOneRowLeavesOtherMaterialUnchanged" methodname="SelectingOneRowLeavesOtherMaterialUnchanged" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1798148696" result="Passed" start-time="2026-10-23 02:24:54Z" end-time="2026-10-23 02:24:55Z" duration="0.340951" asserts="0">
+              <properties />
+              <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_5963613ce28149e3bba6105fea870d00/Selected.mat: AvatarRecoveryPublicTests/5963613ce28149e3bba6105fea870d00/Target / Queue: 3100
+
+]]></output>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1147" name="UnknownQueueNeverSkipsOrRollsBack" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="32" result="Passed" start-time="2026-10-23 02:24:55Z" end-time="2026-10-23 02:25:04Z" duration="9.287935" total="32" passed="32" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1115" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,-1,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,-1,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="15905905" result="Passed" start-time="2026-10-23 02:24:55Z" end-time="2026-10-23 02:24:55Z" duration="0.339008" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_9a6267d54412473eba0941ec4b020127/Unknown.mat: AvatarRecoveryPublicTests/9a6267d54412473eba0941ec4b020127/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_9a6267d54412473eba0941ec4b020127/Unknown.mat: AvatarRecoveryPublicTests/9a6267d54412473eba0941ec4b020127/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1116" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,-1,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,-1,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="701765844" result="Passed" start-time="2026-10-23 02:24:55Z" end-time="2026-10-23 02:24:55Z" duration="0.315741" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_f431ee36270d4aa99b34795329ad53f1/Unknown.mat: AvatarRecoveryPublicTests/f431ee36270d4aa99b34795329ad53f1/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_f431ee36270d4aa99b34795329ad53f1/Unknown.mat: AvatarRecoveryPublicTests/f431ee36270d4aa99b34795329ad53f1/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1117" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,0,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,0,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="2079932983" result="Passed" start-time="2026-10-23 02:24:55Z" end-time="2026-10-23 02:24:55Z" duration="0.280247" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_90c31d65bf52484cbd6ae3a4ad9b36d8/Unknown.mat: AvatarRecoveryPublicTests/90c31d65bf52484cbd6ae3a4ad9b36d8/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_90c31d65bf52484cbd6ae3a4ad9b36d8/Unknown.mat: AvatarRecoveryPublicTests/90c31d65bf52484cbd6ae3a4ad9b36d8/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1118" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,0,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,0,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1643078284" result="Passed" start-time="2026-10-23 02:24:55Z" end-time="2026-10-23 02:24:56Z" duration="0.267156" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_c4cbaecdd6d544a1b27f79ecf9f703ca/Unknown.mat: AvatarRecoveryPublicTests/c4cbaecdd6d544a1b27f79ecf9f703ca/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_c4cbaecdd6d544a1b27f79ecf9f703ca/Unknown.mat: AvatarRecoveryPublicTests/c4cbaecdd6d544a1b27f79ecf9f703ca/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1119" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,2100,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,2100,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="163744603" result="Passed" start-time="2026-10-23 02:24:56Z" end-time="2026-10-23 02:24:56Z" duration="0.286419" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_1c62d6edd8214f1b865f12e6f4fe0e44/Unknown.mat: AvatarRecoveryPublicTests/1c62d6edd8214f1b865f12e6f4fe0e44/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_1c62d6edd8214f1b865f12e6f4fe0e44/Unknown.mat: AvatarRecoveryPublicTests/1c62d6edd8214f1b865f12e6f4fe0e44/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1120" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,2100,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,2100,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1070436013" result="Passed" start-time="2026-10-23 02:24:56Z" end-time="2026-10-23 02:24:56Z" duration="0.280354" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_28e1ae212018439fa652e8417fe153f1/Unknown.mat: AvatarRecoveryPublicTests/28e1ae212018439fa652e8417fe153f1/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_28e1ae212018439fa652e8417fe153f1/Unknown.mat: AvatarRecoveryPublicTests/28e1ae212018439fa652e8417fe153f1/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1121" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,5000,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,5000,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1891003772" result="Passed" start-time="2026-10-23 02:24:56Z" end-time="2026-10-23 02:24:57Z" duration="0.272118" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_b063b50d84c84790a12094e793fcd3e5/Unknown.mat: AvatarRecoveryPublicTests/b063b50d84c84790a12094e793fcd3e5/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_b063b50d84c84790a12094e793fcd3e5/Unknown.mat: AvatarRecoveryPublicTests/b063b50d84c84790a12094e793fcd3e5/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1122" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,5000,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,5000,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1433927172" result="Passed" start-time="2026-10-23 02:24:57Z" end-time="2026-10-23 02:24:57Z" duration="0.274927" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_1bc6a13e2b4d4ca29dffc8a79d0a2a87/Unknown.mat: AvatarRecoveryPublicTests/1bc6a13e2b4d4ca29dffc8a79d0a2a87/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_1bc6a13e2b4d4ca29dffc8a79d0a2a87/Unknown.mat: AvatarRecoveryPublicTests/1bc6a13e2b4d4ca29dffc8a79d0a2a87/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1123" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,-1,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,-1,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="688840082" result="Passed" start-time="2026-10-23 02:24:57Z" end-time="2026-10-23 02:24:57Z" duration="0.274505" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_916aacdb1fce431b9cb01ba2632c7828/Unknown.mat: AvatarRecoveryPublicTests/916aacdb1fce431b9cb01ba2632c7828/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_916aacdb1fce431b9cb01ba2632c7828/Unknown.mat: AvatarRecoveryPublicTests/916aacdb1fce431b9cb01ba2632c7828/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1124" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,-1,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,-1,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="904848316" result="Passed" start-time="2026-10-23 02:24:57Z" end-time="2026-10-23 02:24:57Z" duration="0.285767" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_2ce4874c829d413b9799ef28530563da/Unknown.mat: AvatarRecoveryPublicTests/2ce4874c829d413b9799ef28530563da/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_2ce4874c829d413b9799ef28530563da/Unknown.mat: AvatarRecoveryPublicTests/2ce4874c829d413b9799ef28530563da/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1125" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,0,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,0,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="747069928" result="Passed" start-time="2026-10-23 02:24:57Z" end-time="2026-10-23 02:24:58Z" duration="0.267816" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_eab2ab5e5c5242d4957be612bd11d086/Unknown.mat: AvatarRecoveryPublicTests/eab2ab5e5c5242d4957be612bd11d086/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_eab2ab5e5c5242d4957be612bd11d086/Unknown.mat: AvatarRecoveryPublicTests/eab2ab5e5c5242d4957be612bd11d086/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1126" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,0,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,0,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1045936277" result="Passed" start-time="2026-10-23 02:24:58Z" end-time="2026-10-23 02:24:58Z" duration="0.248193" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_0e24d72b64614df1b292bb4f225b1b58/Unknown.mat: AvatarRecoveryPublicTests/0e24d72b64614df1b292bb4f225b1b58/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_0e24d72b64614df1b292bb4f225b1b58/Unknown.mat: AvatarRecoveryPublicTests/0e24d72b64614df1b292bb4f225b1b58/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1127" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,2100,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,2100,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="213491402" result="Passed" start-time="2026-10-23 02:24:58Z" end-time="2026-10-23 02:24:58Z" duration="0.285387" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_8dada849adf64c7283273fb5c6d48b11/Unknown.mat: AvatarRecoveryPublicTests/8dada849adf64c7283273fb5c6d48b11/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_8dada849adf64c7283273fb5c6d48b11/Unknown.mat: AvatarRecoveryPublicTests/8dada849adf64c7283273fb5c6d48b11/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1128" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,2100,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,2100,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="804843845" result="Passed" start-time="2026-10-23 02:24:58Z" end-time="2026-10-23 02:24:59Z" duration="0.269253" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_12e0faf7382e4e44951c88f50c33c48d/Unknown.mat: AvatarRecoveryPublicTests/12e0faf7382e4e44951c88f50c33c48d/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_12e0faf7382e4e44951c88f50c33c48d/Unknown.mat: AvatarRecoveryPublicTests/12e0faf7382e4e44951c88f50c33c48d/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1129" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,5000,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,5000,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1442567036" result="Passed" start-time="2026-10-23 02:24:59Z" end-time="2026-10-23 02:24:59Z" duration="0.291911" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_4b05b65693a9492eb8e3e42f3ed553d2/Unknown.mat: AvatarRecoveryPublicTests/4b05b65693a9492eb8e3e42f3ed553d2/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_4b05b65693a9492eb8e3e42f3ed553d2/Unknown.mat: AvatarRecoveryPublicTests/4b05b65693a9492eb8e3e42f3ed553d2/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1130" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,5000,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,5000,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="358705396" result="Passed" start-time="2026-10-23 02:24:59Z" end-time="2026-10-23 02:24:59Z" duration="0.268566" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_ae07d0acdb4c4f46b602091bb049ad7b/Unknown.mat: AvatarRecoveryPublicTests/ae07d0acdb4c4f46b602091bb049ad7b/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_ae07d0acdb4c4f46b602091bb049ad7b/Unknown.mat: AvatarRecoveryPublicTests/ae07d0acdb4c4f46b602091bb049ad7b/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1131" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,-1,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,-1,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1932641156" result="Passed" start-time="2026-10-23 02:24:59Z" end-time="2026-10-23 02:24:59Z" duration="0.305992" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_bba694c02dab4673bb37ec3095153750/Unknown.mat: AvatarRecoveryPublicTests/bba694c02dab4673bb37ec3095153750/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_bba694c02dab4673bb37ec3095153750/Unknown.mat: AvatarRecoveryPublicTests/bba694c02dab4673bb37ec3095153750/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1132" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,-1,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,-1,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1805849979" result="Passed" start-time="2026-10-23 02:24:59Z" end-time="2026-10-23 02:25:00Z" duration="0.301174" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_cccb0dd286a042bc9f7baf75866b3bd1/Unknown.mat: AvatarRecoveryPublicTests/cccb0dd286a042bc9f7baf75866b3bd1/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_cccb0dd286a042bc9f7baf75866b3bd1/Unknown.mat: AvatarRecoveryPublicTests/cccb0dd286a042bc9f7baf75866b3bd1/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1133" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,0,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,0,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1160999464" result="Passed" start-time="2026-10-23 02:25:00Z" end-time="2026-10-23 02:25:00Z" duration="0.304862" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_c50c08442c9a46ed857b0e14a12dd310/Unknown.mat: AvatarRecoveryPublicTests/c50c08442c9a46ed857b0e14a12dd310/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_c50c08442c9a46ed857b0e14a12dd310/Unknown.mat: AvatarRecoveryPublicTests/c50c08442c9a46ed857b0e14a12dd310/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1134" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,0,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,0,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="649628102" result="Passed" start-time="2026-10-23 02:25:00Z" end-time="2026-10-23 02:25:00Z" duration="0.294960" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_8f31f9cf578b4ce59bf6ef9e804eeee5/Unknown.mat: AvatarRecoveryPublicTests/8f31f9cf578b4ce59bf6ef9e804eeee5/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_8f31f9cf578b4ce59bf6ef9e804eeee5/Unknown.mat: AvatarRecoveryPublicTests/8f31f9cf578b4ce59bf6ef9e804eeee5/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1135" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,2100,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,2100,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1095375063" result="Passed" start-time="2026-10-23 02:25:00Z" end-time="2026-10-23 02:25:01Z" duration="0.315923" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_6ae31951a2fe4469a7f1d4eabd732a57/Unknown.mat: AvatarRecoveryPublicTests/6ae31951a2fe4469a7f1d4eabd732a57/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_6ae31951a2fe4469a7f1d4eabd732a57/Unknown.mat: AvatarRecoveryPublicTests/6ae31951a2fe4469a7f1d4eabd732a57/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1136" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,2100,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,2100,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1546504236" result="Passed" start-time="2026-10-23 02:25:01Z" end-time="2026-10-23 02:25:01Z" duration="0.259436" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_0a58e876741c42c9b266f7ae3c353189/Unknown.mat: AvatarRecoveryPublicTests/0a58e876741c42c9b266f7ae3c353189/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_0a58e876741c42c9b266f7ae3c353189/Unknown.mat: AvatarRecoveryPublicTests/0a58e876741c42c9b266f7ae3c353189/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1137" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,5000,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,5000,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="116189018" result="Passed" start-time="2026-10-23 02:25:01Z" end-time="2026-10-23 02:25:01Z" duration="0.275781" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_95c39611a8ef479589a8cb35c9852349/Unknown.mat: AvatarRecoveryPublicTests/95c39611a8ef479589a8cb35c9852349/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_95c39611a8ef479589a8cb35c9852349/Unknown.mat: AvatarRecoveryPublicTests/95c39611a8ef479589a8cb35c9852349/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1138" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,5000,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,5000,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1991884916" result="Passed" start-time="2026-10-23 02:25:01Z" end-time="2026-10-23 02:25:01Z" duration="0.276565" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_92d29f1656904e2a9fe8af988a8b4b41/Unknown.mat: AvatarRecoveryPublicTests/92d29f1656904e2a9fe8af988a8b4b41/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_92d29f1656904e2a9fe8af988a8b4b41/Unknown.mat: AvatarRecoveryPublicTests/92d29f1656904e2a9fe8af988a8b4b41/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1139" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,-1,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,-1,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1793574191" result="Passed" start-time="2026-10-23 02:25:01Z" end-time="2026-10-23 02:25:02Z" duration="0.268111" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_233eda9d42664234b975f5ad16e44c5a/Unknown.mat: AvatarRecoveryPublicTests/233eda9d42664234b975f5ad16e44c5a/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_233eda9d42664234b975f5ad16e44c5a/Unknown.mat: AvatarRecoveryPublicTests/233eda9d42664234b975f5ad16e44c5a/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1140" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,-1,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,-1,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="134424799" result="Passed" start-time="2026-10-23 02:25:02Z" end-time="2026-10-23 02:25:02Z" duration="0.257930" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_44fdb00b9f384dbab56c998814dc6f6a/Unknown.mat: AvatarRecoveryPublicTests/44fdb00b9f384dbab56c998814dc6f6a/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_44fdb00b9f384dbab56c998814dc6f6a/Unknown.mat: AvatarRecoveryPublicTests/44fdb00b9f384dbab56c998814dc6f6a/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1141" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,0,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,0,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="240022833" result="Passed" start-time="2026-10-23 02:25:02Z" end-time="2026-10-23 02:25:02Z" duration="0.243651" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_f6134c3f4b154116a63531eea7dbb01d/Unknown.mat: AvatarRecoveryPublicTests/f6134c3f4b154116a63531eea7dbb01d/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_f6134c3f4b154116a63531eea7dbb01d/Unknown.mat: AvatarRecoveryPublicTests/f6134c3f4b154116a63531eea7dbb01d/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1142" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,0,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,0,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="279537805" result="Passed" start-time="2026-10-23 02:25:02Z" end-time="2026-10-23 02:25:02Z" duration="0.292817" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_66310c102b584194ad8aab6a0cb54771/Unknown.mat: AvatarRecoveryPublicTests/66310c102b584194ad8aab6a0cb54771/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_66310c102b584194ad8aab6a0cb54771/Unknown.mat: AvatarRecoveryPublicTests/66310c102b584194ad8aab6a0cb54771/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1143" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,2100,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,2100,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="964588117" result="Passed" start-time="2026-10-23 02:25:02Z" end-time="2026-10-23 02:25:03Z" duration="0.354638" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_ac071bd7c0da4b2ba23e5d83e1678f73/Unknown.mat: AvatarRecoveryPublicTests/ac071bd7c0da4b2ba23e5d83e1678f73/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_ac071bd7c0da4b2ba23e5d83e1678f73/Unknown.mat: AvatarRecoveryPublicTests/ac071bd7c0da4b2ba23e5d83e1678f73/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1144" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,2100,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,2100,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1203541786" result="Passed" start-time="2026-10-23 02:25:03Z" end-time="2026-10-23 02:25:03Z" duration="0.364178" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_3de4910542ea40f9a7c625e855fb5662/Unknown.mat: AvatarRecoveryPublicTests/3de4910542ea40f9a7c625e855fb5662/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_3de4910542ea40f9a7c625e855fb5662/Unknown.mat: AvatarRecoveryPublicTests/3de4910542ea40f9a7c625e855fb5662/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+              <test-case id="1145" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,5000,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,5000,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1261098650" result="Passed" start-time="2026-10-23 02:25:03Z" end-time="2026-10-23 02:25:04Z" duration="0.311598" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_cd495828cebc4cf79813956a1c841a58/Unknown.mat: AvatarRecoveryPublicTests/cd495828cebc4cf79813956a1c841a58/Target / Queue: Current queue setting kept (original queue unknown)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 1
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_cd495828cebc4cf79813956a1c841a58/Unknown.mat: AvatarRecoveryPublicTests/cd495828cebc4cf79813956a1c841a58/Target / Queue: Current queue setting kept (original queue unknown)
+
+]]></output>
+              </test-case>
+              <test-case id="1146" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,5000,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,5000,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="278123099" result="Passed" start-time="2026-10-23 02:25:04Z" end-time="2026-10-23 02:25:04Z" duration="0.340975" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_05912e00e1744b9aa3aac497f71a4bbd/Unknown.mat: AvatarRecoveryPublicTests/05912e00e1744b9aa3aac497f71a4bbd/Target / Queue: Shader default (temporary replacement)
+
+<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 1
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_05912e00e1744b9aa3aac497f71a4bbd/Unknown.mat: AvatarRecoveryPublicTests/05912e00e1744b9aa3aac497f71a4bbd/Target / Queue: Shader default (temporary replacement)
+
+]]></output>
+              </test-case>
+            </test-suite>
+            <test-case id="1149" name="UnknownShaderDefaultLabelDoesNotBlockReportedMinusOneQueue" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownShaderDefaultLabelDoesNotBlockReportedMinusOneQueue" methodname="UnknownShaderDefaultLabelDoesNotBlockReportedMinusOneQueue" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1393676514" result="Passed" start-time="2026-10-23 02:25:04Z" end-time="2026-10-23 02:25:04Z" duration="0.266688" asserts="0">
+              <properties />
+              <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 1
+Succeeded: 1
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+Assets/__AvatarRecoveryPublicTests_3665333865044189ba44916c4c4e4f21/Default.mat: AvatarRecoveryPublicTests/3665333865044189ba44916c4c4e4f21/Target / Queue: -1
+
+]]></output>
+            </test-case>
+            <test-suite type="ParameterizedMethod" id="1152" name="UnselectedMaterialIsNotModified" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnselectedMaterialIsNotModified" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-10-23 02:25:04Z" end-time="2026-10-23 02:25:05Z" duration="0.492376" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+              <properties />
+              <test-case id="1150" name="UnselectedMaterialIsNotModified(False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnselectedMaterialIsNotModified(False)" methodname="UnselectedMaterialIsNotModified" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1375037597" result="Passed" start-time="2026-10-23 02:25:04Z" end-time="2026-10-23 02:25:04Z" duration="0.258310" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 0
+Succeeded: 0
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+
+]]></output>
+              </test-case>
+              <test-case id="1151" name="UnselectedMaterialIsNotModified(True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnselectedMaterialIsNotModified(True)" methodname="UnselectedMaterialIsNotModified" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1302744602" result="Passed" start-time="2026-10-23 02:25:04Z" end-time="2026-10-23 02:25:05Z" duration="0.229558" asserts="0">
+                <properties />
+                <output><![CDATA[<color=#5ECFFF>[AvatarRecovery]</color> Material Shader 再割り当て結果
+Selected: 0
+Succeeded: 0
+Current queue kept: 0
+Shader default: 0
+Skipped: 0
+Failed: 0
+
+]]></output>
+              </test-case>
+            </test-suite>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-run>

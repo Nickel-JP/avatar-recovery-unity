@@ -1,0 +1,65 @@
+{
+  "format": "AvatarRecovery literal contract policy v1",
+  "PublicCategories": {
+    "SettingsKeys": {
+      "Patterns": [
+        "\\AAvatarRecovery_[A-Za-z0-9_]+\\z"
+      ],
+      "ExactValues": [
+        "EditorTools.AvatarRecovery.GitHubHistory.StartupFetchCompleted.v1"
+      ],
+      "ExcludedValues": [
+        "AvatarRecovery_Packages",
+        "AvatarRecovery_Run_",
+        "AvatarRecovery_TempScriptResolve"
+      ]
+    },
+    "SdkNames": {
+      "Patterns": [
+        "\\A(?:VRC|VRCSDK)(?:\\.[A-Za-z_][A-Za-z0-9_]*)+(?:\\+[A-Za-z_][A-Za-z0-9_]*)?(?:, [A-Za-z_][A-Za-z0-9_.-]*)?\\z"
+      ],
+      "ExactValues": [
+        "Assembly-CSharp",
+        "AnimLayerType",
+        "Gesture",
+        "customizeAnimationLayers",
+        "baseAnimationLayers",
+        "type",
+        "isDefault",
+        "animatorController",
+        "blueprintId",
+        "launchedFromSDKPipeline",
+        "completedSDKPipeline",
+        "contentType",
+        "assetBundleUnityVersion",
+        "fallbackStatus",
+        "rootTransform",
+        "collisionTags",
+        "customExpressions",
+        "expressionsMenu",
+        "controls",
+        "name",
+        "icon",
+        "parameter",
+        "value",
+        "style",
+        "subMenu",
+        "subParameters",
+        "labels",
+        "VRCExpressions",
+        "VRCExpression"
+      ],
+      "ExcludedValues": []
+    }
+  },
+  "SecretValueRules": [
+    {
+      "Name": "PrivateKeyMaterial",
+      "Pattern": "-----BEGIN [A-Z ]*PRIVATE KEY-----"
+    },
+    {
+      "Name": "CredentialAssignment",
+      "Pattern": "(?i)(?:Password|ApiKey|Secret|Token)\\s*=\\s*\\S+"
+    }
+  ]
+}

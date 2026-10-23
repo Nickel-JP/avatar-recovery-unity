@@ -1,6 +1,7 @@
 ﻿param(
     [string]$Version = "1.2.9",
     [string]$PreviousVersion = "1.2.8",
+    [string]$LiteralContractBaselinePath = "",
     [string]$PackageId = "com.nickel-jp.avatar-recovery",
     [string]$BaseUrl = "https://nickel-jp.github.io/avatar-recovery-unity",
     [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe",
@@ -95,6 +96,8 @@ $BinaryLeakAllowlistPath = Join-Path $RepoRoot "Build\BinaryLeakAllowlist.txt"
 $RuntimeIntegrityGuardTargetsPath = Join-Path $RepoRoot "Build\RuntimeIntegrityGuardTargets.txt"
 $AntiDebugTargetsPath = Join-Path $RepoRoot "Build\AntiDebugTargets.txt"
 $StringEncryptionAllowlistPath = Join-Path $RepoRoot "Build\StringEncryptionAllowlist.txt"
+$StringLiteralPolicyPath = Join-Path $RepoRoot "Build\StringLiteralPolicy.json"
+$StringLiteralContractModulePath = Join-Path $RepoRoot "Build\StringLiteralContract.psm1"
 $ControlFlowObfuscationAllowlistPath = Join-Path $RepoRoot "Build\ControlFlowObfuscationAllowlist.txt"
 $AntiDecompileAllowlistPath = Join-Path $RepoRoot "Build\AntiDecompileAllowlist.txt"
 $ExpressionMenuNormalizerProjectPath = Join-Path $RepoRoot "Build\ExpressionMenuNormalizer\ExpressionMenuNormalizer.csproj"
@@ -5794,6 +5797,7 @@ function Write-ProtectionBuildReport {
         [Parameter(Mandatory = $true)][object]$AntiDebugReport,
         [Parameter(Mandatory = $true)][object]$StringEncryptionReport,
         [Parameter(Mandatory = $true)][object]$HideStringsImpactReport,
+        [Parameter(Mandatory = $true)][object]$LiteralContractReport,
         [Parameter(Mandatory = $true)][object]$AntiDecompileReport,
         [Parameter(Mandatory = $true)][object]$BranchSanitizationReport,
         [Parameter(Mandatory = $true)][object]$RuntimeIntegritySidecarReport,
@@ -5843,6 +5847,7 @@ function Write-ProtectionBuildReport {
             "AuthenticodeSign",
             "SignatureVerify",
             "ExternalDistributionIntegritySidecar",
+            "PublicLiteralContract",
             "Zip",
             "ZipContentCheck",
             "ExpressionMenuNormalizerZipHashVerify",
@@ -5870,6 +5875,7 @@ function Write-ProtectionBuildReport {
         AntiDebug = $AntiDebugReport
         StringEncryption = $StringEncryptionReport
         HideStringsImpact = $HideStringsImpactReport
+        LiteralContract = $LiteralContractReport
         AntiDecompile = $AntiDecompileReport
         BranchSanitization = $BranchSanitizationReport
         ExpressionMenuNormalizer = $ExpressionMenuNormalizerReport
@@ -6109,6 +6115,13 @@ if ($SkipUnityCompile) {
         "from the hashes generated in the same release run.")
 }
 
+if ([string]::IsNullOrWhiteSpace($LiteralContractBaselinePath)) {
+    $LiteralContractBaselinePath = Join-Path $RepoRoot "packages\$PackageId-$PreviousVersion.zip"
+}
+if (-not (Test-Path -LiteralPath $LiteralContractBaselinePath -PathType Leaf)) {
+    throw "設定キー・SDK照合名の比較基準がありません。PreviousVersionまたはLiteralContractBaselinePathを確認してください。"
+}
+Import-Module $StringLiteralContractModulePath -Force
 Initialize-SourcePackage
 if ([string]::IsNullOrWhiteSpace($AssetRipperZip)) {
     throw (
@@ -6132,6 +6145,9 @@ $ObfuscarExe = Install-ObfuscarIfNeeded
 Ensure-Directory $ProtectionRoot
 Ensure-Directory $PrivateBackupRoot
 Ensure-Directory $LocalPrivateBackupRoot
+# 任意の比較基準が生成先と同じ場所でも、ビルド前の内容を固定します。
+$literalBaselineSnapshotPath = Join-Path $PrivateBackupRoot ("literal-baseline-$Version" + [IO.Path]::GetExtension($LiteralContractBaselinePath))
+Copy-Item -LiteralPath $LiteralContractBaselinePath -Destination $literalBaselineSnapshotPath -Force
 $codeSigningContext = Get-CodeSigningContext
 $expressionMenuNormalizerReport = Invoke-ExpressionMenuNormalizerBuildAndStage `
     -Context $codeSigningContext
@@ -6339,6 +6355,19 @@ Test-UnityEditorWindowFieldNameCollisions -Path $packagedDll -Scan $scan
 Test-UnitySerializedFieldNameCollisions -Path $packagedDll
 Test-AvatarRecoveryLogIsolation -Path $packagedDll | Out-Null
 
+# 復元時の挙動を変えず、署名済み候補の公開値だけを旧配布物と比較します。
+$literalContractReportPath = Join-Path $PrivateBackupRoot "literal-contract-$Version.json"
+$literalContractReport = Test-AvatarRecoveryLiteralContract `
+    -BaselinePath $literalBaselineSnapshotPath `
+    -CandidatePath $packagedDll `
+    -PolicyPath $StringLiteralPolicyPath `
+    -OutputPath $literalContractReportPath
+Copy-Item -LiteralPath $literalContractReportPath -Destination $LocalPrivateBackupRoot -Force
+if (-not $literalContractReport.Passed) {
+    throw "設定キー・SDK照合名に差分があるか、候補DLLに秘密候補が含まれています。非公開のliteral-contract報告を確認してください。"
+}
+Write-Host "Literal contract verified: settings=$($literalContractReport.Comparisons.SettingsKeys.CandidateCount), SDK names=$($literalContractReport.Comparisons.SdkNames.CandidateCount), added=0, removed=0."
+
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") `
     -ProjectRoot $ProjectRoot `
     -BaseUrl $BaseUrl `
@@ -6398,6 +6427,7 @@ Write-ProtectionBuildReport `
     -AntiDebugReport $antiDebugReport `
     -StringEncryptionReport $stringEncryptionReport `
     -HideStringsImpactReport $hideStringsImpactReport `
+    -LiteralContractReport $literalContractReport `
     -AntiDecompileReport $antiDecompileReport `
     -BranchSanitizationReport $branchSanitizationReport `
     -RuntimeIntegritySidecarReport $runtimeIntegritySidecarReport `
