@@ -1,5 +1,14 @@
 # AvatarRecovery Update History
 
+## Version 1.2.26 - Texture2DArray Recovery
+
+- Removed the fixed 16384-pixel and 1 GiB limits from Texture2DArray image correction and corrected array layouts using the original dimensions. Unity, the operating system, and available memory still limit supported sizes.
+- Fixed transparent-pixel RGB loss in uncompressed arrays, recovered missing HDR arrays, and improved material references. Improved matching for arrays with identical or normalized names and prevented confusion with CubemapArray assets.
+- Preserved other recovery behavior, including Texture3D, ordinary Texture2D, and shader queues. AssetRipper and its original extracted files remain unchanged.
+- Validated in Unity 2022.3.22f1 with VRChat SDK 3.10.5: all 63 public EditMode tests, two separate Texture2DArray checks, and 30 package self-tests passed. All 11 arrays from a real VRCW imported successfully, and image correction passed pixel comparisons. The affected array retained its 1024 x 512 dimensions and 205 slices. Input and original extracted files remained unchanged.
+- A synthetic 1024 x 512 array with 1000 slices imported with all 524,288,000 pixels matching, including transparent-pixel RGB. This checked image correction and Unity import. End-to-end recovery of large real bundles, GUI operation, rendering, and VRChat runtime behavior were not tested.
+- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.26. Recover again into an empty output folder to apply these fixes; existing recovered folders are not rewritten automatically.
+
 ## Version 1.2.25
 
 - Minor bug fixes
