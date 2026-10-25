@@ -41,9 +41,9 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
-Version 1.2.26 can be selected and installed from both Avatar projects and World projects.
+Version 1.2.27 can be selected and installed from both Avatar projects and World projects.
 
-Version 1.2.26 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.26. Existing 1.3.x installations are not downgraded automatically.
+Version 1.2.27 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.27. Existing 1.3.x installations are not downgraded automatically.
 
 The withdrawn 1.3.x ZIP files have been removed from the current `packages/` directory. Their historical changelog entries describe withdrawn versions, not supported installation choices. Git history and tags are retained; removing a current download does not erase historical copies.
 
@@ -57,22 +57,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.2.26.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.2.27.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.26.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.27.zip -Algorithm SHA256).Hash
 
-# Confirm that it is C104C9733E0C39EF645F2D14F91302F99E56620F345F28565CF7F53D60A8F2C8
-# and matches the packages/com.nickel-jp.avatar-recovery-1.2.26.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.26.sha256.txt.
+# Confirm that it is 9025914C6FBCEDF0B8ABD2759B5A223E68DE91273F584E5D4BF608D12D0E7D54
+# and matches the packages/com.nickel-jp.avatar-recovery-1.2.27.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.27.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.26.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.27.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -87,13 +87,15 @@ $signature
 
 ## Reproducible Tests
 
-The public regression suite in [Tests](Tests/README.md) runs against the signed 1.2.26 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
+The public regression suite in [Tests](Tests/README.md) runs against the signed 1.2.27 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
 
 The standard CI checks repository version consistency, signed update metadata, package integrity, and the absence of withdrawn downloads. Unity tests use the separate **Public Unity regression tests** workflow and require a licensed Windows runner. A successful standard CI run alone does not mean the Unity suite ran.
 
 Older changelog test counts are historical local validation records, not this public suite. In particular, the withdrawn 1.3.6 record describes 512 passed and 5 failed tests out of 517; it is not a claim of 517 passing tests for 1.2.21.
 
-The [local 1.2.26 result snapshot from 2026-10-24](Tests/Results/1.2.26-20261024/summary.json) records 63 passed, 0 failed, and 0 skipped public EditMode tests. [NUnit XML](Tests/Results/1.2.26-20261024/results.xml) and the current test source are included so the run can be repeated. Two additional Texture2DArray checks passed separately against the same signed package; they are not included in this 63-test snapshot. The [1.2.25 snapshot](Tests/Results/1.2.25-20261023/summary.json) and [1.2.22 snapshot](Tests/Results/1.2.22-20261013/summary.json) retain their 63-test results, and the [historical 1.2.21 snapshot](Tests/Results/1.2.21-20261008/summary.json) retains its original 35-test result. These snapshots are local runs, not GitHub Actions results.
+The [local 1.2.27 result snapshot from 2026-10-26](Tests/Results/1.2.27-20261026/summary.json) records 63 passed, 0 failed, and 0 skipped public EditMode tests. [NUnit XML](Tests/Results/1.2.27-20261026/results.xml), the [sanitized Unity log](Tests/Results/1.2.27-20261026/unity.log), and the current test source are included so the run can be repeated. A separate local run against the same signed DLL passed 13 AAO/root-bounds checks and 9 Gesture Layer mask checks; these 22 checks are outside the public suite and its snapshot.
+
+The [1.2.26 snapshot](Tests/Results/1.2.26-20261024/summary.json) retains its 63-test result; two additional Texture2DArray checks passed separately against that package. The [1.2.25 snapshot](Tests/Results/1.2.25-20261023/summary.json) and [1.2.22 snapshot](Tests/Results/1.2.22-20261013/summary.json) retain their 63-test results, and the [historical 1.2.21 snapshot](Tests/Results/1.2.21-20261008/summary.json) retains its original 35-test result. These snapshots are local runs, not GitHub Actions results.
 
 ## Security Model and Limits
 
@@ -115,6 +117,16 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.2.27 - AAO Recovery and Large-File Safety
+
+- Fixed validation of AAO meshes hidden by fully zero-scale bones without changing their original scales, mesh data, or BlendShape weights. The additional handling applies only to the verified zero-scale case. Corrected missing-root-bone handling while preserving renderer bounds and geometry.
+- Gesture Layer recovery now prefers the mask retained by the recovered avatar descriptor. When no usable retained mask exists, it uses a verified Hands Only mask or creates one; existing controller masks remain unchanged.
+- Added a Continue / Cancel warning before a recovery batch containing any single file of 500 MB or larger (500,000,000 bytes). The threshold applies to each file, not the combined batch size. Large inputs can require much more memory and temporary storage than their file size.
+- If an external process cannot be confirmed stopped, recovery now retains its temporary output and stops subsequent processing, the remaining batch, and automatic retries. Cleanup errors no longer discard the recorded stop state. The result explains how to check the process before retrying.
+- Validated the final signed package in Unity 2022.3.22f1 with VRChat SDK 3.10.5: all 63 public EditMode tests and 22 separate EditMode AAO/root-bounds and Gesture Layer mask checks passed. All 30 package self-tests passed. Source-level .NET checks passed 105 process-handling fault-injection cases and 20 large-file warning cases; these do not reproduce operating-system process-stop failures or measure memory use in Unity.
+- The new warning and stop handling do not guarantee sufficient memory or establish that memory leaks have been eliminated. GUI operation, including clicks on the large-file warning's Continue / Cancel buttons, complete recovery of the large real-world bundle, repeated-run memory measurements, rendering, and VRChat runtime behavior remain unverified for the final package.
+- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.27. Recover again into an empty output folder to apply the recovery fixes; existing recovered folders are not rewritten automatically.
 
 ### Version 1.2.26 - Texture2DArray Recovery
 

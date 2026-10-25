@@ -1,6 +1,6 @@
 # Public package regression tests
 
-This suite exercises the distributed AvatarRecovery 1.2.26 Editor package. It creates synthetic inputs at runtime and does not require product source, private test helpers, or avatar files.
+This suite exercises the distributed AvatarRecovery 1.2.27 Editor package. It creates synthetic inputs at runtime and does not require product source, private test helpers, or avatar files.
 
 ## Requirements
 
@@ -16,7 +16,7 @@ From the repository root, use PowerShell 7:
 
 ```powershell
 .\Build\Invoke-PublicUnityTests.ps1 `
-  -ProjectPath 'G:\UnityTest\AvatarRecovery-1.2.26-PublicValidation' `
+  -ProjectPath 'G:\UnityTest\AvatarRecovery-1.2.27-PublicValidation' `
   -UnityPath 'C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe'
 ```
 
@@ -28,11 +28,13 @@ Each run writes a new directory below `.work/PublicUnityTests/`. `results.xml`, 
 
 The 63 test cases cover render-queue labels and boundary values, shader reassignment, selection behavior, persistence of material properties and texture references after reimport, repeated assignment, unknown queues, missing shaders, CSV version-label preservation, older CSV columns, and empty input. Unknown queues are checked with four current queue settings under both supported policies. Material checks include 20 saved rendering properties for Blend, Cull, ZWrite, ZTest, Stencil, masks, and offsets. The checks call the packaged Editor behavior and inspect the resulting assets.
 
-The [local 1.2.26 snapshot](Results/1.2.26-20261024/summary.json) records 63 passed, 0 failed, and 0 skipped tests, with [NUnit XML](Results/1.2.26-20261024/results.xml) included. Two additional Texture2DArray checks passed separately against the same signed package; they are not part of this 63-case suite or its result snapshot.
+The [local 1.2.27 snapshot](Results/1.2.27-20261026/summary.json) from 2026-10-26 records 63 passed, 0 failed, and 0 skipped tests, with [NUnit XML](Results/1.2.27-20261026/results.xml) and the [sanitized Unity log](Results/1.2.27-20261026/unity.log) included. A separate local EditMode run against the same signed DLL passed 13 AAO/root-bounds checks and 9 Gesture Layer mask checks. Those 22 checks and the 30 package self-tests are not part of this 63-case suite or its snapshot. The source-level .NET checks for process-stop fault injection and large-file warning decisions are also separate; they are not native-memory measurements or reproductions of operating-system process-stop failures.
 
-The historical 1.2.21 result snapshot retains its original 35-test count and package identity. The current runner and test source are pinned to 1.2.26; use the corresponding repository revision to repeat an older suite.
+The [1.2.26 snapshot](Results/1.2.26-20261024/summary.json) retains its 63-test result. Two additional Texture2DArray checks passed separately against that signed package.
 
-This is not the historical 517-test suite. It does not cover real-avatar recovery, original shader-file version extraction, GUI appearance, SDK lower-bound decisions, or recovery from an operating-system file-write denial. Historical local tests using private input remain separate evidence.
+The historical 1.2.21 result snapshot retains its original 35-test count and package identity. The current runner and test source are pinned to 1.2.27; use the corresponding repository revision to repeat an older suite.
+
+This is not the historical 517-test suite. It does not cover real-avatar recovery, large real-world-bundle completion, repeated-run memory use, original shader-file version extraction, GUI operation or appearance, SDK lower-bound decisions, or recovery from an operating-system file-write denial. Clicking Continue / Cancel on the large-file warning has not been tested in the final package's GUI. Historical local tests using private input remain separate evidence.
 
 ## GitHub Actions
 
