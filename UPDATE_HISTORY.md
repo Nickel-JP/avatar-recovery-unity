@@ -1,5 +1,15 @@
 # AvatarRecovery Update History
 
+## Version 1.2.27 - AAO Recovery and Large-File Safety
+
+- Fixed validation of AAO meshes hidden by fully zero-scale bones without changing their original scales, mesh data, or BlendShape weights. The additional handling applies only to the verified zero-scale case. Corrected missing-root-bone handling while preserving renderer bounds and geometry.
+- Gesture Layer recovery now prefers the mask retained by the recovered avatar descriptor. When no usable retained mask exists, it uses a verified Hands Only mask or creates one; existing controller masks remain unchanged.
+- Added a Continue / Cancel warning before a recovery batch containing any single file of 500 MB or larger (500,000,000 bytes). The threshold applies to each file, not the combined batch size. Large inputs can require much more memory and temporary storage than their file size.
+- If an external process cannot be confirmed stopped, recovery now retains its temporary output and stops subsequent processing, the remaining batch, and automatic retries. Cleanup errors no longer discard the recorded stop state. The result explains how to check the process before retrying.
+- Validated the final signed package in Unity 2022.3.22f1 with VRChat SDK 3.10.5: all 63 public EditMode tests and 22 separate EditMode AAO/root-bounds and Gesture Layer mask checks passed. All 30 package self-tests passed. Source-level .NET checks passed 105 process-handling fault-injection cases and 20 large-file warning cases; these do not reproduce operating-system process-stop failures or measure memory use in Unity.
+- The new warning and stop handling do not guarantee sufficient memory or establish that memory leaks have been eliminated. GUI operation, including clicks on the large-file warning's Continue / Cancel buttons, complete recovery of the large real-world bundle, repeated-run memory measurements, rendering, and VRChat runtime behavior remain unverified for the final package.
+- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.27. Recover again into an empty output folder to apply the recovery fixes; existing recovered folders are not rewritten automatically.
+
 ## Version 1.2.26 - Texture2DArray Recovery
 
 - Removed the fixed 16384-pixel and 1 GiB limits from Texture2DArray image correction and corrected array layouts using the original dimensions. Unity, the operating system, and available memory still limit supported sizes.

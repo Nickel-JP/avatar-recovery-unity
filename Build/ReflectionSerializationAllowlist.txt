@@ -214,3 +214,9 @@ Tests\Core\ShaderMaterialSafetyTests.cs|Reflection|FindProperty\s*\(|*
 Tests\Core\ShaderMaterialSafetyTests.cs|Reflection|FindPropertyRelative\s*\(|*
 Tests\Core\ShaderMaterialSafetyTests.cs|Reflection|typeof\s*\(|*
 Tests\Core\ShaderMaterialSafetyTests.cs|Serialization|SerializedContract|*
+
+# 1.2.26: Texture2DArrayの圧縮形式一覧は対象UnityのGraphicsFormat型から取得する。
+Core\Texture2DArrayImportRecovery.cs|Reflection|typeof\s*\(|foreach (GraphicsFormat format in Enum.GetValues(typeof(GraphicsFormat)))
+# 1.2.26: 配列補正ツールとの要求・応答は共有Serializable DTOのJSON項目名を維持する。
+Core\Texture2DArrayImportRecovery.cs|Reflection|JsonUtility|File.WriteAllText(requestPath, JsonUtility.ToJson(request), new UTF8Encoding(false));
+Core\Texture2DArrayImportRecovery.cs|Reflection|JsonUtility|response = JsonUtility.FromJson<TextureArrayRecoveryResponse>(File.ReadAllText(responsePath));
