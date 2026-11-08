@@ -1,11 +1,11 @@
 {
   "format": "AvatarRecovery detached signature v1",
   "algorithm": "RSA-SHA256-PKCS1",
-  "signedAtUtc": "2026-10-25T18:58:05.6603296Z",
+  "signedAtUtc": "2026-11-08T08:09:15.2933925Z",
   "target": "index.json",
-  "targetSha256": "fb749b627fb8dddf45acbdaba4bf428db1b5e9cdea765f00f5fff2d4441cbb1b",
+  "targetSha256": "01c7632c16a327c265b2739acdded80cc723d21868320fafb3c2c3cd9e771cf0",
   "signerCertificate": "certificates/avatar-recovery-self-signed-code-signing.cer",
   "signerCertificatePem": "certificates/avatar-recovery-self-signed-code-signing.cer.pem",
   "signerThumbprint": "960260D2C8E24599FD3BC639F393733DE07997E2",
-  "signatureBase64": "XgiY7bqGdpcKODyyHY6QVhKliOdqpo6oaNOuzJJHQy+Bb7ZDKy4hpKfLvJShhcuzn3Z8VLWp5LxDcAy/WZnxX+GaLdWpFKFRFzSO6bO8vMY6bVkJ7b/DEBilwiChjxHGeNnvrQSoj8hsSDhkoKuuTxkbotoNhPoMLV9VucBjiXTF0+xlw+hFZvqfofSZRdNrgjJ+14/O4gq+VFiovDBQEQDM1cBqVPkYN0KsIi839bk/kdGZE/4WxVXvnk7LQgbJ7ds4wVmdvAt4rDt5B70qiHlhtqIrOBOdg2p9K62edfoqW7z1TskeTcimUVwFm0fX4sr5astITz5MNufZBvl1QoLr1TAVoTh3lE+GyAhBtfPueMxbU7Wcauvu2EL+xJ+xbQ49XUaPvojg8Tgc6s94xoeYetXBzbkZD4NctNaJsZDNFmCeWr2J/P30xr1unkt5l4BO/T+DmlhpIdWhbKGjm4m4qmL6NVFJwuD4uI7l/73A30yht9SxxQfYc1Y5o3Fo"
+  "signatureBase64": "emaqeo0TucIuSqOMd1iqAAwRRMgAvzCohEVBsVNhFc+MCJRW0UybKYPwA8b1Xg8pJrk/3DEJ4YL4Hf9Evr3Z4sP4bhBJG4HGn9LlfhlmsNnvhEXeWeFD27lb3JG9h/uMrFhXX/uSxsdFX2G31b1IcgCxhDZ1jYYwp8Y9YyzlKcMBPOLvOg+9rXTpDwi7cWaRGvX7JwfeJvSasHuM/wMApew2tAp+br/ttv467Psm9DJLGWXJE0HWg4RjqO8jRcTH/GeS6zN+5CzNM/AHAv8IlDdvaloEeojn5W4p7WjX5yXpb3dqn4VrDd5wCpYww1HPjq4Ijfnam2T86GCadmAnmisKaIkaJEl6fZUh1Eeg1ZYYRyvfABF8HvtmaYdlVy1xBGR1yjGgXxasMYKHdGEm8MEjiHT/722+3wRauI6ejKyozd8X67+FBskU8ccm40N8NNIPcQfkYOkrsQORFTprTnPUk2FJB7TUn4LjFh4UFb1c1zb32DSsWc4iNg/IYchg"
 }
