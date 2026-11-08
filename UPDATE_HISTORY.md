@@ -1,5 +1,15 @@
 # AvatarRecovery Update History
 
+## Version 1.2.28 - Legacy SDK Script References
+
+- Improved recovery of verified legacy SDK2 PipelineManager references and PipelineManager-derived components. Blueprint ID cleanup identifies the component type and preserves unrelated component IDs and additional fields.
+- SDK script matching now checks the original assembly as well as the full type name, preventing a same-named type from another assembly from being selected. Unrecognized or ambiguous references remain unresolved with a warning.
+- Rejected malformed or duplicate Script references before Blueprint ID cleanup, preserving the output when the reference cannot be verified.
+- The final signed package passed 63 public EditMode tests, 39 separate targeted type-reference checks, and 30 package self-tests in Unity 2022.3.22f1 with VRChat SDK 3.10.5.
+- Completed recovery, import, save, and prefab or scene reload for one real VRCA and one real VRCW. Both inputs remained unchanged and no nonempty Blueprint IDs remained. The VRCA's recorded mesh, image, animation, controller, and menu data matched the earlier result for the same input. A World mesh file hash change was reproduced by Unity-only text serialization with unchanged mesh data.
+- Recovery cannot restore unavailable original Scripts or Shaders. The validation inputs retained missing references, including 15 missing Script components in the World input. TMP-resource and layer-setup errors observed during World validation were absent in the corresponding minimal checks after setup; the complete World recovery was not repeated after those setup changes. GUI appearance, rendering, VRChat runtime behavior, and upload remain unverified.
+- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. This update does not convert all SDK2 components or SDK2 event logic to SDK3 or Udon. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.28. Recover again into an empty output folder; existing recovered folders are not rewritten automatically.
+
 ## Version 1.2.27 - AAO Recovery and Large-File Safety
 
 - Fixed validation of AAO meshes hidden by fully zero-scale bones without changing their original scales, mesh data, or BlendShape weights. The additional handling applies only to the verified zero-scale case. Corrected missing-root-bone handling while preserving renderer bounds and geometry.

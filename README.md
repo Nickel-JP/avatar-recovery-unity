@@ -41,9 +41,9 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
-Version 1.2.27 can be selected and installed from both Avatar projects and World projects.
+Version 1.2.28 can be selected and installed from both Avatar projects and World projects.
 
-Version 1.2.27 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.27. Existing 1.3.x installations are not downgraded automatically.
+Version 1.2.28 is the current stable version. Newer 1.3.x releases remain withdrawn from the active VPM listing because of reliability issues. Existing VCC and ALCOM users do not need to add a new repository: refresh the existing `Avatar Recovery Unity` repository, then manually select version 1.2.28. Existing 1.3.x installations are not downgraded automatically.
 
 The withdrawn 1.3.x ZIP files have been removed from the current `packages/` directory. Their historical changelog entries describe withdrawn versions, not supported installation choices. Git history and tags are retained; removing a current download does not erase historical copies.
 
@@ -57,22 +57,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-1.2.27.zip`.
+The current package is `com.nickel-jp.avatar-recovery-1.2.28.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.27.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-1.2.28.zip -Algorithm SHA256).Hash
 
-# Confirm that it is 9025914C6FBCEDF0B8ABD2759B5A223E68DE91273F584E5D4BF608D12D0E7D54
-# and matches the packages/com.nickel-jp.avatar-recovery-1.2.27.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-1.2.27.sha256.txt.
+# Confirm that it is D534CE8A5FC796DBADAFE483DCC1C698B52E48F702F5198DEF07EC1DA8D15F83
+# and matches the packages/com.nickel-jp.avatar-recovery-1.2.28.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-1.2.28.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.27.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-1.2.28.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -87,13 +87,15 @@ $signature
 
 ## Reproducible Tests
 
-The public regression suite in [Tests](Tests/README.md) runs against the signed 1.2.27 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
+The public regression suite in [Tests](Tests/README.md) runs against the signed 1.2.28 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
 
 The standard CI checks repository version consistency, signed update metadata, package integrity, and the absence of withdrawn downloads. Unity tests use the separate **Public Unity regression tests** workflow and require a licensed Windows runner. A successful standard CI run alone does not mean the Unity suite ran.
 
 Older changelog test counts are historical local validation records, not this public suite. In particular, the withdrawn 1.3.6 record describes 512 passed and 5 failed tests out of 517; it is not a claim of 517 passing tests for 1.2.21.
 
-The [local 1.2.27 result snapshot from 2026-10-26](Tests/Results/1.2.27-20261026/summary.json) records 63 passed, 0 failed, and 0 skipped public EditMode tests. [NUnit XML](Tests/Results/1.2.27-20261026/results.xml), the [sanitized Unity log](Tests/Results/1.2.27-20261026/unity.log), and the current test source are included so the run can be repeated. A separate local run against the same signed DLL passed 13 AAO/root-bounds checks and 9 Gesture Layer mask checks; these 22 checks are outside the public suite and its snapshot.
+The [local 1.2.28 result snapshot from 2026-11-08](Tests/Results/1.2.28-20261108/summary.json) records 63 passed, 0 failed, and 0 skipped public EditMode tests, with [NUnit XML](Tests/Results/1.2.28-20261108/results.xml) included. A separate local run against the same signed DLL passed 39 targeted type-reference checks; these checks and the 30 package self-tests are outside the public suite and its snapshot.
+
+The [1.2.27 snapshot](Tests/Results/1.2.27-20261026/summary.json) retains its 63-test result. Its separate AAO/root-bounds and Gesture Layer mask checks remain historical evidence for that package.
 
 The [1.2.26 snapshot](Tests/Results/1.2.26-20261024/summary.json) retains its 63-test result; two additional Texture2DArray checks passed separately against that package. The [1.2.25 snapshot](Tests/Results/1.2.25-20261023/summary.json) and [1.2.22 snapshot](Tests/Results/1.2.22-20261013/summary.json) retain their 63-test results, and the [historical 1.2.21 snapshot](Tests/Results/1.2.21-20261008/summary.json) retains its original 35-test result. These snapshots are local runs, not GitHub Actions results.
 
@@ -117,6 +119,16 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 1.2.28 - Legacy SDK Script References
+
+- Improved recovery of verified legacy SDK2 PipelineManager references and PipelineManager-derived components. Blueprint ID cleanup identifies the component type and preserves unrelated component IDs and additional fields.
+- SDK script matching now checks the original assembly as well as the full type name, preventing a same-named type from another assembly from being selected. Unrecognized or ambiguous references remain unresolved with a warning.
+- Rejected malformed or duplicate Script references before Blueprint ID cleanup, preserving the output when the reference cannot be verified.
+- The final signed package passed 63 public EditMode tests, 39 separate targeted type-reference checks, and 30 package self-tests in Unity 2022.3.22f1 with VRChat SDK 3.10.5.
+- Completed recovery, import, save, and prefab or scene reload for one real VRCA and one real VRCW. Both inputs remained unchanged and no nonempty Blueprint IDs remained. The VRCA's recorded mesh, image, animation, controller, and menu data matched the earlier result for the same input. A World mesh file hash change was reproduced by Unity-only text serialization with unchanged mesh data.
+- Recovery cannot restore unavailable original Scripts or Shaders. The validation inputs retained missing references, including 15 missing Script components in the World input. TMP-resource and layer-setup errors observed during World validation were absent in the corresponding minimal checks after setup; the complete World recovery was not repeated after those setup changes. GUI appearance, rendering, VRChat runtime behavior, and upload remain unverified.
+- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. This update does not convert all SDK2 components or SDK2 event logic to SDK3 or Udon. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.28. Recover again into an empty output folder; existing recovered folders are not rewritten automatically.
 
 ### Version 1.2.27 - AAO Recovery and Large-File Safety
 
