@@ -91,8 +91,6 @@ The public regression suite in [Tests](Tests/README.md) runs against the signed 
 
 The standard CI checks repository version consistency, signed update metadata, package integrity, and the absence of withdrawn downloads. Unity tests use the separate **Public Unity regression tests** workflow and require a licensed Windows runner. A successful standard CI run alone does not mean the Unity suite ran.
 
-Older changelog test counts are historical local validation records, not this public suite. In particular, the withdrawn 1.3.6 record describes 512 passed and 5 failed tests out of 517; it is not a claim of 517 passing tests for 1.2.21.
-
 The [local 1.2.28 result snapshot from 2026-11-08](Tests/Results/1.2.28-20261108/summary.json) records 63 passed, 0 failed, and 0 skipped public EditMode tests, with [NUnit XML](Tests/Results/1.2.28-20261108/results.xml) included. A separate local run against the same signed DLL passed 39 targeted type-reference checks; these checks and the 30 package self-tests are outside the public suite and its snapshot.
 
 The [1.2.27 snapshot](Tests/Results/1.2.27-20261026/summary.json) retains its 63-test result. Its separate AAO/root-bounds and Gesture Layer mask checks remain historical evidence for that package.
@@ -125,10 +123,7 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Improved recovery of verified legacy SDK2 PipelineManager references and PipelineManager-derived components. Blueprint ID cleanup identifies the component type and preserves unrelated component IDs and additional fields.
 - SDK script matching now checks the original assembly as well as the full type name, preventing a same-named type from another assembly from being selected. Unrecognized or ambiguous references remain unresolved with a warning.
 - Rejected malformed or duplicate Script references before Blueprint ID cleanup, preserving the output when the reference cannot be verified.
-- The final signed package passed 63 public EditMode tests, 39 separate targeted type-reference checks, and 30 package self-tests in Unity 2022.3.22f1 with VRChat SDK 3.10.5.
-- Completed recovery, import, save, and prefab or scene reload for one real VRCA and one real VRCW. Both inputs remained unchanged and no nonempty Blueprint IDs remained. The VRCA's recorded mesh, image, animation, controller, and menu data matched the earlier result for the same input. A World mesh file hash change was reproduced by Unity-only text serialization with unchanged mesh data.
-- Recovery cannot restore unavailable original Scripts or Shaders. The validation inputs retained missing references, including 15 missing Script components in the World input. TMP-resource and layer-setup errors observed during World validation were absent in the corresponding minimal checks after setup; the complete World recovery was not repeated after those setup changes. GUI appearance, rendering, VRChat runtime behavior, and upload remain unverified.
-- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. This update does not convert all SDK2 components or SDK2 event logic to SDK3 or Udon. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.28. Recover again into an empty output folder; existing recovered folders are not rewritten automatically.
+- This update does not convert all SDK2 components or SDK2 event logic to SDK3 or Udon.
 
 ### Version 1.2.27 - AAO Recovery and Large-File Safety
 
@@ -136,18 +131,12 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Gesture Layer recovery now prefers the mask retained by the recovered avatar descriptor. When no usable retained mask exists, it uses a verified Hands Only mask or creates one; existing controller masks remain unchanged.
 - Added a Continue / Cancel warning before a recovery batch containing any single file of 500 MB or larger (500,000,000 bytes). The threshold applies to each file, not the combined batch size. Large inputs can require much more memory and temporary storage than their file size.
 - If an external process cannot be confirmed stopped, recovery now retains its temporary output and stops subsequent processing, the remaining batch, and automatic retries. Cleanup errors no longer discard the recorded stop state. The result explains how to check the process before retrying.
-- Validated the final signed package in Unity 2022.3.22f1 with VRChat SDK 3.10.5: all 63 public EditMode tests and 22 separate EditMode AAO/root-bounds and Gesture Layer mask checks passed. All 30 package self-tests passed. Source-level .NET checks passed 105 process-handling fault-injection cases and 20 large-file warning cases; these do not reproduce operating-system process-stop failures or measure memory use in Unity.
-- The new warning and stop handling do not guarantee sufficient memory or establish that memory leaks have been eliminated. GUI operation, including clicks on the large-file warning's Continue / Cancel buttons, complete recovery of the large real-world bundle, repeated-run memory measurements, rendering, and VRChat runtime behavior remain unverified for the final package.
-- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.27. Recover again into an empty output folder to apply the recovery fixes; existing recovered folders are not rewritten automatically.
 
 ### Version 1.2.26 - Texture2DArray Recovery
 
 - Removed the fixed 16384-pixel and 1 GiB limits from Texture2DArray image correction and corrected array layouts using the original dimensions. Unity, the operating system, and available memory still limit supported sizes.
 - Fixed transparent-pixel RGB loss in uncompressed arrays, recovered missing HDR arrays, and improved material references. Improved matching for arrays with identical or normalized names and prevented confusion with CubemapArray assets.
 - Preserved other recovery behavior, including Texture3D, ordinary Texture2D, and shader queues. AssetRipper and its original extracted files remain unchanged.
-- Validated in Unity 2022.3.22f1 with VRChat SDK 3.10.5: all 63 public EditMode tests, two separate Texture2DArray checks, and 30 package self-tests passed. All 11 arrays from a real VRCW imported successfully, and image correction passed pixel comparisons. The affected array retained its 1024 x 512 dimensions and 205 slices. Input and original extracted files remained unchanged.
-- A synthetic 1024 x 512 array with 1000 slices imported with all 524,288,000 pixels matching, including transparent-pixel RGB. This checked image correction and Unity import. End-to-end recovery of large real bundles, GUI operation, rendering, and VRChat runtime behavior were not tested.
-- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.26. Recover again into an empty output folder to apply these fixes; existing recovered folders are not rewritten automatically.
 
 ### Version 1.2.25
 
@@ -161,20 +150,12 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Recovery is classified as failed when AssetRipper reports an error or the final output contains only JSON data. Cancellation, invalid input, and incomplete saves remain separate outcomes. Recoverable post-processing problems produce warnings, with rollback limited to the affected assets where possible.
 - Increased the shader queue-reading limit to 1800 seconds. Skipping or timing out this step leaves unavailable queues marked as unknown and allows recovery to continue.
 - Improved texture-array correction for long paths, incomplete image data, and failed image or metadata writes. Preserved the existing 1 GiB decoded-image limit, output dimensions, and pixel layout.
-- Validated in Unity 2022.3.22f1 with VRChat SDK 3.10.5: all 63 public EditMode tests, 84 targeted source tests, and 30 package self-tests passed. Seven synthetic recovery cases passed against both the source build and the final signed package, covering generic bundles and all four existing VRChat extensions.
-- A real VRCA and a byte-identical copy renamed to `.bundle` both recovered successfully. Their six meshes, 199 PNG images, and 940 animation clips matched byte for byte; recorded prefab transforms, renderer data, and menu references also matched. Avatar-specific post-processing intentionally differs. Both runs had zero missing scripts, while 18 material shader references remained unresolved in each because the original shaders were unavailable. Rendering, VRChat runtime behavior, and Unity 6000 were not tested.
-- One validation Editor crashed during its initial startup, before recovery began; restarting it with the same settings completed successfully. The native startup crash was investigated, but this release does not claim to fix it. Successful recovery runs still emitted asset-name warnings.
-- Preserved the Unity 2022.3.22f1 / VRChat SDK Base `>=3.10.5 <3.11.0` requirements and installation in Avatar and World projects. Close Unity, refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.24. Use an empty output folder when retrying a recovery; existing recovered folders are not rewritten automatically.
 
 ### Version 1.2.23 - Large Array Texture Recovery
 
 - Fixed recovery stopping during texture-array correction when the decoded image exceeded 512 MiB. Images up to 1 GiB are now accepted within the existing 16384-pixel output dimensions, with every slice and pixel preserved.
 - Reduced temporary image copies, improved reading large compressed inputs, and corrected Japanese error text in the correction tool.
 - Updated the English and Japanese in-app Manual to match the current recovery workflow, Shader Lists, render-queue handling, backups, settings, and troubleshooting.
-- The final signed package passed all 63 public EditMode tests in Unity 2022.3.22f1 / VRChat SDK 3.10.5. All 30 local package self-tests and 23 repository-check regression cases passed. Update-metadata verification also passed: valid signed metadata was accepted, and both deliberately altered signatures were correctly rejected in the tampering tests.
-- Preserved Unity 2022.3.22f1, VRChat SDK Base `>=3.10.5 <3.11.0`, and Avatar/World project compatibility. Existing recovered folders are not rewritten automatically.
-- Validated the correction tool with 10 regression cases, a 532 MiB image from a real world bundle, an exact 1 GiB image, and uncompressed/LZ4/LZMA inputs. Pixel hashes matched before and after correction. The real image imported in Unity 2022.3.22f1 as a 1024 x 512 texture array with 266 slices. Complete batch recovery through the Editor UI and world rendering were not tested.
-- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.23. Recover again into an empty output folder when retrying a failed recovery.
 
 ### Version 1.2.22 — Shader Reassignment with Unknown Queues
 
@@ -182,9 +163,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Unknown queues now keep the material's current queue setting by default. Users can still choose the assigned shader's default. Unknown queue data does not cause reassignment to be skipped or automatically rolled back; reports continue to show unknown source values accurately.
 - Preserved material properties, including Blend, Cull, ZWrite, ZTest, Stencil, color, UV settings, and texture references. A kept shader-default queue setting uses the assigned shader's default rather than guaranteeing the same numeric drawing order.
 - Set the shared VRChat SDK Base requirement to `>=3.10.5 <3.11.0`, matching the validated SDK environment. Avatar and World projects remain supported; update older SDK installations before installing 1.2.22.
-- The signed package passed all 63 public EditMode tests in Unity 2022.3.22f1 / VRChat SDK 3.10.5, including 20 saved rendering properties and both unknown-queue policies. All 30 local package self-tests and 23 repository-check regression cases passed. Visual comparisons of user avatars were not performed.
-- A synthetic source bundle with eight materials also retained all 20 rendering-property values through extraction, reassignment, repeated assignment, unknown-queue assignment, and reimport using the signed DLL.
-- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.22.
 
 ### Version 1.2.21 — Shader Version Detection
 
@@ -192,8 +170,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Improved reading version labels containing attributes, multiline declarations, or escaped quotes. Missing or conflicting version information is shown as unknown instead of choosing an unsupported value.
 - Existing ShaderReports remain readable. Recover again into an empty output folder to regenerate incorrect version labels; existing reports and restored materials are not rewritten automatically.
 - Preserved material settings, render queues, shader reassignment, and Unity 2022.3.22f1 / VRChat SDK 3.10.5 compatibility.
-- The final signed package passed all 61 EditMode tests (54 targeted regression tests and 7 SDK tests), including version-label parsing, 15 real-data Poiyomi shader labels, CSV-to-list value preservation, material reassignment, save-failure handling, and real-input recovery with 27 numeric material queues. All 30 local package self-tests passed.
-- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.21.
 
 ### Version 1.2.20 — Material Settings and Render Queues
 
@@ -202,22 +178,16 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Skipped materials are unchanged. Assignment and save failures are reported separately, including files that Unity cannot write. No automatic rollback is performed by shader reassignment.
 - Corrected 3D texture layout recovery using source dimensions and preserved pixel order. Direct recovery reports shader or runtime-texture references it cannot persist and recommends the AssetRipper workflow.
 - Older reports remain readable. Recover again into an empty output folder to obtain queue metadata; previously recovered folders are not changed automatically. Unity 2022.3.22f1 and VRChat SDK 3.10.5 remain supported.
-- The final signed package passed all 20 targeted EditMode tests in Unity 2022.3.22f1 with VRChat SDK 3.10.5, including a real VRCA recovery with 27 numeric material queues while the original shaders were absent. Package self-tests passed all 30 checks. Source-level checks also covered 15 assignment scenarios and 3D/array texture pixel preservation.
-- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.20.
 
 ### Version 1.2.19 — Shader Version Visibility
 
 - Shader Lists now shows a collapsible version label below each Original Shader name when a recognizable version remains in a recovered shader property's display text. Older reports still load; a report without version metadata shows an unknown label until recovered again with this version.
 - Aligned the Material, Original Shader, Match, and Path columns. The `_ShaderReport` folder and each of its three report files remain valid Shader Lists inputs. Shader name matching and manual reassignment behavior are unchanged.
-- Validated in Unity 2022.3.22f1 with VRChat SDK 3.10.5: a real VRCA produced version labels for 15 shader entries and 16 material rows, an older six-column report remained readable, and the folder and three report-file paths resolved to the same Shader List. The final signed package was also checked in the open Unity Editor with a 39-row report, including expanded version rows and column alignment. Package self-tests passed 23 applicable checks, with 7 skipped and 0 failed.
-- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.19.
 
 ### Version 1.2.18 — Mesh Import Reliability
 
 - Fixed recoveries that finished successfully while some avatar meshes remained invisible in Unity.
 - Preserved the recovered mesh references and the existing shader assignment workflow. Previously restored folders are unchanged; recover into an empty output folder to obtain the corrected result.
-- Verified the final signed package with a real VRCA in Unity 2022.3.22f1 and VRChat SDK 3.10.5: all 159 meshes imported, and none of the 150 SkinnedMeshRenderers had a missing mesh. Package self-tests passed 23 applicable checks, with 7 skipped and 0 failed.
-- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.18.
 
 ### Version 1.2.17 — Recovery References and Live Progress
 
@@ -227,9 +197,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Added a lightweight English progress console with colored outcomes, persistent version information, the selected filename, and per-file log reset. The Run button sits above the console, which fills the remaining panel space.
 - Renamed File Select to File Recovery (ファイル復元) and updated the related help text.
 - Preserved Avatar, World, Prop, and Avatar Parts recovery, Shader Lists, backup, history, and settings workflows.
-- In Unity 2022.3.22f1, all 33 available EditMode tests passed (26 Controller regression cases and 7 SDK tests). All 30 local package self-tests passed.
-- The final distribution package completed a real VRCA recovery through the Unity GUI with no Console errors; the recovered Blueprint ID and Expression references were checked. The test environment used VRChat SDK 3.10.5.
-- Refresh the Avatar Recovery Unity repository in VCC or ALCOM, then update to 1.2.17.
 
 ### Version 1.2.16 — Recovery Reliability and Lighter Logging
 
@@ -238,10 +205,7 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Improved Animation post-processing consistency and reduced unnecessary recovery rejection. AssetRipper selection no longer silently switches to direct recovery.
 - Removed Shader Error Fix and Auto-Reassign Shaders, including their saved settings. Shader Lists and its report output remain unchanged.
 - Aggregated routine logs and removed unnecessary routine stack traces while preserving warnings and errors. Direct recovery now shares one asset retrieval within each operation.
-- Source-level regression checks and three real-input recoveries passed in Unity 2022.3.22f1. Performance gains depend on the project and cache state.
-- Verified the final package in Unity 2022.3.22f1 with VRChat SDK 3.10.4: 15 Avatar-project tests (including two real VRCA recoveries) and 13 World-project tests passed. All 30 local package self-tests passed.
 - Known limitations: direct recovery can still encounter Material GUID errors; reported Unity shutdowns remain under investigation. This update does not claim to fix every crash.
-- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.16.
 
 ### Version 1.2.15 — Avatar Parts and Shader Name Copy
 
@@ -250,24 +214,18 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Added right-click Copy Shader Name to the Original Shader column in Shader Lists, including full-length names and shaders not installed in the project.
 - Preserved existing Avatar, World, and Prop recovery, settings, and history compatibility.
 - Components unavailable in the project remain subject to the existing Missing Scripts setting.
-- Verified the final package in Unity 2022.3.22f1 with VRChat SDK 3.10.4: 14 Avatar-project tests and 13 World-project tests passed, including a real VRCAP recovery. All 30 package self-tests passed.
-- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.15.
 
 ### Version 1.2.14 — Avatar and World Project Compatibility
 
 - Restored AvatarRecovery version selection and installation in both VCC/ALCOM Avatar projects and World projects.
 - World projects no longer need the Avatars SDK package just to install AvatarRecovery; Avatar-only features remain available when the Avatars SDK is present.
 - Preserved the version 1.2.13 recovery workflow and AnimatorController reference correction.
-- Verified the final package in Unity 2022.3.22f1 with VRChat SDK 3.10.4 Avatar and World projects. All 30 package self-tests passed.
-- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.14.
 
 ### Version 1.2.13 — AnimatorController Reference Recovery
 
 - Fixed recovered AnimatorControllers that could keep transitions pointing to states outside the controller.
 - Prevented Console errors such as `AnyState -> Default` reporting that the destination state does not exist in the controller.
 - Preserved the version 1.2.12 recovery workflow, bundled AssetRipper, AAO compatibility, Expression Menu recovery, shader recovery, and Missing Script handling.
-- Verified in Unity 2022.3.22f1 with both focused EditMode tests passing and a successful recovery of the supplied VRCA. The real recovery checked 8 controllers, corrected 3 controllers containing 14 affected states and 4 transition references, and produced zero target missing-state errors.
-- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.13.
 
 ### Version 1.2.12 — Bundled AssetRipper
 
@@ -275,21 +233,16 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Removed separate AssetRipper downloads, arbitrary version selection, path settings, and external executable discovery. AvatarRecovery now uses only the bundled version.
 - Extracts the bundled files under the Unity project's `Library/AvatarRecovery` folder on first use, outside Unity's imported Assets and script assemblies.
 - Preserved the version 1.2.11 recovery workflow, AAO compatibility, Expression Menu recovery, shader recovery, and Missing Script handling. No HotSwap or animation-performance changes are included.
-- Verified in Unity 2022.3.22f1 with a successful package build, EditorWindow smoke test, AssetRipper startup, and all 7 available EditMode tests passing.
-- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.12.
 
 ### Version 1.2.11 — AAO Recovery Reliability
 
 - Fixed recurring recovery failures for valid AAO-generated avatar layouts that do not require conventional skinning data.
 - If an AAO repair candidate cannot be accepted, recovery now keeps the original Raw prefab only when that prefab can be reloaded successfully.
 - Kept the version 1.2.10 workflow and compatibility. HotSwap and animation-processing changes from the withdrawn 1.3.x line are not included.
-- Verified in Unity 2022.3.22f1 with all 15 focused AAO recovery regression tests passing, including validation against a recovered AAO avatar fixture.
-- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.11.
 
 ### Rollback to 1.2.10
 
 - Restored version 1.2.10 as the current supported public release because of reliability issues reported in later versions.
-- Refresh the `Avatar Recovery Unity` repository in VCC or ALCOM, then manually select AvatarRecovery 1.2.10.
 - Existing 1.3.x installations are not downgraded automatically.
 
 ### Version 1.3.6 — Expression Menu Icon Compatibility
@@ -298,7 +251,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Expression Menu icon verification now compares the resulting RGBA pixels instead of rejecting a normal Unity texture solely because of its storage format.
 - Kept output-path, existing-file, and image-size boundaries while allowing Unity-readable icon formats to complete normal recovery.
 - Preserved the HotSwap-separated package layout and the Unity 2022.3.22f1 / VRChat SDK 3.10.4 environment from version 1.3.5.
-- Ran all 517 tests in the final integrated source package: 512 passed, the remaining five matched the same environment-sensitive failures as version 1.3.5, and no new regression was found.
 
 ### Version 1.3.5 — HotSwap Separation and SDK 3.10.4
 
@@ -308,7 +260,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Removed the dedicated HotSwap Unity environments from the package, reducing package size and import work.
 - Fixed recovery failures when valid AssetRipper output omits folder `.meta` files; AvatarRecovery now safely completes only the missing folder metadata while keeping file metadata and final-output integrity checks strict.
 - Updated the supported environment to VRChat SDK 3.10.4 and Unity 2022.3.22f1.
-- Ran all 513 tests in the final integrated package: 508 passed, the remaining five matched existing environment-sensitive failures, and no new regression was found.
 
 ### Version 1.3.4 — AAO and Shader Recovery Safety
 
@@ -318,7 +269,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Strengthened temporary-output and final-output handling so unverified results are not adopted when file state cannot be confirmed safely.
 - Restored Unity rendering state even when texture reading stops with an error, preventing the failed operation from affecting later Editor work.
 - Kept the published Avatar and World HotSwap implementation, setup, and compatibility unchanged.
-- Verified in Unity 2022.3.22f1 with 388 core regression tests, 16 AAO budget tests, 9 older-layout compatibility tests, one replacement-conflict safety test, and a successful real 0Polygon recovery from an ALCOM-installed 1.3.4 package.
 
 ### Version 1.3.3 — Low-Spec HotSwap Reliability
 
@@ -328,7 +278,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Added stricter thumbnail and input-file checks before startup, with clear guidance in the HotSwap window instead of repeated Console exceptions.
 - Kept the existing VCC, ALCOM, and VRChat SDK login workflow. Start HotSwap from a Unity Editor where VRChat SDK login is already confirmed; the official VRChat consent confirmation may still appear when required by the SDK.
 - No folder deletion, SDK replacement, or additional login setup is required for this update.
-- Verified with Unity 2022.3.22f1 using a clean first-time preparation that exceeded two minutes, 43 automated HotSwap tests, and the signed release-artifact self-test.
 
 ### Version 1.3.2 — HotSwap Reliability and Performance
 
@@ -348,7 +297,7 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - When an AAO repair candidate cannot be adopted safely, recovery now continues with the verified reloadable Raw prefab instead of rolling back the whole result. Recovery still stops if the original prefab itself cannot be reloaded safely.
 - Reduced repeated AnimationClip discovery and import work. In the validation VRCA, total recovery time improved by about 13.8% and post-extraction processing by about 46%; actual results vary by avatar and system.
 - Preserved the existing per-clip Face animation separation, animation references, naming behavior, and recovered avatar appearance in regression validation.
-- Kept the existing public VPM repository URL. Refresh `Avatar Recovery Unity` in VCC or ALCOM, then update `Avatar Recovery` to version 1.3.1.
+- Kept the existing public VPM repository URL.
 
 ### Version 1.3.0 — Avatar and World HotSwap
 
@@ -357,16 +306,13 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Added a cleanup preview and explicit approval step. Cleanup stops without deleting data if the selected targets change after preview.
 - Improved interrupted-job recovery, completion records, worker shutdown, snapshot cleanup, and VRChat session safety.
 - Included the validated SDK content required by the dedicated HotSwap environment, avoiding an additional SDK download during HotSwap setup.
-- Verified Avatar and World HotSwap with the release package in Unity 2022.3.22f1, together with package-integrity and published-artifact checks.
-- Kept the existing public VPM repository URL. Refresh `Avatar Recovery Unity` in VCC or ALCOM, then update `Avatar Recovery` to version 1.3.0.
+- Kept the existing public VPM repository URL.
 
 ### Version 1.2.10 — AAO Recovery Compatibility Hotfix
 
 - Fixed the AvatarRecovery 1.2.9 regression that incorrectly rejected valid AAO-generated meshes without active Bone Weights.
 - Preserved strict root-bone, used-bone, and prefab-reference validation for meshes that use Bone Weights.
-- Verified successful recovery, including AAO integrity validation, with both VRCA files reported by affected users in Unity 2022.3.22f1.
 - Published the fix as version 1.2.10 so VCC and ALCOM retrieve the corrected package instead of reusing a cached 1.2.9 package.
-- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.10.
 
 ### Version 1.2.9 — Expression Menu and AAO Recovery Compatibility
 
@@ -375,7 +321,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Verified restored Root Menus, SubMenus, controls, parameters, and icons in both the final and Raw prefabs before accepting the result.
 - Kept incomplete or unsupported Menu results from replacing the normal AssetRipper output.
 - Preserved AAO-optimized avatar detection, mesh repair, and Pose Reset protection.
-- Verified the normal, Menu-recovery, and AAO-optimized workflows in Unity 2022.3.22f1.
 - Known limitations:
   - Expression Menu recovery can only use Menu, SubMenu, icon, and reference data that remains in the VRCA. If required data is missing, corrupt, ambiguous, or unsupported, the normal AssetRipper result is preserved and the Menu may remain Missing.
   - If AAO evidence has been removed or a safe pose cannot be determined uniquely, Pose Reset is skipped. AvatarRecovery cannot reconstruct an already damaged baked pose or the creator's original AAO authoring setup from information that is no longer present.
@@ -393,7 +338,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Reduced repeated work in recovery history rendering, AssetRipper path discovery, and background-image loading.
 - Improved native dialog cleanup when selection is cancelled, scripts reload, or Unity closes.
 - Preserved the existing extraction and recovery pipeline, including Face animation selection and Blueprint ID cleanup.
-- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.8.
 
 ### Version 1.2.7 — Multi-Select and Console Compatibility
 
@@ -401,8 +345,6 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 - Improved AvatarRecovery's Console logging so it no longer changes the logging configuration used by other Unity Editor tools.
 - Kept the existing color-coded Console presentation while consolidating each batch result into one `[Batch Extraction Complete]` entry with a pink title and green details.
 - Preserved existing recovery behavior, including Face animation selection and Blueprint ID cleanup.
-- Verified the protected package in Unity 2022.3.22f1 with the Selena_sample.vrca recovery workflow, with one successful restore and no errors in the successful run.
-- Refresh the repository in VCC or ALCOM, then update AvatarRecovery to version 1.2.7.
 
 ### Version 1.2.6 — GitHub/Discord and Recovery Stability
 
@@ -435,14 +377,12 @@ Avatar projects should install `VRChat SDK - Avatars`; world projects should ins
 
 - Streamlined the AvatarRecovery menu by hiding two maintenance entries.
 - Retained the underlying PhysBone・Contact reference check and Scene cleanup behavior for internal and automatic use.
-- Verified that the remaining menu entries stay available and the underlying functions remain in the package.
 
 ### Version 1.2.2 — Long Asset Path Fix
 
 - Fixed AssetRipper transaction commits that appended a suffix to an already long asset filename and exceeded NTFS's 255-character component limit.
 - Switched transaction and GUID-repair temporary files to short sibling names while preserving same-directory replacement semantics.
 - Extended long-path-safe handling to Script, AnimationClip, Material, and GUID-conflict `.meta` processing.
-- Regression-tested the protected package with the original VRCA, including a 250-character `.anim` filename and its 255-character `.meta` file.
 
 ### Version 1.2.1 — Security Boundary Correction
 
