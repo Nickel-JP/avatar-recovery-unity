@@ -9,7 +9,7 @@ Set-StrictMode -Version Latest
 $PackageId = 'com.nickel-jp.avatar-recovery'
 $RepositoryBaseUrl = 'https://nickel-jp.github.io/avatar-recovery-unity'
 $LegacyRepositoryBaseUrl = 'https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main'
-$MaximumDistributionBytes = 800000000L
+$MaximumDistributionBytes = 850000000L
 $MaximumManifestBytes = 1048576L
 $StableVersionPattern = '(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)'
 

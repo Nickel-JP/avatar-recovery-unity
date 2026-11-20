@@ -8,6 +8,11 @@
     [string]$UnityCompileProjectRoot = "",
     [string]$UnityCompileSeedProjectRoot = "",
     [string]$UnityCompileAllowedRoot = "",
+    [ValidateSet("Batch", "GuiReceipt")]
+    [string]$UnityCompileMode = "Batch",
+    [ValidateRange(60, 86400)]
+    [int]$UnityGuiCompileTimeoutSeconds = 7200,
+    [string]$ResumeGuiCompileReceiptPath = "",
     [string]$BackupRoot = "",
     [string]$ObfuscarToolVersion = "2.2.50",
     [string]$ObfuscarExe = "",
@@ -27,6 +32,10 @@
     [string]$SignPathApiToken = $env:SIGNPATH_API_TOKEN,
     [string]$SignPathExpectedCertificateThumbprint = $env:SIGNPATH_CERTIFICATE_THUMBPRINT,
     [string]$AssetRipperZip = $env:AVATAR_RECOVERY_ASSETRIPPER_ZIP,
+    [string]$TextureArrayRustCargoLock = "",
+    [string]$TextureArrayRustRegistryRoot = "",
+    [string]$TextureArrayRustToolchainRoot = "",
+    [switch]$RequireTextureArrayPayload,
     [switch]$DisableSelfSignedCertificate,
     [switch]$TrustSelfSignedCertificateForAuthenticode,
     [switch]$SkipUnityCompile,
@@ -44,6 +53,7 @@ if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -Scope Global -Er
 }
 
 $RepoRoot = $PSScriptRoot
+$ResumeGuiCompile = -not [string]::IsNullOrWhiteSpace($ResumeGuiCompileReceiptPath)
 $WorkRoot = Join-Path $RepoRoot ".work"
 $PublishedVersionLimit = 3
 if ([string]::IsNullOrWhiteSpace($BackupRoot)) {
@@ -98,6 +108,8 @@ $AntiDebugTargetsPath = Join-Path $RepoRoot "Build\AntiDebugTargets.txt"
 $StringEncryptionAllowlistPath = Join-Path $RepoRoot "Build\StringEncryptionAllowlist.txt"
 $StringLiteralPolicyPath = Join-Path $RepoRoot "Build\StringLiteralPolicy.json"
 $StringLiteralContractModulePath = Join-Path $RepoRoot "Build\StringLiteralContract.psm1"
+$TextureArrayPayloadModulePath = Join-Path $RepoRoot "Build\TextureArrayPayload.psm1"
+$GuiUnityCompileModulePath = Join-Path $RepoRoot "Build\GuiUnityCompile.psm1"
 $ControlFlowObfuscationAllowlistPath = Join-Path $RepoRoot "Build\ControlFlowObfuscationAllowlist.txt"
 $AntiDecompileAllowlistPath = Join-Path $RepoRoot "Build\AntiDecompileAllowlist.txt"
 $ExpressionMenuNormalizerProjectPath = Join-Path $RepoRoot "Build\ExpressionMenuNormalizer\ExpressionMenuNormalizer.csproj"
@@ -1632,7 +1644,7 @@ function Get-AllowlistSet {
     }
 
     $set = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-    Get-Content -LiteralPath $Path |
+    Get-Content -LiteralPath $Path -Encoding UTF8 |
         ForEach-Object {
             $line = $_.Trim()
             if ($line.Length -gt 0 -and -not $line.StartsWith("#")) {
@@ -1702,7 +1714,7 @@ function Get-SourceScan {
     $enumToStringHits = New-Object System.Collections.Generic.List[object]
 
     foreach ($file in $sourceFiles) {
-        $lines = Get-Content -LiteralPath $file.FullName
+        $lines = Get-Content -LiteralPath $file.FullName -Encoding UTF8
         $namespace = "EditorTools.AvatarRecovery"
         $currentType = $null
         $pendingAttributes = New-Object System.Collections.Generic.List[string]
@@ -1839,7 +1851,7 @@ function Get-SourceScan {
 
     $uiToolkitNameHits = New-Object System.Collections.Generic.List[object]
     foreach ($file in $uiToolkitFiles) {
-        $lines = Get-Content -LiteralPath $file.FullName
+        $lines = Get-Content -LiteralPath $file.FullName -Encoding UTF8
         for ($i = 0; $i -lt $lines.Count; $i++) {
             $line = $lines[$i]
             foreach ($pattern in @("binding-path=", "name=", "type=")) {
@@ -5414,7 +5426,8 @@ function Invoke-ExpressionMenuNormalizerBuildAndStage {
 
     foreach ($fileName in $ExpressionMenuNormalizerSignedFileNames) {
         $path = Join-Path $buildOutputRoot $fileName
-        Invoke-CodeSign -Path $path -Context $Context
+        # 署名コマンドの標準出力を、戻り値のpayloadレポートへ混入させません。
+        Invoke-CodeSign -Path $path -Context $Context | Out-Null
         Test-CodeSignature -Path $path -Context $Context
     }
 
@@ -5486,6 +5499,63 @@ function Invoke-ExpressionMenuNormalizerBuildAndStage {
     Write-Host (
         "ExpressionMenuNormalizer staged: " +
         "$($report.Files.Count) files -> $ExpressionMenuNormalizerStageRoot")
+    return $report
+}
+
+function Invoke-TextureArrayPayloadBuildAndStage {
+    param([Parameter(Mandatory = $true)]$Context)
+
+    $sourceRoot = Join-Path $SourcePackageRoot "Tools~\TextureArrayLayoutTool"
+    $hasRust = Test-Path -LiteralPath (Join-Path $sourceRoot "png-repack-worker.exe") -PathType Leaf
+    $hasPngcs = Test-Path -LiteralPath (Join-Path $sourceRoot "Hjg.Pngcs.dll") -PathType Leaf
+    if (-not $hasRust -and -not $hasPngcs) {
+        if ($RequireTextureArrayPayload) {
+            throw "Declared Rust texture candidate is missing its required worker payload."
+        }
+        return [PSCustomObject]@{ Enabled = $false; Files = @(); SignedFileNames = @() }
+    }
+
+    # 新ワーカーを含む候補だけに、独立した署名・同梱契約を適用します。
+    if (-not (Test-Path -LiteralPath $TextureArrayPayloadModulePath -PathType Leaf)) {
+        throw "Texture payload build module was not found."
+    }
+    Import-Module $TextureArrayPayloadModulePath -Force
+    $cargoLock = if ([string]::IsNullOrWhiteSpace($TextureArrayRustCargoLock)) {
+        Join-Path $ReleaseRoot "RustWorker\Cargo.lock"
+    } else { ConvertTo-FullPath $TextureArrayRustCargoLock }
+    $registryRoot = if (-not [string]::IsNullOrWhiteSpace($TextureArrayRustRegistryRoot)) {
+        ConvertTo-FullPath $TextureArrayRustRegistryRoot
+    } elseif (-not [string]::IsNullOrWhiteSpace($env:CARGO_HOME)) {
+        Join-Path $env:CARGO_HOME "registry\src"
+    } else {
+        throw "Set -TextureArrayRustRegistryRoot to the isolated Cargo registry source."
+    }
+    $stageRoot = Join-Path $ProtectionRoot ("texture-array-payload-" + [Guid]::NewGuid().ToString("N"))
+    $toolchainRoot = if (-not [string]::IsNullOrWhiteSpace($TextureArrayRustToolchainRoot)) {
+        ConvertTo-FullPath $TextureArrayRustToolchainRoot
+    } else {
+        $cargoHome = [IO.Directory]::GetParent([IO.Directory]::GetParent($registryRoot).FullName).FullName
+        $isolatedToolchainRoot = [IO.Directory]::GetParent($cargoHome).FullName
+        Join-Path $isolatedToolchainRoot "rustup\toolchains\1.99.1-x86_64-pc-windows-msvc"
+    }
+    $signFile = { param($Path, $SigningContext) Invoke-CodeSign -Path $Path -Context $SigningContext }
+    $verifySignature = { param($Path, $SigningContext) Test-CodeSignature -Path $Path -Context $SigningContext }
+    $report = New-TextureArrayPayloadStage -InputRoot $sourceRoot -StageRoot $stageRoot `
+        -CargoLockPath $cargoLock -RegistryRoot $registryRoot -RustToolchainRoot $toolchainRoot -SignFile $signFile `
+        -VerifySignature $verifySignature -Context $Context `
+        -ForbiddenPathTokens @([Environment]::GetFolderPath('UserProfile'), $RepoRoot)
+    foreach ($file in $report.Files) {
+        Copy-Item -LiteralPath (Join-Path $stageRoot $file.Name) -Destination (Join-Path $sourceRoot $file.Name) -Force
+    }
+    Test-TextureArrayPayloadDirectory -Root $sourceRoot -ExpectedReport $report -VerifySignature $verifySignature -Context $Context
+    foreach ($name in $report.SignedFileNames) {
+        Save-CodeSignatureReport -Path (Join-Path $sourceRoot $name) `
+            -ReportName ("signature-texture-array-" + $name + "-$Version.json") -Context $Context
+    }
+    $reportPath = Join-Path $PrivateBackupRoot "texture-array-payload-$Version.json"
+    $report | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $reportPath -Encoding UTF8
+    Copy-Item -LiteralPath $reportPath -Destination $LocalPrivateBackupRoot -Force
+    Write-Host "Texture payload staged and verified: $($report.Files.Count) files."
     return $report
 }
 
@@ -5742,6 +5812,10 @@ function Get-UnityVersionLabel {
         return $match.Groups[1].Value
     }
 
+    if ($UnityCompileMode -eq "GuiReceipt") {
+        throw "GUI receipt mode cannot determine Unity version from UnityExe path. The Unity CLI fallback is disabled."
+    }
+
     try {
         $versionOutput = & $UnityExe -version 2>$null | Select-Object -First 1
         if (-not [string]::IsNullOrWhiteSpace($versionOutput)) {
@@ -5803,6 +5877,7 @@ function Write-ProtectionBuildReport {
         [Parameter(Mandatory = $true)][object]$RuntimeIntegritySidecarReport,
         [Parameter(Mandatory = $true)][object]$ControlFlowObfuscationReport,
         [Parameter(Mandatory = $true)][object]$ExpressionMenuNormalizerReport,
+        [object]$TextureArrayPayloadReport = $null,
         [Parameter(Mandatory = $true)][string]$InputDll,
         [Parameter(Mandatory = $true)][string]$ObfuscatedDll,
         [Parameter(Mandatory = $true)][string]$SignedDll,
@@ -5869,6 +5944,10 @@ function Write-ProtectionBuildReport {
             ExclusionRuleCount = $skipRuleCount
         }
         BuildEnvironment = Get-BuildEnvironmentReport
+        GuiCompilation = if ($UnityCompileMode -eq "GuiReceipt") {
+            [PSCustomObject]@{ Resumed = $ResumeGuiCompile; RequestNonce = $guiCompileRequest.Data.RequestNonce
+                AssemblyResult = $guiCompileReceipt.AssemblyResult; ReceiptPath = $guiCompileReceipt.ReceiptPath }
+        } else { $null }
         BuildMetadataSanitization = $BuildMetadataSanitizationReport
         StringHidingProbe = $StringHidingProbeReport
         ControlFlowObfuscation = $ControlFlowObfuscationReport
@@ -5879,6 +5958,7 @@ function Write-ProtectionBuildReport {
         AntiDecompile = $AntiDecompileReport
         BranchSanitization = $BranchSanitizationReport
         ExpressionMenuNormalizer = $ExpressionMenuNormalizerReport
+        TextureArrayPayload = $TextureArrayPayloadReport
         Metrics = [PSCustomObject]@{
             InputDllSize = (Get-Item -LiteralPath $InputDll).Length
             ObfuscatedDllSize = (Get-Item -LiteralPath $ObfuscatedDll).Length
@@ -5933,6 +6013,10 @@ function Write-ProtectionBuildReport {
 
 function Invoke-UnityCompile {
     param([Parameter(Mandatory = $true)][string]$UnityProjectRoot)
+
+    if ($UnityCompileMode -ne "Batch") {
+        throw "GUI receipt mode must not launch Unity through the command line."
+    }
 
     $logPath = Join-Path $ProtectionRoot "unity-compile-$Version.log"
     $argumentList = @(
@@ -6115,6 +6199,14 @@ if ($SkipUnityCompile) {
         "from the hashes generated in the same release run.")
 }
 
+if ($ResumeGuiCompile -and $UnityCompileMode -ne "GuiReceipt") {
+    throw "ResumeGuiCompileReceiptPath requires UnityCompileMode GuiReceipt."
+}
+if ($UnityCompileMode -eq "GuiReceipt") {
+    Import-Module $GuiUnityCompileModulePath -Force
+    Assert-GuiUnityCompileProjectLocation -ProjectRoot $CompileProjectRoot -SeedRoot $CompileProjectSeedRoot
+}
+
 if ([string]::IsNullOrWhiteSpace($LiteralContractBaselinePath)) {
     $LiteralContractBaselinePath = Join-Path $RepoRoot "packages\$PackageId-$PreviousVersion.zip"
 }
@@ -6122,7 +6214,7 @@ if (-not (Test-Path -LiteralPath $LiteralContractBaselinePath -PathType Leaf)) {
     throw "設定キー・SDK照合名の比較基準がありません。PreviousVersionまたはLiteralContractBaselinePathを確認してください。"
 }
 Import-Module $StringLiteralContractModulePath -Force
-Initialize-SourcePackage
+if (-not $ResumeGuiCompile) { Initialize-SourcePackage }
 if ([string]::IsNullOrWhiteSpace($AssetRipperZip)) {
     throw (
         "AssetRipper ZIP must be specified with -AssetRipperZip or " +
@@ -6131,11 +6223,18 @@ if ([string]::IsNullOrWhiteSpace($AssetRipperZip)) {
 if (-not (Test-Path -LiteralPath $AssetRipperStageScriptPath -PathType Leaf)) {
     throw "AssetRipper staging script was not found: $AssetRipperStageScriptPath"
 }
-& powershell -NoProfile -ExecutionPolicy Bypass -File $AssetRipperStageScriptPath `
-    -SourcePackageRoot $SourcePackageRoot `
-    -AssetRipperZip $AssetRipperZip
-if ($LASTEXITCODE -ne 0) {
-    throw "Bundled AssetRipper staging failed."
+if (-not $ResumeGuiCompile) {
+    & powershell -NoProfile -ExecutionPolicy Bypass -File $AssetRipperStageScriptPath `
+        -SourcePackageRoot $SourcePackageRoot `
+        -AssetRipperZip $AssetRipperZip
+    if ($LASTEXITCODE -ne 0) { throw "Bundled AssetRipper staging failed." }
+}
+else {
+    foreach ($path in @($AssetRipperZip, (Join-Path $SourcePackageRoot 'Tools~\AssetRipper\AssetRipper.zip'))) {
+        if ((Get-Sha256HexLower -Path $path) -cne $ExpectedAssetRipperZipSha256) {
+            throw "GUI resume AssetRipper payload does not match the fixed distribution contract."
+        }
+    }
 }
 if (-not (Test-Path $UnityExe)) {
     throw "Unity executable was not found: $UnityExe"
@@ -6147,12 +6246,78 @@ Ensure-Directory $PrivateBackupRoot
 Ensure-Directory $LocalPrivateBackupRoot
 # 任意の比較基準が生成先と同じ場所でも、ビルド前の内容を固定します。
 $literalBaselineSnapshotPath = Join-Path $PrivateBackupRoot ("literal-baseline-$Version" + [IO.Path]::GetExtension($LiteralContractBaselinePath))
-Copy-Item -LiteralPath $LiteralContractBaselinePath -Destination $literalBaselineSnapshotPath -Force
+if ($ResumeGuiCompile) {
+    if (-not (Test-Path -LiteralPath $literalBaselineSnapshotPath -PathType Leaf) -or
+        (Get-Sha256HexLower -Path $literalBaselineSnapshotPath) -cne (Get-Sha256HexLower -Path $LiteralContractBaselinePath)) {
+        throw "GUI resume requires the unchanged original literal-contract baseline snapshot."
+    }
+}
+else { Copy-Item -LiteralPath $LiteralContractBaselinePath -Destination $literalBaselineSnapshotPath -Force }
 $codeSigningContext = Get-CodeSigningContext
-$expressionMenuNormalizerReport = Invoke-ExpressionMenuNormalizerBuildAndStage `
-    -Context $codeSigningContext
-$runtimeIntegritySourceReport = Ensure-RuntimeIntegrityGuardSource -Context $codeSigningContext
-$stringDecryptorSourceReport = Ensure-StringDecryptorSource
+if ($ResumeGuiCompile) {
+    if ($EnableInProcessRuntimeIntegrityGuard -or $EnableCecilStringEncryption) {
+        throw "GUI resume does not support configurations that generate runtime guard or string sources."
+    }
+    $guiCompileRequest = Open-GuiUnityCompileRequest -ProjectRoot $CompileProjectRoot `
+        -SourcePackageRoot $SourcePackageRoot -PackageId $PackageId -Version $Version `
+        -AssemblyName $AssemblyName -ReceiptPath $ResumeGuiCompileReceiptPath
+    Ensure-MonoCecilLoaded
+    $guiCompileReceipt = Wait-GuiUnityCompileReceipt -Request $guiCompileRequest -TimeoutSeconds $UnityGuiCompileTimeoutSeconds
+    $resumeReports = Get-GuiUnityCompileResumePayloadReports -Request $guiCompileRequest `
+        -TextureReportPath (Join-Path $PrivateBackupRoot "texture-array-payload-$Version.json")
+    $normalizerFiles = [Collections.Generic.List[object]]::new()
+    $normalizerNames = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $requiredNormalizerNames = @($ExpressionMenuNormalizerRequiredFileNames + $ExpressionMenuNormalizerManifestFileName)
+    foreach ($file in $resumeReports.NormalizerFiles) {
+        if (($file.Name -cnotin @($requiredNormalizerNames + $ExpressionMenuNormalizerOptionalFileNames)) -or
+            -not $normalizerNames.Add($file.Name)) { throw "GUI resume normalizer file contract is invalid." }
+        $current = Get-ExpressionMenuNormalizerFileReport -RootPath $ExpressionMenuNormalizerStageRoot -FileName $file.Name
+        if ($current.SHA256 -cne $file.SHA256 -or $current.Length -ne $file.Length) {
+            throw "GUI resume normalizer payload changed after receipt validation."
+        }
+        [void]$normalizerFiles.Add($current)
+    }
+    foreach ($name in $requiredNormalizerNames) {
+        if (-not $normalizerNames.Contains($name)) { throw "GUI resume normalizer file contract is incomplete." }
+    }
+    $expressionMenuNormalizerReport = [PSCustomObject]@{
+        ProjectPath = ConvertTo-FullPath $ExpressionMenuNormalizerProjectPath
+        TargetFramework = $ExpressionMenuNormalizerTargetFramework; Configuration = $ExpressionMenuNormalizerConfiguration
+        StageRoot = ConvertTo-FullPath $ExpressionMenuNormalizerStageRoot
+        RequiredFileNames = @($ExpressionMenuNormalizerRequiredFileNames)
+        OptionalFileNamesIncluded = @($ExpressionMenuNormalizerOptionalFileNames | Where-Object { $normalizerNames.Contains($_) })
+        SignedFileNames = @($ExpressionMenuNormalizerSignedFileNames); Files = @($normalizerFiles.ToArray())
+        ResumeReconstructed = $true; BuildReexecuted = $false
+    }
+    $textureArrayPayloadReport = $resumeReports.TextureReport
+    if ($RequireTextureArrayPayload -and -not $textureArrayPayloadReport.Enabled) {
+        throw "GUI resume request does not contain the required texture payload."
+    }
+    Test-ExpressionMenuNormalizerPackageDirectory -RootPath $ExpressionMenuNormalizerStageRoot `
+        -ExpectedReport $expressionMenuNormalizerReport -Context $codeSigningContext
+    if ($textureArrayPayloadReport.Enabled) {
+        if (-not $codeSigningContext.Required) { throw "GUI resume texture payload requires signed artifacts." }
+        Import-Module $TextureArrayPayloadModulePath -Force
+        Test-TextureArrayPayloadDirectory -Root (Join-Path $SourcePackageRoot 'Tools~\TextureArrayLayoutTool') `
+            -ExpectedReport $textureArrayPayloadReport `
+            -VerifySignature { param($Path, $Context) Test-CodeSignature -Path $Path -Context $Context } -Context $codeSigningContext
+    }
+    $guardSourcePath = Join-Path $SourcePackageRoot 'Editor\Utils\AvatarRecoveryIntegrityGuard.cs'
+    $decryptorSourcePath = Join-Path $SourcePackageRoot 'Editor\Utils\AvatarRecoveryStringDecryptor.cs'
+    if ((Test-Path -LiteralPath $guardSourcePath) -or (Test-Path -LiteralPath $decryptorSourcePath)) {
+        throw "GUI resume found retired generated source files; no source changes will be made."
+    }
+    $runtimeIntegritySourceReport = [PSCustomObject]@{ Enabled = $false; SourcePath = $guardSourcePath
+        RemovedLegacySource = $null; Reason = 'ExternalSidecarOnly'; ResumeReconstructed = $true }
+    $stringDecryptorSourceReport = [PSCustomObject]@{ Enabled = $false; SourcePath = $decryptorSourcePath
+        KeyLength = 0; Reason = 'RetiredIneffectiveLocalEncryption'; ResumeReconstructed = $true }
+}
+else {
+    $expressionMenuNormalizerReport = Invoke-ExpressionMenuNormalizerBuildAndStage -Context $codeSigningContext
+    $textureArrayPayloadReport = Invoke-TextureArrayPayloadBuildAndStage -Context $codeSigningContext
+    $runtimeIntegritySourceReport = Ensure-RuntimeIntegrityGuardSource -Context $codeSigningContext
+    $stringDecryptorSourceReport = Ensure-StringDecryptorSource
+}
 
 $scan = Get-SourceScan -SourceRoot (Join-Path $SourcePackageRoot "Editor")
 $scanPath = Join-Path $PrivateBackupRoot "static-scan-$Version.json"
@@ -6160,14 +6325,31 @@ $scan | ConvertTo-Json -Depth 80 | Set-Content -LiteralPath $scanPath -Encoding 
 Copy-Item -LiteralPath $scanPath -Destination $LocalPrivateBackupRoot -Force
 Assert-SourceScanAllowlist -Scan $scan -AllowlistPath $ReflectionSerializationAllowlistPath
 
-Initialize-CompileProject
-$compileIntegritySourcePath = Join-Path `
-    $CompileProjectRoot `
-    "Packages\$PackageId\Editor\Core\ExpressionMenuNormalizerPayloadIntegrity.cs"
-Write-ExpressionMenuNormalizerIntegritySource `
-    -ExpectedReport $expressionMenuNormalizerReport `
-    -TargetPath $compileIntegritySourcePath
-if (-not $SkipUnityCompile) {
+if (-not $ResumeGuiCompile) {
+    Initialize-CompileProject
+    $compileIntegritySourcePath = Join-Path $CompileProjectRoot "Packages\$PackageId\Editor\Core\ExpressionMenuNormalizerPayloadIntegrity.cs"
+    Write-ExpressionMenuNormalizerIntegritySource -ExpectedReport $expressionMenuNormalizerReport -TargetPath $compileIntegritySourcePath
+}
+if ($UnityCompileMode -eq "GuiReceipt") {
+    if (-not $ResumeGuiCompile) {
+        $guiCompileRequest = New-GuiUnityCompileRequest `
+        -ProjectRoot $CompileProjectRoot `
+        -SourcePackageRoot $SourcePackageRoot `
+        -PackageId $PackageId `
+        -Version $Version `
+        -AssemblyName $AssemblyName `
+        -ExporterRoot (Join-Path $RepoRoot "Build\GuiUnityCompile") `
+        -NormalizerReport $expressionMenuNormalizerReport `
+        -TextureReport $textureArrayPayloadReport
+        Ensure-MonoCecilLoaded
+        $guiCompileReceipt = Wait-GuiUnityCompileReceipt -Request $guiCompileRequest -TimeoutSeconds $UnityGuiCompileTimeoutSeconds
+    }
+    foreach ($evidencePath in @($guiCompileRequest.RequestPath, $guiCompileReceipt.ReceiptPath)) {
+        Copy-Item -LiteralPath $evidencePath -Destination $PrivateBackupRoot -Force
+        Copy-Item -LiteralPath $evidencePath -Destination $LocalPrivateBackupRoot -Force
+    }
+}
+elseif (-not $SkipUnityCompile) {
     $compileLog = Invoke-UnityCompile -UnityProjectRoot $CompileProjectRoot
     Copy-Item -LiteralPath $compileLog -Destination $PrivateBackupRoot -Force
     Copy-Item -LiteralPath $compileLog -Destination $LocalPrivateBackupRoot -Force
@@ -6190,6 +6372,10 @@ Ensure-Directory $outputDir
 
 $protectedInputDll = Join-Path $inputDir $AssemblyFileName
 Copy-Item -LiteralPath $compiledDll -Destination $protectedInputDll -Force
+if ($UnityCompileMode -eq "GuiReceipt" -and
+    (Get-Sha256HexLower -Path $protectedInputDll) -cne $guiCompileReceipt.AssemblySha256) {
+    throw "GUI-compiled DLL changed before the protection input was copied."
+}
 Test-AvatarRecoveryLogIsolation `
     -Path $protectedInputDll `
     -ExpectedFacadeTypeName "EditorTools.AvatarRecovery.Debug" | Out-Null
@@ -6336,6 +6522,13 @@ Test-ExpressionMenuNormalizerPackageDirectory `
     -RootPath $packagedExpressionMenuNormalizerRoot `
     -ExpectedReport $expressionMenuNormalizerReport `
     -Context $codeSigningContext
+if ($textureArrayPayloadReport.Enabled) {
+    Test-TextureArrayPayloadDirectory `
+        -Root (Join-Path $ProjectPackageRoot "Tools~\TextureArrayLayoutTool") `
+        -ExpectedReport $textureArrayPayloadReport `
+        -VerifySignature { param($Path, $Context) Test-CodeSignature -Path $Path -Context $Context } `
+        -Context $codeSigningContext
+}
 $packagedDll = Join-Path $ProjectPackageRoot "Editor\$AssemblyFileName"
 Copy-Item -LiteralPath $obfuscatedDll -Destination $packagedDll -Force
 $packagedRuntimeIntegritySidecar = Join-Path $ProjectPackageRoot "Editor\$RuntimeIntegritySidecarFileName"
@@ -6360,13 +6553,17 @@ $literalContractReportPath = Join-Path $PrivateBackupRoot "literal-contract-$Ver
 $literalContractReport = Test-AvatarRecoveryLiteralContract `
     -BaselinePath $literalBaselineSnapshotPath `
     -CandidatePath $packagedDll `
+    -CandidateVersion $Version `
     -PolicyPath $StringLiteralPolicyPath `
     -OutputPath $literalContractReportPath
 Copy-Item -LiteralPath $literalContractReportPath -Destination $LocalPrivateBackupRoot -Force
 if (-not $literalContractReport.Passed) {
     throw "設定キー・SDK照合名に差分があるか、候補DLLに秘密候補が含まれています。非公開のliteral-contract報告を確認してください。"
 }
-Write-Host "Literal contract verified: settings=$($literalContractReport.Comparisons.SettingsKeys.CandidateCount), SDK names=$($literalContractReport.Comparisons.SdkNames.CandidateCount), added=0, removed=0."
+$literalAddedCount = @($literalContractReport.Comparisons.SettingsKeys.Added).Count + @($literalContractReport.Comparisons.SdkNames.Added).Count
+$literalRemovedCount = @($literalContractReport.Comparisons.SettingsKeys.Removed).Count + @($literalContractReport.Comparisons.SdkNames.Removed).Count
+$literalApprovedSdkAddedCount = @($literalContractReport.Comparisons.SdkNames.ApprovedAdded).Count
+Write-Host "Literal contract verified: settings=$($literalContractReport.Comparisons.SettingsKeys.CandidateCount), SDK names=$($literalContractReport.Comparisons.SdkNames.CandidateCount), added=$literalAddedCount, removed=$literalRemovedCount, approvedSdkAdditions=$literalApprovedSdkAddedCount."
 
 & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $RepoRoot "BuildVpmRepository.ps1") `
     -ProjectRoot $ProjectRoot `
@@ -6402,6 +6599,9 @@ $zipPath = Join-Path $RepoRoot "packages\$PackageId-$Version.zip"
 Test-PackageZip `
     -ZipPath $zipPath `
     -ExpressionMenuNormalizerReport $expressionMenuNormalizerReport
+if ($textureArrayPayloadReport.Enabled) {
+    Test-TextureArrayPayloadZip -ZipPath $zipPath -ExpectedReport $textureArrayPayloadReport
+}
 Test-CodeSignature -Path $packagedDll -Context $codeSigningContext
 Save-CodeSignatureReport -Path $packagedDll -ReportName "signature-packaged-$Version.json" -Context $codeSigningContext
 Test-BinaryLeak -Path $packagedDll
@@ -6433,6 +6633,7 @@ Write-ProtectionBuildReport `
     -RuntimeIntegritySidecarReport $runtimeIntegritySidecarReport `
     -ControlFlowObfuscationReport $controlFlowObfuscationReport `
     -ExpressionMenuNormalizerReport $expressionMenuNormalizerReport `
+    -TextureArrayPayloadReport $textureArrayPayloadReport `
     -InputDll $protectedInputDll `
     -ObfuscatedDll $obfuscatedDll `
     -SignedDll $packagedDll `

@@ -144,7 +144,8 @@ function Test-AvatarRecoveryLiteralContract {
         [Parameter(Mandatory = $true)][string]$CandidatePath,
         [string]$PolicyPath = (Join-Path $PSScriptRoot 'StringLiteralPolicy.json'),
         [string]$CecilPath = '',
-        [string]$OutputPath = ''
+        [string]$OutputPath = '',
+        [string]$CandidateVersion = ''
     )
     if ($null -eq ('Mono.Cecil.AssemblyDefinition' -as [type])) {
         if ([string]::IsNullOrWhiteSpace($CecilPath)) { throw '静的比較にはMono.Cecil.dllの指定が必要です。' }
@@ -153,7 +154,23 @@ function Test-AvatarRecoveryLiteralContract {
     $policy = Read-LiteralContractPolicy -Path $PolicyPath
     $baseline = Get-LiteralContractInventory -Path $BaselinePath -Policy $policy
     $candidate = Get-LiteralContractInventory -Path $CandidatePath -Policy $policy
+    $expectedSdkAdditions = @()
+    if ($CandidateVersion -ceq '1.2.31') {
+        # 元1.2.30を維持し、この版で追加する実SDK owner照合名だけを期待します。
+        if ($baseline.DllSHA256 -cne 'ff63e430e7eeae2977a032fa702b3330f6f15398d3937199b17e9eb27462bb1c') {
+            throw '1.2.31の文字列契約には、固定した元1.2.30のbaseline DLLが必要です。'
+        }
+        $expectedSdkAdditions = @('VRC.Udon', 'VRC.Udon.UdonBehaviour')
+    }
+    elseif ($CandidateVersion -ceq '2.0.0') {
+        # 公開版1.2.28から引き継ぐ設定名と、World復元で加わるSDK型名を照合する。
+        if ($baseline.DllSHA256 -cne 'c23970d03a411d280d9c85014bffa290f2a8900dc33c46b7d7e23265eb385695') {
+            throw '2.0.0の文字列契約には公開版1.2.28のDLLが必要です。'
+        }
+        $expectedSdkAdditions = @('VRC.Udon', 'VRC.Udon.UdonBehaviour')
+    }
     $equal = $true
+    $contractSatisfied = $true
     $comparisons = [ordered]@{}
     foreach ($name in $policy.Categories.Keys) {
         $before = ConvertTo-OrdinalLiteralSet -Values $baseline.PublicCompatibilityValues.$name
@@ -164,10 +181,25 @@ function Test-AvatarRecoveryLiteralContract {
         $removed.ExceptWith($after)
         $categoryEqual = $before.SetEquals($after)
         if (-not $categoryEqual) { $equal = $false }
+        $expectedAdded = ConvertTo-OrdinalLiteralSet
+        if ($name -ceq 'SdkNames') { $expectedAdded.UnionWith([string[]]$expectedSdkAdditions) }
+        $unexpectedAdded = ConvertTo-OrdinalLiteralSet -Values (Get-OrdinalLiteralValues -Set $added)
+        $unexpectedAdded.ExceptWith($expectedAdded)
+        $missingExpectedAdded = ConvertTo-OrdinalLiteralSet -Values (Get-OrdinalLiteralValues -Set $expectedAdded)
+        $missingExpectedAdded.ExceptWith($added)
+        $approvedAdded = ConvertTo-OrdinalLiteralSet -Values (Get-OrdinalLiteralValues -Set $added)
+        $approvedAdded.IntersectWith($expectedAdded)
+        $categorySatisfied = ($removed.Count -eq 0 -and $unexpectedAdded.Count -eq 0 -and $missingExpectedAdded.Count -eq 0)
+        if (-not $categorySatisfied) { $contractSatisfied = $false }
         $comparisons[$name] = [pscustomobject]@{
             BaselineCount = $before.Count; CandidateCount = $after.Count; Equal = $categoryEqual
             Added = Get-OrdinalLiteralValues -Set $added
             Removed = Get-OrdinalLiteralValues -Set $removed
+            ExpectedAdded = Get-OrdinalLiteralValues -Set $expectedAdded
+            ApprovedAdded = Get-OrdinalLiteralValues -Set $approvedAdded
+            UnexpectedAdded = Get-OrdinalLiteralValues -Set $unexpectedAdded
+            MissingExpectedAdded = Get-OrdinalLiteralValues -Set $missingExpectedAdded
+            ContractSatisfied = $categorySatisfied
         }
     }
     $report = [pscustomobject]@{
@@ -175,9 +207,11 @@ function Test-AvatarRecoveryLiteralContract {
         PolicySHA256 = (Get-FileHash -LiteralPath $PolicyPath -Algorithm SHA256).Hash.ToLowerInvariant()
         Scope = 'Ordinal sets of non-empty ldstr values and string field constants; type metadata and runtime-composed suffixes are separate.'
         Baseline = $baseline; Candidate = $candidate
+        CandidateVersion = $CandidateVersion
         Comparisons = [pscustomobject]$comparisons
         PublicCompatibilitySetsEqual = $equal
-        Passed = ($equal -and $candidate.SecretCandidateCount -eq 0)
+        CompatibilityContractSatisfied = $contractSatisfied
+        Passed = ($contractSatisfied -and $candidate.SecretCandidateCount -eq 0)
     }
     if (-not [string]::IsNullOrWhiteSpace($OutputPath)) {
         $fullOutput = [IO.Path]::GetFullPath($OutputPath)

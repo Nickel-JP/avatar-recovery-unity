@@ -1,0 +1,6 @@
+{
+  "name": "AvatarRecovery.GuiCompile.Editor",
+  "rootNamespace": "AvatarRecovery.Build",
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}

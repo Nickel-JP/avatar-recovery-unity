@@ -1,6 +1,6 @@
 #requires -Version 7.2
 param(
-    [string]$ProjectPath = 'G:\UnityTest\AvatarRecovery-1.2.28-PublicValidation',
+    [string]$ProjectPath = 'G:\UnityTest\AvatarRecovery-2.0.0-PublicValidation',
     [string]$UnityPath = 'C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe',
     [string]$ResultsPath = '',
     [switch]$PrepareOnly
@@ -9,10 +9,10 @@ param(
 $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $unityVersion = '2022.3.22f1'
-$packageVersion = '1.2.28'
+$packageVersion = '2.0.0'
 $packageId = 'com.nickel-jp.avatar-recovery'
-$packageSha256 = 'd534ce8a5fc796dbadafe483dcc1c698b52e48f702f5198def07ec1da8d15f83'
-$assemblySha256 = 'c23970d03a411d280d9c85014bffa290f2a8900dc33c46b7d7e23265eb385695'
+$packageSha256 = 'debbeddf34d499a34e79b60a6ce604f059185e98d17a3fada3a9877f1d4aba81'
+$assemblySha256 = '85ec7170b6eef292a679d6227ea7ab13018d2cc13773e29b52c03493255ba0bd'
 $allowedRoot = [IO.Path]::GetFullPath('G:\UnityTest')
 $projectRoot = [IO.Path]::GetFullPath($ProjectPath).TrimEnd('\')
 $runId = [DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ')
