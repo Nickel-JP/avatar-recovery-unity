@@ -91,6 +91,8 @@ The public regression suite in [Tests](Tests/README.md) targets the signed 2.0.0
 
 The standard CI checks repository version consistency, signed update metadata, package integrity, and the absence of withdrawn downloads. Unity tests use the separate **Public Unity regression tests** workflow and require a licensed Windows runner. A successful standard CI run alone does not mean the Unity suite ran.
 
+The signed 2.0.0 candidate passed 63 public EditMode tests, 39 SDK2 compatibility tests, 13 AAO bounds tests, and 9 Gesture Mask tests in the Windows Unity Editor. The package passed all 30 package self-tests. [Public results](Tests/Results/2.0.0-20261120/summary.json)
+
 The [local 1.2.28 result snapshot from 2026-11-08](Tests/Results/1.2.28-20261108/summary.json) records 63 passed, 0 failed, and 0 skipped public EditMode tests, with [NUnit XML](Tests/Results/1.2.28-20261108/results.xml) included. A separate local run against the same signed DLL passed 39 targeted type-reference checks; these checks and the 30 package self-tests are outside the public suite and its snapshot.
 
 The [1.2.27 snapshot](Tests/Results/1.2.27-20261026/summary.json) retains its 63-test result. Its separate AAO/root-bounds and Gesture Layer mask checks remain historical evidence for that package.
