@@ -220,3 +220,19 @@ Core\Texture2DArrayImportRecovery.cs|Reflection|typeof\s*\(|foreach (GraphicsFor
 # 1.2.26: 配列補正ツールとの要求・応答は共有Serializable DTOのJSON項目名を維持する。
 Core\Texture2DArrayImportRecovery.cs|Reflection|JsonUtility|File.WriteAllText(requestPath, JsonUtility.ToJson(request), new UTF8Encoding(false));
 Core\Texture2DArrayImportRecovery.cs|Reflection|JsonUtility|response = JsonUtility.FromJson<TextureArrayRecoveryResponse>(File.ReadAllText(responsePath));
+
+# Windows Jobの固定interop構造体について、対象型のサイズだけを取得する。
+Core\WorkerProcessContainment.cs|Reflection|typeof\s*\(|if (!SetInformationJobObject(_job, 9, ref limit, (uint)Marshal.SizeOf(typeof(ExtendedLimit))))
+Core\WorkerProcessContainment.cs|Reflection|typeof\s*\(|if (!QueryInformationJobObject(_job, 1, out accounting, (uint)Marshal.SizeOf(typeof(Accounting)), IntPtr.Zero))
+
+
+# 2.0.0: 引数名・表示用の例外型名と、Windowsのメモリ取得に使う固定構造体・デリゲートの型参照。
+Core\RecoveryConsoleOutput.cs|Reflection|nameof\s*\(|_log = log ?? throw new ArgumentNullException(nameof(log));
+Core\RecoveryMemoryMonitor.cs|Reflection|nameof\s*\(|if (intervalMilliseconds <= 0) throw new ArgumentOutOfRangeException(nameof(intervalMilliseconds));
+Core\RecoveryMemoryMonitor.cs|Reflection|\.GetType\s*\(|RecoveryMemorySnapshot.Unavailable(ex.GetType().Name + ": " + ex.Message));
+Core\WindowsRecoveryMemoryReader.cs|Reflection|typeof\s*\(|var status = new MemoryStatus { Length = (uint)Marshal.SizeOf(typeof(MemoryStatus)) };
+Core\WindowsRecoveryMemoryReader.cs|Reflection|typeof\s*\(|if (!GetPerformanceInfo(out info, (uint)Marshal.SizeOf(typeof(PerformanceInformation))))
+Core\WindowsRecoveryMemoryReader.cs|Reflection|\.GetType\s*\(|var diagnostic = ex.GetType().Name + ": " + ex.Message;
+Core\WindowsRecoveryMemoryReader.cs|Reflection|typeof\s*\(|var itemSize = Marshal.SizeOf(typeof(CounterValueItem));
+Core\WindowsRecoveryMemoryReader.cs|Reflection|typeof\s*\(|IntPtr.Add(buffer, checked((int)i * itemSize)), typeof(CounterValueItem));
+Core\WindowsRecoveryMemoryReader.cs|Reflection|typeof\s*\(|return (T)(object)Marshal.GetDelegateForFunctionPointer(address, typeof(T));

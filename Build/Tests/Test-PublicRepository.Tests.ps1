@@ -226,7 +226,7 @@ try {
     Invoke-Case '配布総量上限超過' 'DISTRIBUTION_SIZE' {
         param($root)
         $stream = [IO.File]::OpenWrite((Join-Path $root 'packages/size-fixture.zip'))
-        try { $stream.SetLength(800000001L) }
+        try { $stream.SetLength(850000001L) }
         finally { $stream.Dispose() }
     }
     Write-Host "Public repository checks: $passed passed, $failed failed."

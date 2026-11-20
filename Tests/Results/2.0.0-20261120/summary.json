@@ -1,0 +1,19 @@
+{
+  "format": "AvatarRecovery public Unity regression summary",
+  "packageVersion": "2.0.0",
+  "packageSha256": "debbeddf34d499a34e79b60a6ce604f059185e98d17a3fada3a9877f1d4aba81",
+  "assemblySha256": "85ec7170b6eef292a679d6227ea7ab13018d2cc13773e29b52c03493255ba0bd",
+  "unityVersion": "2022.3.22f1",
+  "sdkVersion": "3.10.5",
+  "testAssembly": "AvatarRecovery.PublicTests",
+  "executionEnvironment": "Local Windows Unity Editor, EditMode",
+  "startedAtUtc": "2026-11-20 14:45:54Z",
+  "completedAtUtc": "2026-11-20 14:46:21Z",
+  "result": "Passed",
+  "total": 63,
+  "passed": 63,
+  "failed": 0,
+  "skipped": 0,
+  "testXmlSha256": "8ae2671140b10ffb05b6dcf51b8d4347d79136f4faad3cec49660faea6ef0a6c",
+  "xmlNote": "Console output and the local project name were removed. Test identities and outcomes are preserved."
+}

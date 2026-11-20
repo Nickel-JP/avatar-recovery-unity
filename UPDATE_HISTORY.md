@@ -1,5 +1,13 @@
 # AvatarRecovery Update History
 
+## Version 2.0.0 - Recovery Console and Texture Fidelity
+
+- The recovery screen shows the current file and keeps the last recovered file name in the fixed header after the input list clears.
+- Errors appear in red at the bottom of the recovery console, with the affected step and the reported cause. Errors from earlier files remain visible if recovery continues.
+- Click a log line to select it. Use Shift to select a range and Ctrl to select or deselect individual lines. Right-click the selection to copy its plain text.
+- The console shows live AssetRipper output and RAM, dedicated VRAM, and Windows commit usage. A reading above 90% displays a warning while recovery continues.
+- Large Texture2DArray layout corrections use a Rust worker. The PNG and Unity metadata are validated as a pair. Supported float textures and HDR cubemaps retain their original precision.
+
 ## Version 1.2.28 - Legacy SDK Script References
 
 - Improved recovery of verified legacy SDK2 PipelineManager references and PipelineManager-derived components. Blueprint ID cleanup identifies the component type and preserves unrelated component IDs and additional fields.
