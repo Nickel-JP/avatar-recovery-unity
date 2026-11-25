@@ -6,11 +6,15 @@ Restore supported Unity AssetBundles into Avatar and World projects on Windows.
 
 ## Install
 
-1. Add the repository to your package manager.
-   - [Add to VRChat Creator Companion](https://nickel-jp.github.io/avatar-recovery-unity/add/)
-   - [Add the repository in ALCOM](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
-2. Open your Avatar or World project in the package manager and install **Avatar Recovery**.
-3. If the repository is already installed, refresh it and select **2.0.1**.
+Choose your package manager to add the repository.
+
+[![Add to VCC](https://img.shields.io/badge/VCC-Add%20Repository-2563eb?style=for-the-badge&logo=unity&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/)
+
+[![When adding a package in ALCOM](assets/badges/when-adding-package-in-alcom.svg)](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
+
+Open your Avatar or World project in VCC or ALCOM and install **Avatar Recovery**.
+
+To update an existing installation, refresh the repository and select **2.0.1**.
 
 VCC and ALCOM list the three newest supported versions. The withdrawn 1.3.x ZIPs are excluded from the current package directory. Their changelog entries and historical Git copies are retained.
 
