@@ -41,9 +41,9 @@ vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
 
 After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
 In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
-Version 2.0.0 supports both Avatar projects and World projects.
+Version 2.0.1 supports both Avatar projects and World projects.
 
-Refresh the existing Avatar Recovery Unity repository in VCC or ALCOM, then select 2.0.0. The withdrawn 1.3.x downloads remain excluded.
+Refresh the existing Avatar Recovery Unity repository in VCC or ALCOM, then select 2.0.1. The withdrawn 1.3.x downloads remain excluded.
 
 The withdrawn 1.3.x ZIP files have been removed from the current `packages/` directory. Their historical changelog entries describe withdrawn versions, not supported installation choices. Git history and tags are retained; removing a current download does not erase historical copies.
 
@@ -57,22 +57,22 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-2.0.0.zip`.
+The current package is `com.nickel-jp.avatar-recovery-2.0.1.zip`.
 After downloading the ZIP, verify the published hash before importing it:
 
 ```powershell
 # 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-2.0.0.zip -Algorithm SHA256).Hash
+(Get-FileHash .\com.nickel-jp.avatar-recovery-2.0.1.zip -Algorithm SHA256).Hash
 
-# Confirm that it is DEBBEDDF34D499A34E79B60A6CE604F059185E98D17A3FADA3A9877F1D4ABA81
-# and matches the packages/com.nickel-jp.avatar-recovery-2.0.0.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-2.0.0.sha256.txt.
+# Confirm that it is CCB9F77799E40ECB3678415A50361823573CF226C94717BB99052BD989D65197
+# and matches the packages/com.nickel-jp.avatar-recovery-2.0.1.zip entry in
+# checksums/com.nickel-jp.avatar-recovery-2.0.1.sha256.txt.
 ```
 
 To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
 
 ```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-2.0.0.zip -DestinationPath .\avatar-recovery-verify -Force
+Expand-Archive .\com.nickel-jp.avatar-recovery-2.0.1.zip -DestinationPath .\avatar-recovery-verify -Force
 $dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
 $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
 
@@ -87,9 +87,11 @@ $signature
 
 ## Reproducible Tests
 
-The public regression suite in [Tests](Tests/README.md) targets the signed 2.0.0 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
+The public regression suite in [Tests](Tests/README.md) targets the signed 2.0.1 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
 
 The standard CI checks repository version consistency, signed update metadata, package integrity, and the absence of withdrawn downloads. Unity tests use the separate **Public Unity regression tests** workflow and require a licensed Windows runner. A successful standard CI run alone does not mean the Unity suite ran.
+
+The signed 2.0.1 candidate passed 124 regression tests in the Windows Unity Editor and 30 package self-tests. [Public EditMode results](Tests/Results/2.0.1-20261121/summary.json)
 
 The signed 2.0.0 candidate passed 63 public EditMode tests, 39 SDK2 compatibility tests, 13 AAO bounds tests, and 9 Gesture Mask tests in the Windows Unity Editor. The package passed all 30 package self-tests. [Public results](Tests/Results/2.0.0-20261120/summary.json)
 
@@ -119,6 +121,12 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 2.0.1 - WAV Import Fix
+
+- Fixed a WAV import failure caused by zero size values in the RIFF and audio data headers of recovered 16-bit PCM AudioClips.
+- AvatarRecovery corrects the two size values on the import copy. The PCM samples and asset metadata are preserved.
+- Verified all 238 previously failing WAV files from the same VRCA in Unity 2022.3.22f1. The PCM payloads matched byte for byte, and all files imported as AudioClips.
 
 ### Version 2.0.0 - Recovery Console and Texture Fidelity
 
