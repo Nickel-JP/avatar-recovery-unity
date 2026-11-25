@@ -59,4 +59,4 @@ Before dispatching it, supply a Windows x64 runner labeled `avatar-recovery-unit
 .\Build\Test-UpdateManifest.ps1
 ```
 
-These checks reject disagreement between the first version entry in the README, CI, package manifests, index, and update metadata. They also reject reintroduced 1.3.x ZIP/signature files, missing or mismatched indexed packages, and a package directory above 850,000,000 bytes. Signature verification includes modified-signature rejection cases. None of these checks substitutes for Unity functional testing.
+These checks reject disagreement between the first version entry in the README, CI, package manifests, index, and update metadata. They also reject reintroduced 1.3.x ZIP/signature files, missing or mismatched indexed packages, and a package directory above 900,000,000 bytes. Signature verification includes modified-signature rejection cases. None of these checks substitutes for Unity functional testing.
