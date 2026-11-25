@@ -1,51 +1,33 @@
 # AvatarRecovery Unity
 
-## AvatarRecover Demonstration Movie
+Restore supported Unity AssetBundles into Avatar and World projects on Windows.
 
-[![Watch AvatarRecover Demonstration Movie](assets/demo/avatarrecover-demonstration.jpg)](https://nickel-jp.github.io/avatar-recovery-unity/demo/)
-
-[Watch AvatarRecover Demonstration Movie](https://nickel-jp.github.io/avatar-recovery-unity/demo/)
-
-Music: [youth — Toby Schay](https://www.youtube.com/watch?v=1fjAWslBuRA).
-
-## VPM Repository
-
-```text
-https://nickel-jp.github.io/avatar-recovery-unity/index.json
-```
+**Stable version 2.0.1** · [Download on GitHub](https://github.com/Nickel-JP/avatar-recovery-unity/releases/tag/v2.0.1) · [Update history](#update-history)
 
 ## Install
 
-Click one of the buttons below to add this repository to your VPM client.
-The VCC button uses the `vcc://vpm/addRepo` repository link because most users install packages through VRChat Creator Companion.
-For ALCOM, open the instructions page and add the repository URL manually.
+1. Add the repository to your package manager.
+   - [Add to VRChat Creator Companion](https://nickel-jp.github.io/avatar-recovery-unity/add/)
+   - [Add the repository in ALCOM](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
+2. Open your Avatar or World project in the package manager and install **Avatar Recovery**.
+3. If the repository is already installed, refresh it and select **2.0.1**.
 
-[![Add to VCC](https://img.shields.io/badge/VCC-Add%20Repository-2563eb?style=for-the-badge&logo=unity&logoColor=white)](https://nickel-jp.github.io/avatar-recovery-unity/add/)
+VCC and ALCOM list the three newest supported versions. The withdrawn 1.3.x ZIPs are excluded from the current package directory. Their changelog entries and historical Git copies are retained.
 
-[![When adding a package in ALCOM](assets/badges/when-adding-package-in-alcom.svg)](https://nickel-jp.github.io/avatar-recovery-unity/add/alcom/)
+[ALCOM](https://booth.pm/ja/items/6448396) is a cross-platform open-source alternative to VRChat Creator Companion, built on [vrc-get](https://github.com/vrc-get/vrc-get).
 
-The ALCOM page explains why this site prioritizes the VCC redirect and how to add the repository from ALCOM.
-[ALCOM](https://booth.pm/ja/items/6448396) is a cross-platform open-source alternative to VRChat Creator Companion, built on [vrc-get/vrc-get](https://github.com/vrc-get/vrc-get).
+## VPM Repository
 
-Manual repository URL:
+For a manual setup, copy the [VPM repository URL](https://nickel-jp.github.io/avatar-recovery-unity/index.json).
+For vrc-get, use `vrc-get repo add` followed by that URL.
 
-```text
-https://nickel-jp.github.io/avatar-recovery-unity/index.json
-```
+## AvatarRecover Demonstration Movie
 
-For vrc-get CLI:
+[Watch the AvatarRecover demo](https://nickel-jp.github.io/avatar-recovery-unity/demo/)
 
-```powershell
-vrc-get repo add https://nickel-jp.github.io/avatar-recovery-unity/index.json
-```
+[![AvatarRecover demo preview](assets/demo/avatarrecover-demonstration.jpg)](https://nickel-jp.github.io/avatar-recovery-unity/demo/)
 
-After adding the repository, install `Avatar Recovery` from the VCC or ALCOM package list.
-In VCC or ALCOM, you can choose from the three newest supported AvatarRecovery versions in this repository. Refresh the repository in your client if a newly published version does not appear immediately.
-Version 2.0.1 supports both Avatar projects and World projects.
-
-Refresh the existing Avatar Recovery Unity repository in VCC or ALCOM, then select 2.0.1. The withdrawn 1.3.x downloads remain excluded.
-
-The withdrawn 1.3.x ZIP files have been removed from the current `packages/` directory. Their historical changelog entries describe withdrawn versions, not supported installation choices. Git history and tags are retained; removing a current download does not erase historical copies.
+Music: [youth — Toby Schay](https://www.youtube.com/watch?v=1fjAWslBuRA).
 
 ## AvatarRecovery Community Server
 
@@ -57,33 +39,11 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 
 ## Public Verification
 
-The current package is `com.nickel-jp.avatar-recovery-2.0.1.zip`.
-After downloading the ZIP, verify the published hash before importing it:
+Before importing a manually downloaded package, compare its SHA-256 with the checksum for that version. You can also check the DLL signature against the published certificate.
 
-```powershell
-# 1. Calculate the ZIP SHA-256 hash.
-(Get-FileHash .\com.nickel-jp.avatar-recovery-2.0.1.zip -Algorithm SHA256).Hash
-
-# Confirm that it is CCB9F77799E40ECB3678415A50361823573CF226C94717BB99052BD989D65197
-# and matches the packages/com.nickel-jp.avatar-recovery-2.0.1.zip entry in
-# checksums/com.nickel-jp.avatar-recovery-2.0.1.sha256.txt.
-```
-
-To verify the signed DLL, extract the package and compare the signer thumbprint with the published certificate:
-
-```powershell
-Expand-Archive .\com.nickel-jp.avatar-recovery-2.0.1.zip -DestinationPath .\avatar-recovery-verify -Force
-$dll = ".\avatar-recovery-verify\Editor\EditorTools.AvatarRecovery.Editor.dll"
-$cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2(".\certificates\avatar-recovery-self-signed-code-signing.cer")
-
-# 2. Verify the DLL's Authenticode signature.
-$signature = Get-AuthenticodeSignature $dll
-$signature
-
-# Confirm that SignerCertificate.Thumbprint matches the certificate in certificates/.
-($signature.SignerCertificate.Thumbprint -replace '\s', '').ToUpperInvariant()
-($cert.Thumbprint -replace '\s', '').ToUpperInvariant()
-```
+- [Download verification steps](VERIFICATION.md)
+- [2.0.1 SHA-256 checksum](checksums/com.nickel-jp.avatar-recovery-2.0.1.sha256.txt)
+- [Code-signing certificate](certificates/avatar-recovery-self-signed-code-signing.cer)
 
 ## Reproducible Tests
 
@@ -109,14 +69,12 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 
 ## Technical Specifications
 
-| Item | Details |
-|---|---|
-| Unity | Unity 2022.3.22f1 |
-| VRChat SDK | `com.vrchat.base >=3.10.5 <3.11.0` |
-| Package ID | `com.nickel-jp.avatar-recovery` |
-| Target OS | Windows 10 / 11 |
-| External extractor | Bundled AssetRipper 1.3.14 |
-| License | AvatarRecovery Custom License |
+- **Unity** — Unity 2022.3.22f1
+- **VRChat SDK** — `com.vrchat.base`, 3.10.5 to below 3.11.0
+- **Package ID** — `com.nickel-jp.avatar-recovery`
+- **Target OS** — Windows 10 / 11
+- **External extractor** — bundled AssetRipper 1.3.14
+- **License** — [AvatarRecovery Custom License](LICENSE)
 
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
@@ -447,13 +405,7 @@ Do not use this tool to steal, clone, extract, modify, redistribute, resell, re-
 
 ## Rebuild
 
-Maintainer-only example:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\BuildVpmRepository.ps1 `
-  -ProjectRoot "<path-to-UnityProject>" `
-  -BaseUrl "https://nickel-jp.github.io/avatar-recovery-unity"
-```
+[Maintainer rebuild command](VERIFICATION.md#rebuild).
 
 Rebuilding updates `index.json` and package metadata locally. Commit, push, and GitHub Pages publication are separate maintainer actions.
 
@@ -463,13 +415,6 @@ Protected releases are built locally. GitHub Actions intentionally stays lightwe
 
 The release process validates distribution artifacts and rejects unintended sensitive data before publication. Implementation details are maintained in private audit records.
 
-Maintainers should use GitHub Vigilant Mode and signed commits for protection-pipeline changes. Configure either GPG or SSH commit signing with a key registered in GitHub's `SSH and GPG keys` settings, then enable signing:
-
-```powershell
-git config --global commit.gpgsign true
-# For SSH signing:
-git config --global gpg.format ssh
-git config --global user.signingkey "<path-to-your-public-ssh-key>"
-```
+Maintainers should use GitHub Vigilant Mode and signed commits for protection-pipeline changes. Configure either GPG or SSH commit signing with a key registered in GitHub's `SSH and GPG keys` settings, then [enable signing](VERIFICATION.md#enable-signed-commits).
 
 Commits that modify `BuildProtectedAvatarRecoveryPackage.ps1`, `Build/`, `.github/workflows/`, or published package artifacts should show GitHub's `Verified` badge.
