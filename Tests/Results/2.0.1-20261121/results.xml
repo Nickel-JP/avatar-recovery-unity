@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<test-suite type="TestSuite" id="1180" name="AvatarRecovery.PublicTests" fullname="AvatarRecovery.PublicTests" runstate="Runnable" testcasecount="131" result="Passed" start-time="2026-11-20 15:25:22Z" end-time="2026-11-20 15:25:49Z" duration="27.843362" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+  <properties />
+  <test-suite type="SetUpFixture" id="1183" name="AvatarRecovery.PublicTests.dll" fullname="GuiSignedPublicHostSetup" classname="GuiSignedPublicHostSetup" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-11-20 15:25:22Z" end-time="2026-11-20 15:25:49Z" duration="27.825454" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+    <properties>
+      <property name="_PID" value="40168" />
+      <property name="_APPDOMAIN" value="Unity Child Domain" />
+      <property name="platform" value="EditMode" />
+    </properties>
+    <test-suite type="TestSuite" id="1255" name="AvatarRecovery" fullname="AvatarRecovery" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-11-20 15:25:25Z" end-time="2026-11-20 15:25:49Z" duration="24.308041" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+      <properties />
+      <test-suite type="TestSuite" id="1256" name="PublicTests" fullname="AvatarRecovery.PublicTests" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-11-20 15:25:25Z" end-time="2026-11-20 15:25:49Z" duration="24.305658" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+        <properties />
+        <test-suite type="TestFixture" id="1184" name="PublicShaderListTests" fullname="AvatarRecovery.PublicTests.PublicShaderListTests" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="63" result="Passed" start-time="2026-11-20 15:25:25Z" end-time="2026-11-20 15:25:49Z" duration="24.303395" total="63" passed="63" failed="0" inconclusive="0" skipped="0" asserts="0">
+          <properties />
+          <test-suite type="ParameterizedMethod" id="1249" name="CsvVersionLabelSurvivesReportLoading" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="4" result="Passed" start-time="2026-11-20 15:25:29Z" end-time="2026-11-20 15:25:32Z" duration="3.502725" total="4" passed="4" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1245" name="CsvVersionLabelSurvivesReportLoading(&quot;Shader 1.2.3&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading(&quot;Shader 1.2.3&quot;)" methodname="CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1841437530" result="Passed" start-time="2026-11-20 15:25:29Z" end-time="2026-11-20 15:25:31Z" duration="2.327960" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1246" name="CsvVersionLabelSurvivesReportLoading(&quot;Shader \&quot;Edition, A\&quot; 1.2.3&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading(&quot;Shader \&quot;Edition, A\&quot; 1.2.3&quot;)" methodname="CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="30598202" result="Passed" start-time="2026-11-20 15:25:31Z" end-time="2026-11-20 15:25:32Z" duration="0.980158" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1247" name="CsvVersionLabelSurvivesReportLoading(&quot;Shader 1.2.3\n追加情報&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading(&quot;Shader 1.2.3\n追加情報&quot;)" methodname="CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1200172585" result="Passed" start-time="2026-11-20 15:25:32Z" end-time="2026-11-20 15:25:32Z" duration="0.096749" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1248" name="CsvVersionLabelSurvivesReportLoading(&quot;シェーダー 1.2.3&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.CsvVersionLabelSurvivesReportLoading(&quot;シェーダー 1.2.3&quot;)" methodname="CsvVersionLabelSurvivesReportLoading" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="100168162" result="Passed" start-time="2026-11-20 15:25:32Z" end-time="2026-11-20 15:25:32Z" duration="0.090760" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="ParameterizedMethod" id="1253" name="EmptyReportLoadsWithoutRows" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.EmptyReportLoadsWithoutRows" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-11-20 15:25:32Z" end-time="2026-11-20 15:25:32Z" duration="0.198666" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1251" name="EmptyReportLoadsWithoutRows(&quot;&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.EmptyReportLoadsWithoutRows(&quot;&quot;)" methodname="EmptyReportLoadsWithoutRows" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="135394731" result="Passed" start-time="2026-11-20 15:25:32Z" end-time="2026-11-20 15:25:32Z" duration="0.089862" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1252" name="EmptyReportLoadsWithoutRows(&quot;MaterialName,MaterialPath,OriginalShaderName,RenderQueue,ShaderDefaultQueue,ShaderVersion\n&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.EmptyReportLoadsWithoutRows(&quot;MaterialName,MaterialPath,OriginalShaderName,RenderQueue,ShaderDefaultQueue,ShaderVersion\n&quot;)" methodname="EmptyReportLoadsWithoutRows" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="67415079" result="Passed" start-time="2026-11-20 15:25:32Z" end-time="2026-11-20 15:25:32Z" duration="0.080098" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-case id="1250" name="LegacyCsvWithoutQueueOrVersionLoadsAsUnknown" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.LegacyCsvWithoutQueueOrVersionLoadsAsUnknown" methodname="LegacyCsvWithoutQueueOrVersionLoadsAsUnknown" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="276135980" result="Passed" start-time="2026-11-20 15:25:32Z" end-time="2026-11-20 15:25:32Z" duration="0.081259" asserts="0">
+            <properties />
+          </test-case>
+          <test-case id="1238" name="LegacyReportWithoutQueueStillAssignsShader" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.LegacyReportWithoutQueueStillAssignsShader" methodname="LegacyReportWithoutQueueStillAssignsShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1369253016" result="Passed" start-time="2026-11-20 15:25:32Z" end-time="2026-11-20 15:25:33Z" duration="0.335615" asserts="0">
+            <properties />
+          </test-case>
+          <test-case id="1244" name="MissingOriginalShaderLeavesSelectedMaterialUnchanged" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.MissingOriginalShaderLeavesSelectedMaterialUnchanged" methodname="MissingOriginalShaderLeavesSelectedMaterialUnchanged" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1707471103" result="Passed" start-time="2026-11-20 15:25:33Z" end-time="2026-11-20 15:25:33Z" duration="0.288381" asserts="0">
+            <properties />
+          </test-case>
+          <test-suite type="ParameterizedMethod" id="1195" name="QueueLabelsUseReportValuesWithoutInstalledShader" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="10" result="Passed" start-time="2026-11-20 15:25:33Z" end-time="2026-11-20 15:25:34Z" duration="0.830552" total="10" passed="10" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1185" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;3077&quot;,&quot;3077&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;3077&quot;,&quot;3077&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="254302716" result="Passed" start-time="2026-11-20 15:25:33Z" end-time="2026-11-20 15:25:33Z" duration="0.079510" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1186" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;0&quot;,&quot;2000&quot;,&quot;0&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;0&quot;,&quot;2000&quot;,&quot;0&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="286401257" result="Passed" start-time="2026-11-20 15:25:33Z" end-time="2026-11-20 15:25:33Z" duration="0.078470" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1187" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;2450&quot;,&quot;2000&quot;,&quot;2450&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;2450&quot;,&quot;2000&quot;,&quot;2450&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1279973942" result="Passed" start-time="2026-11-20 15:25:33Z" end-time="2026-11-20 15:25:33Z" duration="0.080405" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1188" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;5000&quot;,&quot;2000&quot;,&quot;5000&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;5000&quot;,&quot;2000&quot;,&quot;5000&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1026337875" result="Passed" start-time="2026-11-20 15:25:33Z" end-time="2026-11-20 15:25:33Z" duration="0.079763" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1189" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1210588834" result="Passed" start-time="2026-11-20 15:25:33Z" end-time="2026-11-20 15:25:33Z" duration="0.080002" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1190" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;-1&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-1&quot;,&quot;-1&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="344226951" result="Passed" start-time="2026-11-20 15:25:33Z" end-time="2026-11-20 15:25:34Z" duration="0.079481" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1191" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;&quot;,&quot;2000&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;&quot;,&quot;2000&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="445211380" result="Passed" start-time="2026-11-20 15:25:34Z" end-time="2026-11-20 15:25:34Z" duration="0.079029" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1192" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-2&quot;,&quot;2000&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;-2&quot;,&quot;2000&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1748222158" result="Passed" start-time="2026-11-20 15:25:34Z" end-time="2026-11-20 15:25:34Z" duration="0.081030" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1193" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;5001&quot;,&quot;2000&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;5001&quot;,&quot;2000&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="514214136" result="Passed" start-time="2026-11-20 15:25:34Z" end-time="2026-11-20 15:25:34Z" duration="0.079700" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1194" name="QueueLabelsUseReportValuesWithoutInstalledShader(&quot;invalid&quot;,&quot;2000&quot;,&quot;unknown&quot;)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.QueueLabelsUseReportValuesWithoutInstalledShader(&quot;invalid&quot;,&quot;2000&quot;,&quot;unknown&quot;)" methodname="QueueLabelsUseReportValuesWithoutInstalledShader" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="380493139" result="Passed" start-time="2026-11-20 15:25:34Z" end-time="2026-11-20 15:25:34Z" duration="0.079721" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-suite type="ParameterizedMethod" id="1204" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="8" result="Passed" start-time="2026-11-20 15:25:34Z" end-time="2026-11-20 15:25:37Z" duration="2.716061" total="8" passed="8" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1196" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(-1)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(-1)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1519350595" result="Passed" start-time="2026-11-20 15:25:34Z" end-time="2026-11-20 15:25:34Z" duration="0.357301" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1197" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(0)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(0)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1511209828" result="Passed" start-time="2026-11-20 15:25:34Z" end-time="2026-11-20 15:25:35Z" duration="0.326923" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1198" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2000)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2000)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="909999141" result="Passed" start-time="2026-11-20 15:25:35Z" end-time="2026-11-20 15:25:35Z" duration="0.334727" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1199" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2450)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2450)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1749774435" result="Passed" start-time="2026-11-20 15:25:35Z" end-time="2026-11-20 15:25:35Z" duration="0.334765" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1200" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2500)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(2500)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="163523730" result="Passed" start-time="2026-11-20 15:25:35Z" end-time="2026-11-20 15:25:36Z" duration="0.333591" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1201" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(3100)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(3100)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1292035141" result="Passed" start-time="2026-11-20 15:25:36Z" end-time="2026-11-20 15:25:36Z" duration="0.331998" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1202" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(4000)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(4000)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="477117682" result="Passed" start-time="2026-11-20 15:25:36Z" end-time="2026-11-20 15:25:36Z" duration="0.336897" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1203" name="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(5000)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat(5000)" methodname="SelectedAssignmentPreservesMaterialDataAfterSaveAndRepeat" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="914984125" result="Passed" start-time="2026-11-20 15:25:36Z" end-time="2026-11-20 15:25:37Z" duration="0.330073" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-case id="1243" name="SelectingOneRowLeavesOtherMaterialUnchanged" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.SelectingOneRowLeavesOtherMaterialUnchanged" methodname="SelectingOneRowLeavesOtherMaterialUnchanged" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="151446106" result="Passed" start-time="2026-11-20 15:25:37Z" end-time="2026-11-20 15:25:37Z" duration="0.369819" asserts="0">
+            <properties />
+          </test-case>
+          <test-suite type="ParameterizedMethod" id="1237" name="UnknownQueueNeverSkipsOrRollsBack" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="32" result="Passed" start-time="2026-11-20 15:25:37Z" end-time="2026-11-20 15:25:48Z" duration="11.509527" total="32" passed="32" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1205" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,-1,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,-1,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1273664077" result="Passed" start-time="2026-11-20 15:25:37Z" end-time="2026-11-20 15:25:37Z" duration="0.364282" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1206" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,-1,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,-1,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="562405727" result="Passed" start-time="2026-11-20 15:25:37Z" end-time="2026-11-20 15:25:38Z" duration="0.349856" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1207" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,0,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,0,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1108201616" result="Passed" start-time="2026-11-20 15:25:38Z" end-time="2026-11-20 15:25:38Z" duration="0.345759" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1208" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,0,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,0,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1691583455" result="Passed" start-time="2026-11-20 15:25:38Z" end-time="2026-11-20 15:25:38Z" duration="0.353219" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1209" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,2100,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,2100,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="104226183" result="Passed" start-time="2026-11-20 15:25:38Z" end-time="2026-11-20 15:25:39Z" duration="0.353851" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1210" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,2100,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,2100,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="641290003" result="Passed" start-time="2026-11-20 15:25:39Z" end-time="2026-11-20 15:25:39Z" duration="0.381697" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1211" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,5000,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,5000,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="542946624" result="Passed" start-time="2026-11-20 15:25:39Z" end-time="2026-11-20 15:25:39Z" duration="0.370140" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1212" name="UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,5000,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;&quot;,5000,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1634327816" result="Passed" start-time="2026-11-20 15:25:39Z" end-time="2026-11-20 15:25:40Z" duration="0.373687" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1213" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,-1,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,-1,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1447481023" result="Passed" start-time="2026-11-20 15:25:40Z" end-time="2026-11-20 15:25:40Z" duration="0.372215" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1214" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,-1,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,-1,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="214809073" result="Passed" start-time="2026-11-20 15:25:40Z" end-time="2026-11-20 15:25:41Z" duration="0.350251" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1215" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,0,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,0,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="593904519" result="Passed" start-time="2026-11-20 15:25:41Z" end-time="2026-11-20 15:25:41Z" duration="0.394064" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1216" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,0,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,0,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1702579738" result="Passed" start-time="2026-11-20 15:25:41Z" end-time="2026-11-20 15:25:41Z" duration="0.360233" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1217" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,2100,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,2100,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="2088384926" result="Passed" start-time="2026-11-20 15:25:41Z" end-time="2026-11-20 15:25:42Z" duration="0.343568" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1218" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,2100,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,2100,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="15204939" result="Passed" start-time="2026-11-20 15:25:42Z" end-time="2026-11-20 15:25:42Z" duration="0.348852" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1219" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,5000,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,5000,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1105930026" result="Passed" start-time="2026-11-20 15:25:42Z" end-time="2026-11-20 15:25:42Z" duration="0.387145" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1220" name="UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,5000,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;5001&quot;,5000,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1504997893" result="Passed" start-time="2026-11-20 15:25:42Z" end-time="2026-11-20 15:25:43Z" duration="0.370919" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1221" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,-1,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,-1,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1760516577" result="Passed" start-time="2026-11-20 15:25:43Z" end-time="2026-11-20 15:25:43Z" duration="0.395869" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1222" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,-1,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,-1,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="843367867" result="Passed" start-time="2026-11-20 15:25:43Z" end-time="2026-11-20 15:25:44Z" duration="0.362137" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1223" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,0,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,0,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1504154529" result="Passed" start-time="2026-11-20 15:25:44Z" end-time="2026-11-20 15:25:44Z" duration="0.367488" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1224" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,0,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,0,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1693712863" result="Passed" start-time="2026-11-20 15:25:44Z" end-time="2026-11-20 15:25:44Z" duration="0.367982" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1225" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,2100,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,2100,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1448108639" result="Passed" start-time="2026-11-20 15:25:44Z" end-time="2026-11-20 15:25:45Z" duration="0.351049" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1226" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,2100,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,2100,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="678158018" result="Passed" start-time="2026-11-20 15:25:45Z" end-time="2026-11-20 15:25:45Z" duration="0.370109" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1227" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,5000,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,5000,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="958256546" result="Passed" start-time="2026-11-20 15:25:45Z" end-time="2026-11-20 15:25:45Z" duration="0.334015" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1228" name="UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,5000,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;invalid&quot;,5000,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="339675132" result="Passed" start-time="2026-11-20 15:25:45Z" end-time="2026-11-20 15:25:46Z" duration="0.355409" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1229" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,-1,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,-1,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="116074083" result="Passed" start-time="2026-11-20 15:25:46Z" end-time="2026-11-20 15:25:46Z" duration="0.359920" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1230" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,-1,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,-1,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="566308135" result="Passed" start-time="2026-11-20 15:25:46Z" end-time="2026-11-20 15:25:46Z" duration="0.374034" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1231" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,0,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,0,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="847012392" result="Passed" start-time="2026-11-20 15:25:46Z" end-time="2026-11-20 15:25:47Z" duration="0.360608" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1232" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,0,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,0,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1771903306" result="Passed" start-time="2026-11-20 15:25:47Z" end-time="2026-11-20 15:25:47Z" duration="0.336041" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1233" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,2100,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,2100,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1708886493" result="Passed" start-time="2026-11-20 15:25:47Z" end-time="2026-11-20 15:25:47Z" duration="0.335311" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1234" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,2100,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,2100,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1814770951" result="Passed" start-time="2026-11-20 15:25:47Z" end-time="2026-11-20 15:25:48Z" duration="0.321837" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1235" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,5000,False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,5000,False)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1461164318" result="Passed" start-time="2026-11-20 15:25:48Z" end-time="2026-11-20 15:25:48Z" duration="0.317529" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1236" name="UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,5000,True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownQueueNeverSkipsOrRollsBack(&quot;-2&quot;,5000,True)" methodname="UnknownQueueNeverSkipsOrRollsBack" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1380625582" result="Passed" start-time="2026-11-20 15:25:48Z" end-time="2026-11-20 15:25:48Z" duration="0.341499" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+          <test-case id="1239" name="UnknownShaderDefaultLabelDoesNotBlockReportedMinusOneQueue" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnknownShaderDefaultLabelDoesNotBlockReportedMinusOneQueue" methodname="UnknownShaderDefaultLabelDoesNotBlockReportedMinusOneQueue" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="474038801" result="Passed" start-time="2026-11-20 15:25:48Z" end-time="2026-11-20 15:25:49Z" duration="0.317501" asserts="0">
+            <properties />
+          </test-case>
+          <test-suite type="ParameterizedMethod" id="1242" name="UnselectedMaterialIsNotModified" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnselectedMaterialIsNotModified" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" testcasecount="2" result="Passed" start-time="2026-11-20 15:25:49Z" end-time="2026-11-20 15:25:49Z" duration="0.616875" total="2" passed="2" failed="0" inconclusive="0" skipped="0" asserts="0">
+            <properties />
+            <test-case id="1240" name="UnselectedMaterialIsNotModified(False)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnselectedMaterialIsNotModified(False)" methodname="UnselectedMaterialIsNotModified" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1527931368" result="Passed" start-time="2026-11-20 15:25:49Z" end-time="2026-11-20 15:25:49Z" duration="0.291458" asserts="0">
+              <properties />
+            </test-case>
+            <test-case id="1241" name="UnselectedMaterialIsNotModified(True)" fullname="AvatarRecovery.PublicTests.PublicShaderListTests.UnselectedMaterialIsNotModified(True)" methodname="UnselectedMaterialIsNotModified" classname="AvatarRecovery.PublicTests.PublicShaderListTests" runstate="Runnable" seed="1476875233" result="Passed" start-time="2026-11-20 15:25:49Z" end-time="2026-11-20 15:25:49Z" duration="0.279681" asserts="0">
+              <properties />
+            </test-case>
+          </test-suite>
+        </test-suite>
+      </test-suite>
+    </test-suite>
+  </test-suite>
+</test-suite>

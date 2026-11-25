@@ -1,5 +1,11 @@
 # AvatarRecovery Update History
 
+## Version 2.0.1 - WAV Import Fix
+
+- Fixed a WAV import failure caused by zero size values in the RIFF and audio data headers of recovered 16-bit PCM AudioClips.
+- AvatarRecovery corrects the two size values on the import copy. The PCM samples and asset metadata are preserved.
+- Verified all 238 previously failing WAV files from the same VRCA in Unity 2022.3.22f1. The PCM payloads matched byte for byte, and all files imported as AudioClips.
+
 ## Version 2.0.0 - Recovery Console and Texture Fidelity
 
 - The recovery screen shows the current file and keeps the last recovered file name in the fixed header after the input list clears.
