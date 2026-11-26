@@ -2,7 +2,7 @@
 
 Restore supported Unity AssetBundles into Avatar and World projects on Windows.
 
-**Stable version 2.0.1** · [Download on GitHub](https://github.com/Nickel-JP/avatar-recovery-unity/releases/tag/v2.0.1) · [Update history](#update-history)
+**Stable version 2.0.2** · [Download on GitHub](https://github.com/Nickel-JP/avatar-recovery-unity/releases/tag/v2.0.2) · [Update history](#update-history)
 
 ## Install
 
@@ -14,7 +14,7 @@ Choose your package manager to add the repository.
 
 Open your Avatar or World project in VCC or ALCOM and install **Avatar Recovery**.
 
-To update an existing installation, refresh the repository and select **2.0.1**.
+To update an existing installation, refresh the repository and select **2.0.2**.
 
 VCC and ALCOM list the three newest supported versions. The withdrawn 1.3.x ZIPs are excluded from the current package directory. Their changelog entries and historical Git copies are retained.
 
@@ -46,7 +46,7 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 Before importing a manually downloaded package, compare its SHA-256 with the checksum for that version. You can also check the DLL signature against the published certificate.
 
 - [Download verification steps](VERIFICATION.md)
-- [2.0.1 SHA-256 checksum](checksums/com.nickel-jp.avatar-recovery-2.0.1.sha256.txt)
+- [2.0.2 SHA-256 checksum](checksums/com.nickel-jp.avatar-recovery-2.0.2.sha256.txt)
 - [Code-signing certificate](certificates/avatar-recovery-self-signed-code-signing.cer)
 
 ## Reproducible Tests
@@ -54,6 +54,8 @@ Before importing a manually downloaded package, compare its SHA-256 with the che
 The public regression suite in [Tests](Tests/README.md) targets the signed 2.0.1 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
 
 The standard CI checks repository version consistency, signed update metadata, package integrity, and the absence of withdrawn downloads. Unity tests use the separate **Public Unity regression tests** workflow and require a licensed Windows runner. A successful standard CI run alone does not mean the Unity suite ran.
+
+The signed 2.0.2 package passed 124 regression tests in the Unity 2022.3.22f1 Editor and 30 package self-tests. A real Avatar and a real World were recovered, saved, and reopened in the Editor.
 
 The signed 2.0.1 candidate passed 124 regression tests in the Windows Unity Editor and 30 package self-tests. [Public EditMode results](Tests/Results/2.0.1-20261121/summary.json)
 
@@ -83,6 +85,13 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 2.0.2 - Recovery Error Messages and Menu Icon Matching
+
+- Reports missing, empty, and in-use input files before recovery and explains when an export contains no recoverable assets.
+- Preserves existing files when a destination cannot be created and stops a retry while a previous external process has not been confirmed to exit.
+- Checks for missing recoverable images after the standard restoration steps and keeps files that Unity cannot import with their metadata when they can be moved safely.
+- Removes the fixed size caps on Expression Menu icon matching. Unity, .NET, and available memory determine the usable sizes.
 
 ### Version 2.0.1 - WAV Import Fix
 

@@ -1,5 +1,13 @@
 # AvatarRecovery Update History
 
+## Version 2.0.2 - Recovery Error Messages and Menu Icon Matching
+
+- Reports missing, empty, and in-use input files before recovery and explains when an export contains no recoverable assets.
+- Preserves existing files when a destination cannot be created and stops a retry while a previous external process has not been confirmed to exit.
+- Checks for missing recoverable images after the standard restoration steps and keeps files that Unity cannot import with their metadata when they can be moved safely.
+- Removes the fixed size caps on Expression Menu icon matching. Unity, .NET, and available memory determine the usable sizes.
+- Passed 124 regression tests and 30 package self-tests. A real Avatar and a real World were recovered, saved, and reopened in Unity 2022.3.22f1.
+
 ## Version 2.0.1 - WAV Import Fix
 
 - Fixed a WAV import failure caused by zero size values in the RIFF and audio data headers of recovered 16-bit PCM AudioClips.

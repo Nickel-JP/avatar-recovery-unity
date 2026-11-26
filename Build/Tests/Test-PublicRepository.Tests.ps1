@@ -223,11 +223,17 @@ try {
             $manifest.repo = 'https://raw.githubusercontent.com/Nickel-JP/avatar-recovery-unity/main/index.json'
         }
     }
-    Invoke-Case '配布総量上限超過' 'DISTRIBUTION_SIZE' {
-        param($root)
-        $stream = [IO.File]::OpenWrite((Join-Path $root 'packages/size-fixture.zip'))
-        try { $stream.SetLength(900000001L) }
-        finally { $stream.Dispose() }
+    foreach ($bytesOverLimit in @(0L, 1L)) {
+        $caseName = if ($bytesOverLimit -eq 0) { '配布総量が上限と一致' } else { '配布総量上限超過' }
+        $expectedCode = if ($bytesOverLimit -eq 0) { '' } else { 'DISTRIBUTION_SIZE' }
+        Invoke-Case $caseName $expectedCode {
+            param($root)
+            $packagesPath = Join-Path $root 'packages'
+            $existingBytes = (Get-ChildItem -LiteralPath $packagesPath -Filter '*.zip' -File | Measure-Object -Property Length -Sum).Sum
+            $stream = [IO.File]::OpenWrite((Join-Path $packagesPath 'size-fixture.zip'))
+            try { $stream.SetLength(1024000000L + $bytesOverLimit - $existingBytes) }
+            finally { $stream.Dispose() }
+        }
     }
     Write-Host "Public repository checks: $passed passed, $failed failed."
     if ($failed -gt 0) { throw "公開リポジトリの回帰テストが $failed 件失敗しました。" }
