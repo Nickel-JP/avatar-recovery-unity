@@ -1,5 +1,9 @@
 # AvatarRecovery Update History
 
+## Version 2.0.3 - Tool Layout Update
+
+- Tool layout update.
+
 ## Version 2.0.2 - Recovery Error Messages and Menu Icon Matching
 
 - Reports missing, empty, and in-use input files before recovery and explains when an export contains no recoverable assets.
