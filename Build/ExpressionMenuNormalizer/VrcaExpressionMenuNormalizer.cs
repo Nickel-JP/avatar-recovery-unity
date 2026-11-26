@@ -28,11 +28,7 @@ namespace AvatarRecovery.Tools.ExpressionMenuNormalizer
             "VRC.SDK3.Avatars.Components";
         private const string MenuAssemblyName = "VRCSDK3A.dll";
         private const string InjectedNamePrefix = "AR_ExpressionMenu_";
-        private const int MaximumTextureDimension = 16_384;
-        private const long MaximumDecodedTextureBytes =
-            256L * 1024L * 1024L;
-        private const long MaximumEncodedTextureBytes =
-            256L * 1024L * 1024L;
+
 
         public static NormalizationResult Normalize(CommandLineOptions options)
         {
@@ -1361,11 +1357,7 @@ namespace AvatarRecovery.Tools.ExpressionMenuNormalizer
                     TextureFile.ReadTextureFile(texture);
                 if (textureFile == null ||
                     textureFile.m_Width <= 0 ||
-                    textureFile.m_Height <= 0 ||
-                    textureFile.m_Width >
-                    MaximumTextureDimension ||
-                    textureFile.m_Height >
-                    MaximumTextureDimension)
+                    textureFile.m_Height <= 0)
                 {
                     Log.Error(
                         "Texture2Dの寸法を取得できません: "
@@ -1378,11 +1370,10 @@ namespace AvatarRecovery.Tools.ExpressionMenuNormalizer
                         (long)textureFile.m_Width *
                         textureFile.m_Height *
                         4L);
-                if (expectedPixelLength >
-                    MaximumDecodedTextureBytes)
+                if (expectedPixelLength > int.MaxValue)
                 {
                     Log.Error(
-                        "Texture2Dの展開後サイズが安全範囲外です: "
+                        "Texture2Dの展開後データがバイト配列に収まりません: "
                         + displayName);
                     return null;
                 }
@@ -1398,12 +1389,10 @@ namespace AvatarRecovery.Tools.ExpressionMenuNormalizer
                         textureFile.m_StreamData.size;
                 }
 
-                if (encodedTextureLength <= 0 ||
-                    encodedTextureLength >
-                    MaximumEncodedTextureBytes)
+                if (encodedTextureLength <= 0 || encodedTextureLength > int.MaxValue)
                 {
                     Log.Error(
-                        "Texture2Dの画像データ長が安全範囲外です: "
+                        "Texture2Dの画像データが空か、バイト配列に収まりません: "
                         + displayName);
                     return null;
                 }
@@ -1411,10 +1400,7 @@ namespace AvatarRecovery.Tools.ExpressionMenuNormalizer
                 byte[] pictureData =
                     textureFile.FillPictureData(
                         assetsInstance);
-                if (pictureData == null ||
-                    pictureData.Length == 0 ||
-                    pictureData.LongLength >
-                    MaximumEncodedTextureBytes)
+                if (pictureData == null || pictureData.Length == 0)
                 {
                     Log.Error(
                         "Texture2Dの画像データを取得できません: "
