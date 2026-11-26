@@ -22,9 +22,9 @@ VCC and ALCOM list the three newest supported versions. The withdrawn 1.3.x ZIPs
 
 ### Unity Input System warning
 
-Unity shows this prompt to confirm the project's input settings. If you only need to recover assets with AvatarRecovery, select **No** to continue with your current settings.
+Unity is asking whether to enable the new Input System. If you're only recovering assets with AvatarRecovery, select **No** to keep your current input settings.
 
-これはUnityの入力設定を確認する画面です。AvatarRecoveryで復元するだけなら、**No** を選んで進めます。
+Unityが新しい入力システムを有効にするか尋ねています。AvatarRecoveryでアセットを復元するだけなら、**No** を選んでください。今の入力設定のまま続けられます。
 
 ![Unity Input System warning dialog with Yes and No buttons](assets/install/unity-input-system-warning.png)
 
