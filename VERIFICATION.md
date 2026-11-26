@@ -7,7 +7,7 @@ Save the ZIP and the [published code-signing certificate](certificates/avatar-re
 ## Check the ZIP checksum
 
 ```powershell
-$version = '2.0.2'
+$version = '2.0.3'
 $zip = "com.nickel-jp.avatar-recovery-$version.zip"
 Get-FileHash -LiteralPath $zip -Algorithm SHA256
 ```

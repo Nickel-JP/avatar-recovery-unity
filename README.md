@@ -2,7 +2,7 @@
 
 Restore supported Unity AssetBundles into Avatar and World projects on Windows.
 
-**Stable version 2.0.2** · [Download on GitHub](https://github.com/Nickel-JP/avatar-recovery-unity/releases/tag/v2.0.2) · [Update history](#update-history)
+**Stable version 2.0.3** · [Download on GitHub](https://github.com/Nickel-JP/avatar-recovery-unity/releases/tag/v2.0.3) · [Update history](#update-history)
 
 ## Install
 
@@ -14,7 +14,7 @@ Choose your package manager to add the repository.
 
 Open your Avatar or World project in VCC or ALCOM and install **Avatar Recovery**.
 
-To update an existing installation, refresh the repository and select **2.0.2**.
+To update an existing installation, refresh the repository and select **2.0.3**.
 
 VCC and ALCOM list the three newest supported versions. The withdrawn 1.3.x ZIPs are excluded from the current package directory. Their changelog entries and historical Git copies are retained.
 
@@ -53,7 +53,7 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 Before importing a manually downloaded package, compare its SHA-256 with the checksum for that version. You can also check the DLL signature against the published certificate.
 
 - [Download verification steps](VERIFICATION.md)
-- [2.0.2 SHA-256 checksum](checksums/com.nickel-jp.avatar-recovery-2.0.2.sha256.txt)
+- [2.0.3 SHA-256 checksum](checksums/com.nickel-jp.avatar-recovery-2.0.3.sha256.txt)
 - [Code-signing certificate](certificates/avatar-recovery-self-signed-code-signing.cer)
 
 ## Reproducible Tests
@@ -92,6 +92,10 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 2.0.3 - Tool Layout Update
+
+- Tool layout update.
 
 ### Version 2.0.2 - Recovery Error Messages and Menu Icon Matching
 
