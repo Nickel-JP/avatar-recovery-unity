@@ -1,5 +1,13 @@
 # AvatarRecovery Update History
 
+## Version 2.0.4 - Animator and Media Recovery
+
+- Fixes missing Animator states and transitions, including references to VRChat state behaviours.
+- Recovers supported missing textures and audio after standard extraction while preserving existing assets and import settings. Ambiguous matches remain unchanged.
+- Keeps unresolved source data for inspection and reports remaining recovery gaps.
+- Preserves the existing shader-list, manual shader reassignment, and SDK script-reference workflows. Original shader and custom script reconstruction are not added.
+- Passed 63 public EditMode tests and 30 package self-tests. A local avatar fixture retained all 18 targeted state behaviours, 18 states, 25 transitions, and 32 conditions after save and reimport in Unity 2022.3.22f1. Existing unresolved shader references still require manual repair.
+
 ## Version 2.0.3 - Tool Layout Update
 
 - Tool layout update.

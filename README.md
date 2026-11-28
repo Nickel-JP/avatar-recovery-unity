@@ -2,7 +2,7 @@
 
 Restore supported Unity AssetBundles into Avatar and World projects on Windows.
 
-**Stable version 2.0.3** · [Download on GitHub](https://github.com/Nickel-JP/avatar-recovery-unity/releases/tag/v2.0.3) · [Update history](#update-history)
+**Stable version 2.0.4** · [Download on GitHub](https://github.com/Nickel-JP/avatar-recovery-unity/releases/tag/v2.0.4) · [Update history](#update-history)
 
 ## Install
 
@@ -14,7 +14,7 @@ Choose your package manager to add the repository.
 
 Open your Avatar or World project in VCC or ALCOM and install **Avatar Recovery**.
 
-To update an existing installation, refresh the repository and select **2.0.3**.
+To update an existing installation, refresh the repository and select **2.0.4**.
 
 VCC and ALCOM list the three newest supported versions. The withdrawn 1.3.x ZIPs are excluded from the current package directory. Their changelog entries and historical Git copies are retained.
 
@@ -53,14 +53,16 @@ Join the official AvatarRecovery Discord server for update announcements, bug re
 Before importing a manually downloaded package, compare its SHA-256 with the checksum for that version. You can also check the DLL signature against the published certificate.
 
 - [Download verification steps](VERIFICATION.md)
-- [2.0.3 SHA-256 checksum](checksums/com.nickel-jp.avatar-recovery-2.0.3.sha256.txt)
+- [2.0.4 SHA-256 checksum](checksums/com.nickel-jp.avatar-recovery-2.0.4.sha256.txt)
 - [Code-signing certificate](certificates/avatar-recovery-self-signed-code-signing.cer)
 
 ## Reproducible Tests
 
-The public regression suite in [Tests](Tests/README.md) targets the signed 2.0.1 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
+The public regression suite in [Tests](Tests/README.md) targets the signed 2.0.4 package in Unity 2022.3.22f1. It creates its own materials, textures, shaders, and CSV reports; no private avatar files or product source are required. The runner checks the package hash and exports NUnit XML with the exact package identity.
 
 The standard CI checks repository version consistency, signed update metadata, package integrity, and the absence of withdrawn downloads. Unity tests use the separate **Public Unity regression tests** workflow and require a licensed Windows runner. A successful standard CI run alone does not mean the Unity suite ran.
+
+The signed 2.0.4 package passed 63 public EditMode tests with SDK 3.10.5 and 30 package self-tests. A local avatar fixture was recovered, saved, and reopened with SDK 3.10.6: all 18 targeted state behaviours, 18 states, 25 transitions, and 32 conditions matched the source data, with no recovery errors or missing scripts. Existing unresolved shader references still require manual repair; this does not establish complete recovery of every bundled object. [Public test results](Tests/Results/2.0.4-20261129/summary.json) · [Recovery validation scope](Tests/Results/2.0.4-20261129/recovery-summary.json)
 
 The signed 2.0.2 package passed 124 regression tests in the Unity 2022.3.22f1 Editor and 30 package self-tests. A real Avatar and a real World were recovered, saved, and reopened in the Editor.
 
@@ -92,6 +94,14 @@ Code distributed to a client cannot guarantee confidentiality or immutability. K
 Avatar projects should install `VRChat SDK - Avatars`; world projects should install `VRChat SDK - Worlds`. Keep VRChat SDK packages on the same version line.
 
 ## Update History
+
+### Version 2.0.4 - Animator and Media Recovery
+
+- Fixes missing Animator states and transitions, including references to VRChat state behaviours.
+- Recovers supported missing textures and audio after standard extraction while preserving existing assets and import settings. Ambiguous matches remain unchanged.
+- Keeps unresolved source data for inspection and reports remaining recovery gaps.
+- Preserves the existing shader-list, manual shader reassignment, and SDK script-reference workflows. Original shader and custom script reconstruction are not added.
+- Passed 63 public EditMode tests and 30 package self-tests. Targeted Animator recovery was verified through save and reimport in Unity 2022.3.22f1; unresolved shader references remain separate from the recovery checks.
 
 ### Version 2.0.3 - Tool Layout Update
 

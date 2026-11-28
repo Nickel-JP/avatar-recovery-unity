@@ -16,8 +16,8 @@ namespace AvatarRecovery.PublicTests
     public sealed class PublicShaderListTests
     {
         private const string PackageId = "com.nickel-jp.avatar-recovery";
-        private const string ExpectedVersion = "2.0.1";
-        private const string ExpectedDllSha256 = "ec4263332ee9c6c162092373933270f9bf3523ff52f2a390ce81cc5a50e45c9f";
+        private const string ExpectedVersion = "2.0.4";
+        private const string ExpectedDllSha256 = "c2b26afce342be68a1ed30ab582f246df0f15db1d5d81c2a2258fdd346999007";
         private const string FolderPrefix = "Assets/__AvatarRecoveryPublicTests_";
         private const string Header = "MaterialName,MaterialPath,OriginalShaderName,RenderQueue,ShaderDefaultQueue,ShaderVersion\n";
         private const int OriginalQueue = 2100;

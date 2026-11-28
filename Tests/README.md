@@ -1,6 +1,6 @@
 # Public package regression tests
 
-This suite exercises the distributed AvatarRecovery 2.0.1 Editor package. It creates synthetic inputs at runtime and does not require product source, private test helpers, or avatar files.
+This suite exercises the distributed AvatarRecovery 2.0.4 Editor package. It creates synthetic inputs at runtime and does not require product source, private test helpers, or avatar files.
 
 ## Requirements
 
@@ -16,7 +16,7 @@ From the repository root, use PowerShell 7:
 
 ```powershell
 .\Build\Invoke-PublicUnityTests.ps1 `
-  -ProjectPath 'G:\UnityTest\AvatarRecovery-2.0.1-PublicValidation' `
+  -ProjectPath 'G:\UnityTest\AvatarRecovery-2.0.4-PublicValidation' `
   -UnityPath 'C:\Program Files\Unity\Hub\Editor\2022.3.22f1\Editor\Unity.exe'
 ```
 
@@ -29,6 +29,8 @@ Each run writes a new directory below `.work/PublicUnityTests/`. `results.xml`, 
 The 63 test cases cover render-queue labels and boundary values, shader reassignment, selection behavior, persistence of material properties and texture references after reimport, repeated assignment, unknown queues, missing shaders, CSV version-label preservation, older CSV columns, and empty input. Unknown queues are checked with four current queue settings under both supported policies. Material checks include 20 saved rendering properties for Blend, Cull, ZWrite, ZTest, Stencil, masks, and offsets. The checks call the packaged Editor behavior and inspect the resulting assets.
 
 
+The [2.0.4 local result](Results/2.0.4-20261129/summary.json) records 63 passed, 0 failed, and 0 skipped against the signed DLL in Unity 2022.3.22f1 with SDK 3.10.5. [NUnit XML](Results/2.0.4-20261129/results.xml). A separate SDK 3.10.6 avatar-fixture run checked targeted Animator recovery, save, and reimport; its [sanitized summary](Results/2.0.4-20261129/recovery-summary.json) retains the unresolved quality diagnostics. It is not part of the 63 public tests.
+
 The [2.0.1 GUI result](Results/2.0.1-20261121/summary.json) records 63 passed, 0 failed and 0 skipped against the signed DLL. [NUnit XML](Results/2.0.1-20261121/results.xml)
 
 The [2.0.0 GUI result](Results/2.0.0-20261120/summary.json) records 63 passed, 0 failed and 0 skipped against the signed DLL. [NUnit XML](Results/2.0.0-20261120/results.xml)
@@ -39,7 +41,7 @@ The [local 1.2.27 snapshot](Results/1.2.27-20261026/summary.json) from 2026-10-2
 
 The [1.2.26 snapshot](Results/1.2.26-20261024/summary.json) retains its 63-test result. Two additional Texture2DArray checks passed separately against that signed package.
 
-The historical 1.2.21 result snapshot retains its original 35-test count and package identity. The current runner and test source are pinned to 2.0.1; use the corresponding repository revision to repeat an older suite.
+The historical 1.2.21 result snapshot retains its original 35-test count and package identity. The current runner and test source are pinned to 2.0.4; use the corresponding repository revision to repeat an older suite.
 
 This is not the historical 517-test suite. It does not cover real-avatar recovery, large real-world-bundle completion, repeated-run memory use, original shader-file version extraction, GUI operation or appearance, SDK lower-bound decisions, or recovery from an operating-system file-write denial. Clicking Continue / Cancel on the large-file warning has not been tested in the final package's GUI. Historical local tests using private input remain separate evidence.
 
@@ -59,4 +61,4 @@ Before dispatching it, supply a Windows x64 runner labeled `avatar-recovery-unit
 .\Build\Test-UpdateManifest.ps1
 ```
 
-These checks reject disagreement between the first version entry in the README, CI, package manifests, index, and update metadata. They also reject reintroduced 1.3.x ZIP/signature files, missing or mismatched indexed packages, and a package directory above 900,000,000 bytes. Signature verification includes modified-signature rejection cases. None of these checks substitutes for Unity functional testing.
+These checks reject disagreement between the first version entry in the README, CI, package manifests, index, and update metadata. They also reject reintroduced 1.3.x ZIP/signature files, missing or mismatched indexed packages, and a package directory above 1,024,000,000 bytes. Signature verification includes modified-signature rejection cases. None of these checks substitutes for Unity functional testing.
