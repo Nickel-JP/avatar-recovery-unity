@@ -7,7 +7,7 @@ Save the ZIP and the [published code-signing certificate](certificates/avatar-re
 ## Check the ZIP checksum
 
 ```powershell
-$version = '2.0.3'
+$version = '2.0.4'
 $zip = "com.nickel-jp.avatar-recovery-$version.zip"
 Get-FileHash -LiteralPath $zip -Algorithm SHA256
 ```
@@ -32,6 +32,12 @@ $cert.Thumbprint
 ```
 
 The two thumbprints must match. A self-signed certificate may show as untrusted on Windows. A missing signature, a hash mismatch, or a different signer means the check failed.
+
+## Release tag verification keys
+
+Version 2.0.4 uses the [current release-tag public key](certificates/avatar-recovery-release-tag-signing-key.pub), with fingerprint `SHA256:oCJIZOFq17VJDreS1VEy7Bjd7yV9L07rWaQGKWLmkSI`. The [allowed signers](certificates/avatar-recovery-release-tag-allowed-signers) also retain the [previous public key](certificates/avatar-recovery-release-tag-signing-key-legacy.pub) for historical tags.
+
+This tag-key update does not change the VPM repository URL, package ID, package code-signing certificate, or update-notification signing identities. Existing VCC and ALCOM repository registrations remain valid.
 
 ## Maintainer Commands
 
